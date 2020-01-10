@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,11 @@
  */
 /*
   File:      epsimage.cpp
-  Version:   $Rev: 2455 $
   Author(s): Michael Ulbrich (mul) <mul@rentapacs.de>
              Volker Grabsch (vog) <vog@notjusthosting.com>
   History:   7-Mar-2011, vog: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: epsimage.cpp $")
-
 // included header files
 #include "config.h"
 
@@ -37,6 +32,7 @@ EXIV2_RCSID("@(#) $Id: epsimage.cpp $")
 #include "basicio.hpp"
 #include "error.hpp"
 #include "futils.hpp"
+#include "version.hpp"
 
 // + standard includes
 #include <algorithm>
@@ -114,7 +110,7 @@ namespace {
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Failed to write to temporary file.\n";
             #endif
-            throw Error(21);
+            throw Error(kerImageWriteFailed);
         }
     }
 
@@ -132,7 +128,7 @@ namespace {
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Internal error while determining current write position in temporary file.\n";
             #endif
-            throw Error(21);
+            throw Error(kerImageWriteFailed);
         }
         return static_cast<uint32_t>(pos);
     }
@@ -227,7 +223,7 @@ namespace {
                             EXV_WARNING << "Unable to handle read-only XMP metadata yet. Please provide your "
                                            "sample EPS file to the Exiv2 project: http://dev.exiv2.org/projects/exiv2\n";
                             #endif
-                            throw Error(write ? 21 : 14);
+                            throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
                         }
 
                         // search for end of XMP trailer
@@ -240,13 +236,13 @@ namespace {
                         #ifndef SUPPRESS_WARNINGS
                         EXV_WARNING << "Found XMP header but incomplete XMP trailer.\n";
                         #endif
-                        throw Error(write ? 21 : 14);
+                        throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
                     }
                 }
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Found XMP header but no XMP trailer.\n";
                 #endif
-                throw Error(write ? 21 : 14);
+                throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
             }
         }
     }
@@ -256,7 +252,7 @@ namespace {
     {
         // open input file
         if (io.open() != 0) {
-            throw Error(9, io.path(), strError());
+            throw Error(kerDataSourceOpenFailed, io.path(), strError());
         }
         IoCloser closer(io);
 
@@ -264,7 +260,7 @@ namespace {
         const byte *data = io.mmap();
 
         // default positions and sizes
-        const size_t size = static_cast<size_t>(io.size());
+        const size_t size = io.size();
         size_t posEps = 0;
         size_t posEndEps = size;
         uint32_t posWmf = 0;
@@ -282,7 +278,7 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Premature end of file after DOS EPS signature.\n";
                 #endif
-                throw Error(write ? 21 : 14);
+                throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
             }
             posEps    = getULong(data +  4, littleEndian);
             posEndEps = getULong(data +  8, littleEndian) + posEps;
@@ -305,31 +301,31 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "DOS EPS file has both WMF and TIFF section. Only one of those is allowed.\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
             }
             if (sizeWmf == 0 && sizeTiff == 0) {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "DOS EPS file has neither WMF nor TIFF section. Exactly one of those is required.\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
             }
             if (posEps < 30 || posEndEps > size) {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "DOS EPS file has invalid position (" << posEps << ") or size (" << (posEndEps - posEps) << ") for EPS section.\n";
                 #endif
-                throw Error(write ? 21 : 14);
+                throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
             }
             if (sizeWmf != 0 && (posWmf < 30 || posWmf + sizeWmf > size)) {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "DOS EPS file has invalid position (" << posWmf << ") or size (" << sizeWmf << ") for WMF section.\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
             }
             if (sizeTiff != 0 && (posTiff < 30 || posTiff + sizeTiff > size)) {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "DOS EPS file has invalid position (" << posTiff << ") or size (" << sizeTiff << ") for TIFF section.\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
             }
         }
 
@@ -344,7 +340,7 @@ namespace {
             matched = (firstLine == epsFirstLine[i]);
         }
         if (!matched) {
-            throw Error(3, "EPS");
+            throw Error(kerNotAnImage, "EPS");
         }
 
         // determine line ending style of the first line
@@ -352,7 +348,7 @@ namespace {
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Premature end of file after first line.\n";
             #endif
-            throw Error(write ? 21 : 14);
+            throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
         }
         const std::string lineEnding(reinterpret_cast<const char*>(data + posEps + firstLine.size()), posSecondLine - (posEps + firstLine.size()));
         #ifdef DEBUG
@@ -407,13 +403,13 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Nested document at invalid position: " << startPos << "\n";
                 #endif
-                throw Error(write ? 21 : 14);
+                throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
             } else if (startsWith(line, "%%BeginDocument:")) {
                 if (depth == maxDepth) {
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "Document too deeply nested at position: " << startPos << "\n";
                     #endif
-                    throw Error(write ? 21 : 14);
+                    throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
                 }
                 depth++;
             } else if (startsWith(line, "%%EndDocument")) {
@@ -421,7 +417,7 @@ namespace {
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "Unmatched EndDocument at position: " << startPos << "\n";
                     #endif
-                    throw Error(write ? 21 : 14);
+                    throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
                 }
                 depth--;
             } else {
@@ -452,12 +448,12 @@ namespace {
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "Page at position " << startPos << " conflicts with implicit page at position: " << posPage << "\n";
                     #endif
-                    throw Error(write ? 21 : 14);
+                    throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
                 }
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Unable to handle multiple PostScript pages. Found second page at position: " << startPos << "\n";
                 #endif
-                throw Error(write ? 21 : 14);
+                throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
             } else if (line == "%%BeginPageSetup") {
                 posBeginPageSetup = startPos;
             } else if (!inRemovableEmbedding && line == "%Exiv2BeginXMP: Before %%EndPageSetup") {
@@ -606,7 +602,7 @@ namespace {
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Unmatched BeginDocument (" << depth << "x)\n";
             #endif
-            throw Error(write ? 21 : 14);
+            throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
         }
 
         // look for the unmarked trailers of some removable XMP embeddings
@@ -626,7 +622,7 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Unable to find XMP embedding trailer ending at position: " << posXmpTrailerEnd << "\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
                 break;
             }
             removableEmbeddings.push_back(std::make_pair(posXmpTrailer, posXmpTrailerEnd));
@@ -650,7 +646,7 @@ namespace {
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Invalid line \"" << line << "\" at position: " << posContainsXmp << "\n";
             #endif
-            throw Error(write ? 21 : 14);
+            throw Error(write ? kerImageWriteFailed : kerFailedToReadImageData);
         }
 
         const bool deleteXmp = (write && xmpPacket.size() == 0);
@@ -697,7 +693,7 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Missing %begin_xml_packet in Photoshop EPS at position: " << xmpPos << "\n";
                 #endif
-                if (write) throw Error(21);
+                if (write) throw Error(kerImageWriteFailed);
             }
         }
         if (!useFlexibleEmbedding) {
@@ -708,7 +704,7 @@ namespace {
                 findXmp(posOtherXmp, sizeOtherXmp, data, posOtherXmp + sizeOtherXmp, posEndPageSetup, write);
                 if (posOtherXmp >= posEndPageSetup) break;
                 bool isRemovableEmbedding = false;
-                for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); e++) {
+                for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); ++e) {
                     if (e->first <= posOtherXmp && posOtherXmp < e->second) {
                         isRemovableEmbedding = true;
                         break;
@@ -718,7 +714,7 @@ namespace {
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "XMP metadata block is not removable at position: " << posOtherXmp << "\n";
                     #endif
-                    if (write) throw Error(21);
+                    if (write) throw Error(kerImageWriteFailed);
                     break;
                 }
             }
@@ -805,7 +801,7 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Unable to write to EPS files created by Adobe Illustrator 8.0 or older.\n";
                 #endif
-                throw Error(21);
+                throw Error(kerImageWriteFailed);
             }
 
             // create temporary output file
@@ -815,7 +811,7 @@ namespace {
                 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "Unable to create temporary file for writing.\n";
                 #endif
-                throw Error(21);
+                throw Error(kerImageWriteFailed);
             }
             #ifdef DEBUG
             EXV_DEBUG << "readWriteEpsMetadata: Created temporary file " << tempIo->path() << "\n";
@@ -838,7 +834,7 @@ namespace {
             if (useFlexibleEmbedding) {
                 positions.push_back(xmpPos);
             }
-            for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); e++) {
+            for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); ++e) {
                 positions.push_back(e->first);
             }
             std::sort(positions.begin(), positions.end());
@@ -852,7 +848,7 @@ namespace {
             const uint32_t posEpsNew = posTemp(*tempIo);
             size_t prevPos = posEps;
             size_t prevSkipPos = prevPos;
-            for (std::vector<size_t>::const_iterator i = positions.begin(); i != positions.end(); i++) {
+            for (std::vector<size_t>::const_iterator i = positions.begin(); i != positions.end(); ++i) {
                 const size_t pos = *i;
                 if (pos == prevPos) continue;
                 #ifdef DEBUG
@@ -863,7 +859,7 @@ namespace {
                     EXV_WARNING << "Internal error while assembling the result EPS document: "
                                    "Unable to continue at position " << pos << " after skipping to position " << prevSkipPos << "\n";
                     #endif
-                    throw Error(21);
+                    throw Error(kerImageWriteFailed);
                 }
                 writeTemp(*tempIo, data + prevSkipPos, pos - prevSkipPos);
                 const size_t posLineEnd = readLine(line, data, pos, posEndEps);
@@ -955,7 +951,7 @@ namespace {
                 }
                 if (!useFlexibleEmbedding) {
                     // remove preceding embedding(s)
-                    for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); e++) {
+                    for (std::vector<std::pair<size_t, size_t> >::const_iterator e = removableEmbeddings.begin(); e != removableEmbeddings.end(); ++e) {
                         if (pos == e->first) {
                             skipPos = e->second;
                             #ifdef DEBUG
@@ -1052,7 +1048,7 @@ namespace {
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "Internal error while seeking in temporary file.\n";
                     #endif
-                    throw Error(21);
+                    throw Error(kerImageWriteFailed);
                 }
                 byte dosEpsHeader[30];
                 dosEpsSignature.copy(reinterpret_cast<char*>(dosEpsHeader), dosEpsSignature.size());
@@ -1093,7 +1089,7 @@ namespace Exiv2
                     #ifndef SUPPRESS_WARNINGS
                     EXV_WARNING << "Failed to write blank EPS image.\n";
                     #endif
-                    throw Error(21);
+                    throw Error(kerImageWriteFailed);
                 }
             }
         }
@@ -1106,7 +1102,7 @@ namespace Exiv2
 
     void EpsImage::setComment(const std::string& /*comment*/)
     {
-        throw Error(32, "Image comment", "EPS");
+        throw Error(kerInvalidSettingForImage, "Image comment", "EPS");
     }
 
     void EpsImage::readMetadata()
@@ -1123,7 +1119,7 @@ namespace Exiv2
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Failed to decode XMP metadata.\n";
             #endif
-            throw Error(14);
+            throw Error(kerFailedToReadImageData);
         }
 
         #ifdef DEBUG
@@ -1142,7 +1138,7 @@ namespace Exiv2
             #ifndef SUPPRESS_WARNINGS
             EXV_WARNING << "Failed to encode XMP metadata.\n";
             #endif
-            throw Error(21);
+            throw Error(kerImageWriteFailed);
         }
 
         // write metadata

@@ -1,23 +1,30 @@
 
 Summary: Exif and Iptc metadata manipulation library
 Name:    exiv2
-Version: 0.26
-Release: 3%{?dist}
+Version: 0.27.0
+Release: 2%{?dist}
 
 License: GPLv2+
 URL:     http://www.exiv2.org/
-Source0: http://www.exiv2.org/builds/exiv2-%{version}-trunk.tar.gz
+#Source0: https://github.com/Exiv2/%{name}/archive/exiv2-%{version}.tar.gz
+Source0: http://exiv2.org/builds/%{name}-%{version}a-Source.tar.gz
 
-## upstream patches (lookaside cache)
-Patch6:  0006-1296-Fix-submitted.patch
+## upstream patches
+Patch22: 0022-cmake-man-pages-only-installed-with-the-exiv2-app.patch
+Patch35: 0035-cmake-ignore-warnings-about-missing-PDB-files-in-3rd.patch
+Patch64: 0064-cmake-Rename-xmp-to-exiv2-xmp-to-avoid-name-conflict.patch
+Patch65: 0065-cmake-Install-header-files-without-globbing.patch
+Patch66: 0066-cmake-Use-correct-installation-dir-for-generated-doc.patch
+Patch67: 0067-cmake-Use-correct-installation-dir-for-cmake-config-.patch
+Patch68: 0068-xmpsdk-Build-with-DBanAllEntityUsage-1.patch
+Patch69: 0069-xmpsdk-Fix-compile-warnings-in-ExpatAdapter.cpp.patch
+Patch79: 0079-Fixes-in-.pc-file-for-being-compatible-with-more-dis.patch
 
-Patch10: exiv2-CVE-2017-17723.patch
-Patch11: exiv2-CVE-2017-17725.patch
-Patch12: exiv2-CVE-2017-5772.patch
-
-## upstreamable patches
-Patch100: exiv2-doxygen.patch
-
+%if 0%{?rhel} == 7
+BuildRequires: llvm-toolset-7-cmake
+%else
+BuildRequires:  cmake
+%endif
 BuildRequires: expat-devel
 BuildRequires: gettext
 BuildRequires: pkgconfig
@@ -27,7 +34,6 @@ BuildRequires: zlib-devel
 BuildRequires: doxygen graphviz libxslt
 
 Requires: %{name}-libs%{?_isa} = %{version}-%{release}
-
 
 %description
 A command line utility to access image metadata, allowing one to:
@@ -49,6 +55,12 @@ Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 
 %package libs
 Summary: Exif and Iptc metadata manipulation library
+# not strictly required, but convenient and expected
+%if 0%{?rhel} && 0%{?rhel} <= 7
+Requires: %{name} = %{version}-%{release}
+%else
+Recommends: %{name} = %{version}-%{release}
+%endif
 %description libs
 A C++ library to access image metadata, supporting full read and write access
 to the Exif and Iptc metadata, Exif MakerNote support, extract and delete
@@ -62,55 +74,41 @@ BuildArch: noarch
 
 
 %prep
-%autosetup -n %{name}-trunk -p1
+%autosetup -n %{name}-%{version}-Source -p1
 
 %build
-# exiv2: embedded copy of exempi should be compiled with BanAllEntityUsage
-# https://bugzilla.redhat.com/show_bug.cgi?id=888769
-export CPPFLAGS="-DBanAllEntityUsage=1"
+%if 0%{?rhel} == 7
+source /opt/rh/llvm-toolset-7/enable
+%define __cmake /opt/rh/llvm-toolset-7/root/usr/bin/cmake
+%endif
 
-%configure \
-  --disable-rpath \
-  --disable-static
+%{cmake} . \
+  -DCMAKE_INSTALL_DOCDIR="%{_pkgdocdir}" \
+  -DEXIV2_BUILD_DOC:BOOL=ON \
+  -DEXIV2_BUILD_PO:BOOL=ON \
+  -DEXIV2_BUILD_SAMPLES:BOOL=OFF
 
-# rpath
-sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
-sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
-
-make %{?_smp_mflags}
-make doc -k ||:
+%make_build
+%make_build doc
 
 %install
-rm -rf %{buildroot}
-
-make install DESTDIR=%{buildroot}
-
-%find_lang exiv2
-
-## Unpackaged files
-rm -fv %{buildroot}%{_libdir}/libexiv2.la
-
-## fix perms on installed lib
-ls -l     %{buildroot}%{_libdir}/libexiv2.so.*
-chmod 755 %{buildroot}%{_libdir}/libexiv2.so.*
-
+make install/fast DESTDIR=%{buildroot}
 
 %find_lang exiv2 --with-man
 
 ## unpackaged files
 rm -fv %{buildroot}%{_libdir}/libexiv2.la
+#rm -fv %{buildroot}%{_libdir}/pkgconfig/exiv2.lsm
 
 %check
-export PKG_CONFIG_PATH=%{buildroot}%{_libdir}/pkgconfig
+export PKG_CONFIG_PATH="%{buildroot}%{_libdir}/pkgconfig${PKG_CONFIG_PATH:+:}${PKG_CONFIG_PATH}"
 test "$(pkg-config --modversion exiv2)" = "%{version}"
+test "$(pkg-config --variable=libdir exiv2)" = "%{_libdir}"
 test -x %{buildroot}%{_libdir}/libexiv2.so
 
 
 %files -f exiv2.lang
 %license COPYING
-%doc doc/ChangeLog
-# README is mostly installation instructions
-#doc README
 %{_bindir}/exiv2
 %{_mandir}/man1/exiv2*.1*
 
@@ -118,17 +116,29 @@ test -x %{buildroot}%{_libdir}/libexiv2.so
 %postun libs -p /sbin/ldconfig
 
 %files libs
-%{_libdir}/libexiv2.so.26*
+%{_libdir}/libexiv2.so.27*
+%{_libdir}/libexiv2.so.%{version}
 
 %files devel
 %{_includedir}/exiv2/
 %{_libdir}/libexiv2.so
 %{_libdir}/pkgconfig/exiv2.pc
+%{_libdir}/cmake/exiv2/
+%{_libdir}/libexiv2-xmp.a
 
 %files doc
-%doc doc/html
+%{_pkgdocdir}/
+
 
 %changelog
+* Mon Feb 04 2019 Jan Grulich <jgrulich@redhat.com> - 0.27.0-2
+- Minor improvements
+  Resolves: bz#1652637
+
+* Tue Jan 15 2019 Jan Grulich <jgrulich@redhat.com> - 0.27.0-1
+- Exiv2 0.27.0
+  Resolves: bz#1652637
+
 * Fri Feb 23 2018 Jan Grulich <jgrulich@redhat.com> - 0.26-3
 - Fix uncontrolled recursion in image.cpp:Exiv2::Image::printIFDStructure() which can allow a
   remote attacker to cause a denial of service via a crafted tif file

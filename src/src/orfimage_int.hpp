@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    orfimage_int.hpp
   @brief   Internal classes to support Olympus RAW image format
-  @version $Rev: 4719 $
   @author  Jeff Costlow
            <a href="mailto:costlow@gmail.com">costlow@gmail.com</a>
   @date    31-Jul-07, costlow: created
@@ -51,7 +49,7 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Default constructor
-        OrfHeader(ByteOrder byteOrder =littleEndian);
+        explicit OrfHeader(ByteOrder byteOrder =littleEndian);
         //! Destructor.
         ~OrfHeader();
         //@}

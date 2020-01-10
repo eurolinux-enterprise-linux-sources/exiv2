@@ -1,9 +1,8 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.\" @(#) $Id: exiv2.1 4730 2017-03-12 21:05:18Z robinwmills $
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH EXIV2 1 "Oct 19, 2016"
+.TH EXIV2 1 "Nov 26, 2018"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -223,11 +222,8 @@ Show unknown tags (default is to suppress tags which don't have a name).
 Only keys which match the given key (grep).
 .br
 Multiple \fB\-g\fP options
-can be used to grep info for several keys.  When the library is build with C++11,
-keys are matched using std::regex::extended.  When build without C++11, keys are
-processed with the system regular expression engine:  see man 3 regex.  Platforms which do not support
-regex use key for a substring match.  You can determine the availability of regex
-using the command: exiv2 -v -V -g have_regex -g cplusplus.
+can be used to grep info for several keys. Example:
+exiv2 -v -V -g webready -g time.
 
 .nf
 exiv2 \-g Date \-pt R.jpg
@@ -297,88 +293,60 @@ the 'adjust' action.
 .TP
 .B \-p \fImode\fP
 Print mode for the 'print' action. Possible modes are:
-.br
+.TS
+l l.
 s : print a summary of the Exif metadata (the default)
-.br
 a : print Exif, IPTC and XMP metadata (shortcut for \-Pkyct)
-.br
 e : print Exif metadata (shortcut for \-PEkycv)
-.br
 t : interpreted (translated) Exif tags (\-PEkyct)
-.br
 v : plain Exif tag values (\-PExgnycv)
-.br
 h : hexdump of the Exif data (\-PExgnycsh)
-.br
 i : IPTC datasets (\-PIkyct)
-.br
 x : XMP properties (\-PXkyct)
-.br
 c : JPEG comment
-.br
 p : list available image previews, sorted by preview image size in pixels
-.br
 C : print image ICC Profile (jpg, png, tiff, webp, cr2, jp2 only)
-.br
 R : print image structure recursively (jpg, png, tiff, webp, cr2, jp2 only)
-.br
 S : print image structure information (jpg, png, tiff, webp, cr2, jp2 only)
-.br
 X : print "raw" XMP (jpg, png, tiff, webp, cr2, jp2 only)
+.TE
 .TP
 .B \-P \fIflgs\fP
 Print flags for fine control of the tag list ('print' action). Allows
 control of the type of metadata as well as data columns included in
 the print output.  Valid flags are:
-.br
+.TS
+l l.
 E : include Exif tags in the list
-.br
 I : IPTC datasets
-.br
 X : XMP properties
-.br
 x : print a column with the tag number
-.br
 g : group name
-.br
 k : key
-.br
 l : tag label
-.br
 n : tag name
-.br
 y : type
-.br
 c : number of components (count)
-.br
 s : size in bytes
-.br
 v : plain data value (vanilla values)
-.br
 V : plain data value AND the word 'set ' (for use with exiv2 -m-)
-.br
 t : interpreted (translated) human readable data
-.br
 h : hexdump of the data
+.TE
 .TP
 .B \-d \fItgt\fP
 Delete target(s) for the 'delete' action. Possible targets are:
-.br
+.TS
+l l.
 a : all supported metadata (the default)
-.br
 e : Exif section
-.br
 t : Exif thumbnail only
-.br
 i : IPTC data
-.br
 x : XMP packet
-.br
 c : JPEG comment
-.br
 C : ICC Profile
-.br
 I : All IPTC data
+.TE
 .TP
 .B \-i \fItgt\fP
 Insert target(s) for the 'insert' action. Possible targets are the
@@ -603,6 +571,36 @@ Empty lines and lines starting with \fB#\fP in a command file are
 ignored (comments). Remaining lines are commands as described above.
 .br
 .ne 40
+.SH CONFIGURATION FILE
+Exiv2 can read an optional configuration file ~/.exiv2 on Unix systems and %USERPROFILE%\\exiv2.ini on Windows (using a Visual Studio build).  Cygwin and MinGW/msys2 follow the unix convention and use ~/.exiv2  You can fine the location of the configuration file with the command:
+.br
+.sp 1
+.nf
+$ exiv2 --verbose --version --grep config_path
+exiv2 0.27.0.1
+config_path=/Users/rmills/.exiv2
+.fi
+.sp 1
+The purpose of the configuration file is to define your own lenses for recognition by Exiv2.  The configuration file is in Windows .ini format and has sections for each of the major camera manufactures canon,nikon,pentax,minolta,olympus and sony.  The lens metadata is stored as a integer called the lensID.  You can change the lens name associated with any lensID.
+.br
+.sp 1
+.nf
+$ cat ~/.exiv2
+[nikon]
+146=Robin's Sigma Lens  <--- The name of your lens
+.fi
+.sp 1
+You obtain the lensID for your camera with the command:
+.nf
+.sp 1
+$ exiv2 -pv --grep lens/i http://clanmills.com/Stonehenge.jpg
+0x0083 Nikon3       LensType                    Byte        1  14
+0x0084 Nikon3       Lens                        Rational    4  180/10 2500/10 35/10 63/10
+0x008b Nikon3       LensFStops                  Undefined   4  55 1 12 0
+0x000c NikonLd3     LensIDNumber                Byte        1  146 <--- This number
+0x000d NikonLd3     LensFStops                  Byte        1  55
+.br
+.ne 40
 .SH EXAMPLES
 .TP
 exiv2 *.jpg
@@ -658,13 +656,13 @@ requirements of the target format. Some tags copied like this may not
 make sense in the target image.
 .SH SEE ALSO
 .TP
-.I http://www.exiv2.org/sample.html#modify
+.I http://exiv2.dyndns.org/sample.html#modify
 Sample command files.
 .TP
-.I http://www.exiv2.org/metadata.html
+.I http://exiv2.dyndns.org/metadata.html
 Taglists with \fIkey\fP and default \fItype\fP values.
 .SH AUTHORS
 .B exiv2
-was written by Andreas Huggel and others.  The Exiv2 project web site is http://exiv2.org
+was written by Andreas Huggel and others.  The Exiv2 project web site is http://exiv2.dyndns.org.  The code is hosted on GitHub at https://github.com/exiv2/exiv2
 .PP
 This manual page was originally created for the Debian project by KELEMEN Peter <fuji@debian.org>.

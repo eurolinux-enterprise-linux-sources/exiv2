@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,7 +23,6 @@
            References: Similar versioning defines are used in KDE, GTK and other
            libraries. See http://apr.apache.org/versioning.html for accompanying
            guidelines.
-  @version $Rev: 3371 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    31-May-06, ahu: created
@@ -32,25 +30,16 @@
 #ifndef VERSION_HPP_
 #define VERSION_HPP_
 
+#include "exv_conf.h"
+#include "exiv2lib_export.h"
+
 // *****************************************************************************
 // included header files
 // + standard includes
 #include <vector>
 
-/*!
- @brief CPLUSPLUS11 is the value of macro --cplusplus for C++11
-*/
-#define CPLUSPLUS11 201103L
-
-#if __cplusplus >= CPLUSPLUS11
-# include <regex>
-  /*!
-   @brief exv_grep_keys_t is a vector of keys to match to strings
-  */
-  typedef std::vector<std::regex> exv_grep_keys_t ;
-#else
-# if EXV_HAVE_REGEX
-#  include <regex.h>
+#if defined(EXV_HAVE_REGEX_H)
+# include <regex.h>
   /*!
    @brief exv_grep_keys_t is a vector of keys to match to strings
   */
@@ -76,21 +65,8 @@
    @brief exv_grep_keys_t is a vector of keys to match to strings
   */
    typedef std::vector<Exiv2_grep_key_t> exv_grep_keys_t ;
-# endif
 #endif
 
-/*!
-  @brief %Exiv2 MAJOR version number of the library used at compile-time.
- */
-#define EXIV2_MAJOR_VERSION  (0)
-/*!
-  @brief %Exiv2 MINOR version number of the library used at compile-time.
- */
-#define EXIV2_MINOR_VERSION (26)
-/*!
-  @brief %Exiv2 PATCH version number of the library used at compile-time.
- */
-#define EXIV2_PATCH_VERSION  (0)
 /*!
   @brief Make an integer version number for comparison from a major, minor and
          a patch version number.
@@ -103,28 +79,22 @@
  */
 #define EXIV2_VERSION \
     EXIV2_MAKE_VERSION(EXIV2_MAJOR_VERSION,EXIV2_MINOR_VERSION,EXIV2_PATCH_VERSION)
-/*!
-  @brief Deprecated version check macro. Do not use.
 
-  This macro has flaws and only remains for backward compatibility.
-  Use EXIV2_TEST_VERSION and testVersion() instead.
- */
-#define EXIV2_CHECK_VERSION(major,minor,patch) \
-    ( Exiv2::versionNumber() >= EXIV2_MAKE_VERSION(major,minor,patch) )
 /*!
-  @brief Macro to test the version of the available %Exiv2 library at compile-time.
+  @brief Macro to test the version the %Exiv2 library at compile-time.
          Return true if it is the same as or newer than the passed-in version.
 
-  Versions are denoted using a triplet of integers: \em MAJOR.MINOR.PATCH .
+  Versions prior to v0.27 are denoted using a triplet of integers: \em MAJOR.MINOR.PATCH .
+  From v0.27 forward, the fourth digit is a "tweak" and designates the pre-release number of the version.
 
   @code
-  // Don't include the <exiv2/version.hpp> file directly, it is included by
-  // <exiv2/types.hpp>. Early Exiv2 versions didn't have version.hpp and the macros.
+  // Application code is expected to include <exiv2/exiv2.hpp>
+  // Don't include the <exiv2/version.hpp> file directly
+  // Early Exiv2 versions didn't have version.hpp and the macros.
 
-  #include <exiv2/types.hpp>
+  #include <exiv2/exiv2.hpp>
 
   // Make sure an EXIV2_TEST_VERSION macro exists:
-
   #ifdef EXIV2_VERSION
   # ifndef EXIV2_TEST_VERSION
   # define EXIV2_TEST_VERSION(major,minor,patch) \
@@ -171,54 +141,20 @@ namespace Exiv2 {
       @brief Return the version of %Exiv2 as hex string of fixed length 6.
     */
     EXIV2API std::string versionNumberHexString();
+
     /*!
-      @brief Return the version of %Exiv2 available at runtime as a string.
+      @brief Return the version of %Exiv2 as "C" string eg "0.27.0.2".
     */
     EXIV2API const char* version();
+
     /*!
       @brief Test the version of the available %Exiv2 library at runtime. Return
              true if it is the same as or newer than the passed-in version.
 
       Versions are denoted using a triplet of integers: \em major.minor.patch .
-
-      @code
-      // Don't include the <exiv2/version.hpp> file directly, it is included by
-      // <exiv2/types.hpp>. Early Exiv2 versions didn't have version.hpp and the macros.
-
-      #include <exiv2/types.hpp>
-
-      // Make sure an EXIV2_TEST_VERSION macro exists:
-
-      #ifdef EXIV2_VERSION
-      # ifndef EXIV2_TEST_VERSION
-      # define EXIV2_TEST_VERSION(major,minor,patch) \
-          ( EXIV2_VERSION >= EXIV2_MAKE_VERSION(major,minor,patch) )
-      # endif
-      #else
-      # define EXIV2_TEST_VERSION(major,minor,patch) (false)
-      #endif
-
-      std::cout << "Compiled with Exiv2 version " << EXV_PACKAGE_VERSION << "\n"
-                << "Runtime Exiv2 version is    " << Exiv2::version()    << "\n";
-
-      // Test the Exiv2 version available at runtime but compile the if-clause only if
-      // the compile-time version is at least 0.15. Earlier versions didn't have a
-      // testVersion() function:
-
-      #if EXIV2_TEST_VERSION(0,15,0)
-      if (Exiv2::testVersion(0,13,0)) {
-          std::cout << "Available Exiv2 version is equal to or greater than 0.13\n";
-      }
-      else {
-          std::cout << "Installed Exiv2 version is less than 0.13\n";
-      }
-      #else
-      std::cout << "Compile-time Exiv2 version doesn't have Exiv2::testVersion()\n";
-      #endif
-      @endcode
-     */
+      The fourth version number is designated a "tweak" an used by Release Candidates
+    */
     EXIV2API bool testVersion(int major, int minor, int patch);
-
     /*!
       @brief dumpLibraryInfo implements the exiv2 option --version --verbose
              used by exiv2 test suite to inspect libraries loaded at run-time

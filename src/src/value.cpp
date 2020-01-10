@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,22 +19,19 @@
  */
 /*
   File:      value.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   26-Jan-04, ahu: created
              11-Feb-04, ahu: isolated as a component
              31-Jul-04, brad: added Time, Date and String values
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: value.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
-// *****************************************************************************
 // included header files
 #include "value.hpp"
 #include "types.hpp"
+#include "enforce.hpp"
 #include "error.hpp"
 #include "convert.hpp"
+#include "unused.h"
 
 // + standard includes
 #include <iostream>
@@ -44,9 +40,41 @@ EXIV2_RCSID("@(#) $Id: value.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include <cassert>
 #include <cstring>
 #include <ctime>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <ctype.h>
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+
+#define snprintf c99_snprintf
+#define vsnprintf c99_vsnprintf
+
+__inline int c99_vsnprintf(char *outBuf, size_t size, const char *format, va_list ap)
+{
+    int count = -1;
+
+    if (size != 0)
+        count = _vsnprintf_s(outBuf, size, _TRUNCATE, format, ap);
+    if (count == -1)
+        count = _vscprintf(format, ap);
+
+    return count;
+}
+
+__inline int c99_snprintf(char *outBuf, size_t size, const char *format, ...)
+{
+    int count;
+    va_list ap;
+
+    va_start(ap, format);
+    count = c99_vsnprintf(outBuf, size, format, ap);
+    va_end(ap);
+
+    return count;
+}
+
+#endif
 
 // *****************************************************************************
 // class member definitions
@@ -474,7 +502,7 @@ namespace Exiv2 {
             charsetId = CharsetInfo::charsetIdByName(name);
             if (charsetId == invalidCharsetId) {
 #ifndef SUPPRESS_WARNINGS
-                EXV_WARNING << Error(28, name) << "\n";
+                EXV_WARNING << Error(kerInvalidCharset, name) << "\n";
 #endif
                 return 1;
             }
@@ -500,7 +528,8 @@ namespace Exiv2 {
         std::string c = value_;
         if (charsetId() == unicode) {
             c = value_.substr(8);
-            std::string::size_type sz = c.size();
+            const size_t sz = c.size();
+            UNUSED(sz);
             if (byteOrder_ == littleEndian && byteOrder == bigEndian) {
                 convertStringCharset(c, "UCS-2LE", "UCS-2BE");
                 assert(c.size() == sz);
@@ -511,7 +540,8 @@ namespace Exiv2 {
             }
             c = value_.substr(0, 8) + c;
         }
-        if (c.size() == 0) return 0;
+        if (c.size() == 0)
+            return 0;
         assert(buf != 0);
         return static_cast<long>(c.copy(reinterpret_cast<char*>(buf), c.size()));
     }
@@ -686,7 +716,7 @@ namespace Exiv2 {
                 setXmpStruct();
             }
             else {
-                throw Error(48, type);
+                throw Error(kerInvalidXmpText, type);
             }
         }
         value_ = b;
@@ -932,7 +962,7 @@ namespace Exiv2 {
         // Hard coded to read Iptc style dates
         if (len != 8) {
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(29) << "\n";
+            EXV_WARNING << Error(kerUnsupportedDateFormat) << "\n";
 #endif
             return 1;
         }
@@ -943,7 +973,7 @@ namespace Exiv2 {
                              &date_.year, &date_.month, &date_.day);
         if (scanned != 3) {
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(29) << "\n";
+            EXV_WARNING << Error(kerUnsupportedDateFormat) << "\n";
 #endif
             return 1;
         }
@@ -955,7 +985,7 @@ namespace Exiv2 {
         // Hard coded to read Iptc style dates
         if (buf.length() < 8) {
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(29) << "\n";
+            EXV_WARNING << Error(kerUnsupportedDateFormat) << "\n";
 #endif
             return 1;
         }
@@ -963,7 +993,7 @@ namespace Exiv2 {
                              &date_.year, &date_.month, &date_.day);
         if (scanned != 3) {
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(29) << "\n";
+            EXV_WARNING << Error(kerUnsupportedDateFormat) << "\n";
 #endif
             return 1;
         }
@@ -982,11 +1012,10 @@ namespace Exiv2 {
         // sprintf wants to add the null terminator, so use oversized buffer
         char temp[9];
 
-        int wrote = sprintf(temp, "%04d%02d%02d",
-                            date_.year, date_.month, date_.day);
+        int wrote = sprintf(temp, "%04d%02d%02d", date_.year, date_.month, date_.day);
         assert(wrote == 8);
-        std::memcpy(buf, temp, 8);
-        return 8;
+        std::memcpy(buf, temp, wrote);
+        return wrote;
     }
 
     const DateValue::Date& DateValue::getDate() const
@@ -1081,7 +1110,7 @@ namespace Exiv2 {
         if (rc) {
             rc = 1;
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(30) << "\n";
+            EXV_WARNING << Error(kerUnsupportedTimeFormat) << "\n";
 #endif
         }
         return rc;
@@ -1101,7 +1130,7 @@ namespace Exiv2 {
         if (rc) {
             rc = 1;
 #ifndef SUPPRESS_WARNINGS
-            EXV_WARNING << Error(30) << "\n";
+            EXV_WARNING << Error(kerUnsupportedTimeFormat) << "\n";
 #endif
         }
         return rc;
@@ -1152,19 +1181,19 @@ namespace Exiv2 {
 
     long TimeValue::copy(byte* buf, ByteOrder /*byteOrder*/) const
     {
-        // sprintf wants to add the null terminator, so use oversized buffer
         char temp[12];
         char plusMinus = '+';
-        if (time_.tzHour < 0 || time_.tzMinute < 0) plusMinus = '-';
+        if (time_.tzHour < 0 || time_.tzMinute < 0)
+            plusMinus = '-';
 
-        int wrote = sprintf(temp,
+        const int wrote = snprintf(temp, sizeof(temp), // 11 bytes are written + \0
                    "%02d%02d%02d%1c%02d%02d",
                    time_.hour, time_.minute, time_.second,
                    plusMinus, abs(time_.tzHour), abs(time_.tzMinute));
 
-        assert(wrote == 11);
-        std::memcpy(buf, temp, 11);
-        return 11;
+        enforce(wrote == 11, Exiv2::kerUnsupportedTimeFormat);
+        std::memcpy(buf, temp, wrote);
+        return wrote;
     }
 
     const TimeValue::Time& TimeValue::getTime() const

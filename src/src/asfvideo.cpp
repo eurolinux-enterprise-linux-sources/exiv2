@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,25 +19,20 @@
  */
 /*
   File:      asfvideo.cpp
-  Version:   $Rev: 4719 $
   Author(s): Abhinav Badola for GSoC 2012 (AB) <mail.abu.to@gmail.com>
   History:   08-Aug-12, AB: created
   Credits:   See header file
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: asfvideo.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
-// *****************************************************************************
 // included header files
 #include "config.h"
 
 #ifdef EXV_ENABLE_VIDEO
+#include "tags.hpp"
+#include "tags_int.hpp"
 #include "asfvideo.hpp"
 #include "futils.hpp"
 #include "basicio.hpp"
-#include "tags.hpp"
-#include "tags_int.hpp"
 #include "types.hpp"
 #include "riffvideo.hpp"
 #include "convert.hpp"
@@ -312,12 +306,12 @@ namespace Exiv2 {
 
     void AsfVideo::readMetadata()
     {
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
 
         // Ensure that this is the correct image type
         if (!isAsfType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "ASF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "ASF");
         }
 
         IoCloser closer(*io_);
@@ -339,7 +333,7 @@ namespace Exiv2 {
     {
         const long bufMinSize = 9;
         DataBuf buf(bufMinSize);
-        unsigned long size = 0;
+        uint64_t size = 0;
         buf.pData_[8] = '\0' ;
         const TagVocabulary* tv;
         uint64_t cur_pos = io_->tell();
@@ -359,7 +353,7 @@ namespace Exiv2 {
 
         std::memset(buf.pData_, 0x0, buf.size_);
         io_->read(buf.pData_, 8);
-        size = static_cast<unsigned long>(getUint64_t(buf));
+        size = getUint64_t(buf);
 
         if(tv) {
             tagDecoder(tv,size-24);
@@ -459,19 +453,19 @@ namespace Exiv2 {
     void AsfVideo::contentDescription(uint64_t size)
     {
         const long pos = io_->tell();
-        if (pos == -1) throw Error(14);
+        if (pos == -1) throw Error(kerFailedToReadImageData);
         long length[5];
         for (int i = 0 ; i < 5 ; ++i) {
             byte buf[2];
             io_->read(buf, 2);
-            if (io_->error() || io_->eof()) throw Error(14);
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
             length[i] = getUShort(buf, littleEndian);
         }
         for (int i = 0 ; i < 5 ; ++i) {
             DataBuf buf(length[i]);
             std::memset(buf.pData_, 0x0, buf.size_);
             io_->read(buf.pData_, length[i]);
-            if (io_->error() || io_->eof()) throw Error(14);
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
             const TagDetails* td = find(contentDescriptionTags, i);
             assert(td);
             std::string str((const char*)buf.pData_, length[i]);
@@ -482,7 +476,7 @@ namespace Exiv2 {
                 xmpData_[td->label_] = toString16(buf);
             }
         }
-        if (io_->seek(pos + size, BasicIo::beg)) throw Error(14);
+        if (io_->seek(pos + size, BasicIo::beg)) throw Error(kerFailedToReadImageData);
     } // AsfVideo::contentDescription
 
     void AsfVideo::streamProperties()
@@ -649,9 +643,9 @@ namespace Exiv2 {
                               << " entries considered invalid; not read.\n";
 #endif
                     io_->seek(io_->tell() + nameLength, BasicIo::beg);
+                } else {
+                    io_->read(buf.pData_, nameLength);
                 }
-            else
-                io_->read(buf.pData_, nameLength);
 
                 v->read(toString16(buf));
                 if(dataType == 6) {
@@ -681,9 +675,9 @@ namespace Exiv2 {
                               << " entries considered invalid; not read.\n";
 #endif
                     io_->seek(io_->tell() + nameLength, BasicIo::beg);
+                } else {
+                    io_->read(buf.pData_, nameLength);
                 }
-            else
-                io_->read(buf.pData_, nameLength);
 
                 v->read(toString16(buf));
 

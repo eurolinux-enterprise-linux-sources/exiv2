@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    orfimage.hpp
   @brief   Olympus RAW image
-  @version $Rev: 3091 $
   @author  Jeff Costlow
            <a href="mailto:costlow@gmail.com">costlow@gmail.com</a>
   @date    31-Jul-07, costlow: created
@@ -84,7 +82,7 @@ namespace Exiv2 {
         void writeMetadata();
         /*!
           @brief Not supported. ORF format does not contain a comment.
-              Calling this function will throw an Error(32).
+              Calling this function will throw an Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         //@}

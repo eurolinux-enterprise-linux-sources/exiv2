@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    iptc.hpp
   @brief   Encoding and decoding of IPTC data
-  @version $Rev: 3091 $
   @author  Brad Schick (brad)
            <a href="mailto:brad@robotbattle.com">brad@robotbattle.com</a>
   @date    31-Jul-04, brad: created
@@ -276,7 +274,7 @@ namespace Exiv2 {
         /*!
           @brief dump iptc formatted binary data (used by printStructure kpsRecursive)
         */
-        static void printStructure(std::ostream& out, const byte* bytes,const size_t size,uint32_t depth);
+        static void printStructure(std::ostream& out, const Slice<byte*>& bytes,uint32_t depth);
         //@}
 
     private:

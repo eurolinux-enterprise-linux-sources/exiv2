@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,7 +23,7 @@
 // included header files
 #include "config.h"
 
-#if EXV_USE_SSH == 1
+#ifdef EXV_USE_SSH
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
 #include <sys/stat.h>

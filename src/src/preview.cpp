@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,14 +19,10 @@
  */
 /*
   File:      preview.cpp
-  Version:   $Rev: 4759 $
   Author(s): Vladimir Nadvornik (vn) <nadvornik@suse.cz>
   History:   18-Sep-08, vn: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: preview.cpp 4759 2017-04-23 10:58:54Z robinwmills $")
-
 // included header files
 #include "config.h"
 
@@ -36,12 +31,15 @@ EXIV2_RCSID("@(#) $Id: preview.cpp 4759 2017-04-23 10:58:54Z robinwmills $")
 
 #include "preview.hpp"
 #include "futils.hpp"
+#include "enforce.hpp"
+#include "safe_op.hpp"
 
 #include "image.hpp"
 #include "cr2image.hpp"
 #include "jpgimage.hpp"
 #include "tiffimage.hpp"
 #include "tiffimage_int.hpp"
+#include "unused.h"
 
 // *****************************************************************************
 namespace {
@@ -385,7 +383,7 @@ namespace {
             return AutoPtr();
 
         if (loaderList_[id].imageMimeType_ &&
-            std::string(loaderList_[id].imageMimeType_) != std::string(image.mimeType()))
+            std::string(loaderList_[id].imageMimeType_) != image.mimeType())
             return AutoPtr();
 
         AutoPtr loader = loaderList_[id].create_(id, image, loaderList_[id].parIdx_);
@@ -467,7 +465,7 @@ namespace {
 
         BasicIo &io = image_.io();
         if (io.open() != 0) {
-            throw Error(9, io.path(), strError());
+            throw Error(kerDataSourceOpenFailed, io.path(), strError());
         }
         IoCloser closer(io);
         const byte* data = io.mmap();
@@ -496,7 +494,7 @@ namespace {
             }
             return DataBuf(record + sizeHdr + 28, sizeData - 28);
         } else {
-            throw Error(1, "Invalid native preview filter: " + nativePreview_.filter_);
+            throw Error(kerErrorMessage, "Invalid native preview filter: " + nativePreview_.filter_);
         }
     }
 
@@ -527,27 +525,29 @@ namespace {
         : Loader(id, image)
     {
         offset_ = 0;
-        ExifData::const_iterator pos = image_.exifData().findKey(ExifKey(param_[parIdx].offsetKey_));
-        if (pos != image_.exifData().end() && pos->count() > 0) {
+        const ExifData &exifData = image_.exifData();
+        ExifData::const_iterator pos = exifData.findKey(ExifKey(param_[parIdx].offsetKey_));
+        if (pos != exifData.end() && pos->count() > 0) {
             offset_ = pos->toLong();
         }
 
         size_ = 0;
-        pos = image_.exifData().findKey(ExifKey(param_[parIdx].sizeKey_));
-        if (pos != image_.exifData().end() && pos->count() > 0) {
+        pos = exifData.findKey(ExifKey(param_[parIdx].sizeKey_));
+        if (pos != exifData.end() && pos->count() > 0) {
             size_ = pos->toLong();
         }
 
         if (offset_ == 0 || size_ == 0) return;
 
         if (param_[parIdx].baseOffsetKey_) {
-            pos = image_.exifData().findKey(ExifKey(param_[parIdx].baseOffsetKey_));
-            if (pos != image_.exifData().end() && pos->count() > 0) {
+            pos = exifData.findKey(ExifKey(param_[parIdx].baseOffsetKey_));
+            if (pos != exifData.end() && pos->count() > 0) {
                 offset_ += pos->toLong();
             }
         }
 
-        if (offset_ + size_ > static_cast<uint32_t>(image_.io().size())) return;
+        if (Safe::add(offset_, size_) > static_cast<uint32_t>(image_.io().size()))
+            return;
 
         valid_ = true;
     }
@@ -574,7 +574,7 @@ namespace {
         BasicIo &io = image_.io();
 
         if (io.open() != 0) {
-            throw Error(9, io.path(), strError());
+            throw Error(kerDataSourceOpenFailed, io.path(), strError());
         }
         IoCloser closer(io);
 
@@ -591,7 +591,7 @@ namespace {
         BasicIo &io = image_.io();
 
         if (io.open() != 0) {
-            throw Error(9, io.path(), strError());
+            throw Error(kerDataSourceOpenFailed, io.path(), strError());
         }
         IoCloser closer(io);
         const Exiv2::byte* base = io.mmap();
@@ -788,7 +788,7 @@ namespace {
             BasicIo &io = image_.io();
 
             if (io.open() != 0) {
-                throw Error(9, io.path(), strError());
+                throw Error(kerDataSourceOpenFailed, io.path(), strError());
             }
             IoCloser closer(io);
 
@@ -801,19 +801,20 @@ namespace {
                     // this saves one copying of the buffer
                     uint32_t offset = dataValue.toLong(0);
                     uint32_t size = sizes.toLong(0);
-                    if (offset + size <= static_cast<uint32_t>(io.size()))
+                    if (Safe::add(offset, size) <= static_cast<uint32_t>(io.size()))
                         dataValue.setDataArea(base + offset, size);
                 }
                 else {
                     // FIXME: the buffer is probably copied twice, it should be optimized
                     DataBuf buf(size_);
-                    Exiv2::byte* pos = buf.pData_;
+                    uint32_t idxBuf = 0;
                     for (int i = 0; i < sizes.count(); i++) {
                         uint32_t offset = dataValue.toLong(i);
                         uint32_t size = sizes.toLong(i);
-                        if (offset + size <= static_cast<uint32_t>(io.size()))
-                            memcpy(pos, base + offset, size);
-                        pos += size;
+                        enforce(Safe::add(idxBuf, size) < size_, kerCorruptedMetadata);
+                        if (size!=0 && Safe::add(offset, size) <= static_cast<uint32_t>(io.size()))
+                            memcpy(&buf.pData_[idxBuf], base + offset, size);
+                        idxBuf += size;
                     }
                     dataValue.setDataArea(buf.pData_, buf.size_);
                 }
@@ -830,7 +831,7 @@ namespace {
         IptcData emptyIptc;
         XmpData  emptyXmp;
         TiffParser::encode(mio, 0, 0, Exiv2::littleEndian, preview, emptyIptc, emptyXmp);
-        return DataBuf(mio.mmap(), mio.size());
+        return DataBuf(mio.mmap(), (long) mio.size());
     }
 
     LoaderXmpJpeg::LoaderXmpJpeg(PreviewId id, const Image &image, int parIdx)
@@ -928,13 +929,15 @@ namespace {
 
     DataBuf decodeBase64(const std::string& src)
     {
-        const unsigned long srcSize = static_cast<const unsigned long>(src.size());
+        const size_t srcSize = src.size();
 
         // create decoding table
         unsigned long invalid = 64;
-        unsigned long decodeBase64Table[256];
-        for (unsigned long i = 0; i < 256; i++) decodeBase64Table[i] = invalid;
-        for (unsigned long i = 0; i < 64; i++) decodeBase64Table[(unsigned char)encodeBase64Table[i]] = i;
+        unsigned long decodeBase64Table[256] = {};
+        for (unsigned long i = 0; i < 256; i++)
+            decodeBase64Table[i] = invalid;
+        for (unsigned long i = 0; i < 64; i++)
+            decodeBase64Table[(unsigned char)encodeBase64Table[i]] = i;
 
         // calculate dest size
         unsigned long validSrcSize = 0;
@@ -1037,7 +1040,8 @@ namespace Exiv2 {
     {
         pData_ = data.pData_;
         size_ = data.size_;
-        data.release();
+        std::pair<byte*, long> ret = data.release();
+        UNUSED(ret);
     }
 
     PreviewImage::~PreviewImage()
@@ -1143,7 +1147,10 @@ namespace Exiv2 {
         for (PreviewId id = 0; id < Loader::getNumLoaders(); ++id) {
             Loader::AutoPtr loader = Loader::create(id, image_);
             if (loader.get() && loader->readDimensions()) {
-                list.push_back(loader->getProperties());
+                PreviewProperties props = loader->getProperties();
+                DataBuf buf             = loader->getData(); // #16 getPreviewImage()
+                props.size_             = buf.size_;         //     update the size
+                list.push_back(props) ;
             }
         }
         std::sort(list.begin(), list.end(), cmpPreviewProperties);

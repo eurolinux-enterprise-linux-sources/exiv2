@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    metadatum.hpp
   @brief   Provides abstract base classes Metadatum and Key
-  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @author  Brad Schick (brad)
@@ -114,7 +112,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual Key* clone_() const =0;
+        virtual Key* clone_() const =0;
 
     }; // class Key
 
@@ -214,7 +212,7 @@ namespace Exiv2 {
         virtual std::string groupName() const =0;
         //! Return the name of the tag (which is also the third part of the key)
         virtual std::string tagName() const =0;
-        //! Return a label for the tag 	
+        //! Return a label for the tag
         virtual std::string tagLabel() const =0;
         //! Return the tag
         virtual uint16_t tag() const =0;

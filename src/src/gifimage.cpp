@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,14 +19,9 @@
  */
 /*
   File:      gifimage.cpp
-  Version:   $Rev: 4719 $
   Author(s): Marco Piovanelli, Ovolab (marco)
   History:   26-Feb-2007, marco: created
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: gifimage.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "config.h"
@@ -60,19 +54,19 @@ namespace Exiv2 {
     void GifImage::setExifData(const ExifData& /*exifData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "Exif metadata", "GIF"));
+        throw(Error(kerInvalidSettingForImage, "Exif metadata", "GIF"));
     }
 
     void GifImage::setIptcData(const IptcData& /*iptcData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "IPTC metadata", "GIF"));
+        throw(Error(kerInvalidSettingForImage, "IPTC metadata", "GIF"));
     }
 
     void GifImage::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "GIF"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "GIF"));
     }
 
     void GifImage::readMetadata()
@@ -82,14 +76,14 @@ namespace Exiv2 {
 #endif
         if (io_->open() != 0)
         {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
         if (!isGifType(*io_, true))
         {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "GIF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "GIF");
         }
         clearMetadata();
 
@@ -104,7 +98,7 @@ namespace Exiv2 {
     void GifImage::writeMetadata()
     {
         // Todo: implement me!
-        throw(Error(31, "GIF"));
+        throw(Error(kerWritingImageFormatUnsupported, "GIF"));
     } // GifImage::writeMetadata
 
     // *************************************************************************

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    exif.hpp
   @brief   Encoding and decoding of Exif data
-  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    09-Jan-04, ahu: created
@@ -238,7 +236,7 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Constructor.
-        ExifThumbC(const ExifData& exifData);
+        explicit ExifThumbC(const ExifData& exifData);
         //@}
 
         //! @name Accessors
@@ -307,7 +305,7 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Constructor.
-        ExifThumb(ExifData& exifData);
+        explicit ExifThumb(ExifData& exifData);
         //@}
 
         //! @name Manipulators

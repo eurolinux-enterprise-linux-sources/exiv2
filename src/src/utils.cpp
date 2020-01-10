@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,30 +19,22 @@
  */
 /*
   File:      utils.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   08-Dec-03, ahu: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: utils.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
 #include "config.h"
 
 #include "utils.hpp"
 
-// + standard includes
-#if defined(_MSC_VER) || defined(__MINGW__)
-# include "getopt_win32.h"
-#endif
-
 #if defined(_MSC_VER)
 # define S_ISREG(m)      (((m) & S_IFMT) == S_IFREG)
 #endif
 
+// + standard includes
 #ifdef EXV_HAVE_UNISTD_H
-# include <unistd.h>                     // for getopt(), stat()
+# include <unistd.h>                     // for stat()
 #endif
 
 #include <sys/types.h>
@@ -57,37 +48,6 @@ EXIV2_RCSID("@(#) $Id: utils.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include <sstream>
 
 namespace Util {
-
-// *****************************************************************************
-// class Getopt
-    Getopt::Getopt()
-        : errcnt_(0)
-    {
-    }
-
-    Getopt::~Getopt()
-    {
-    }
-
-    int Getopt::getopt(int argc, char* const argv[], const std::string& optstring)
-    {
-        progname_ = Util::basename(argv[0]);
-
-        for (;;) {
-            int c = ::getopt(argc, argv, optstring.c_str());
-            if (c == -1) break;
-            errcnt_ += option(c, ::optarg == 0 ? "" : ::optarg, ::optopt);
-        }
-        for (int i = ::optind; i < argc; i++) {
-            errcnt_ += nonoption(argv[i]);
-        }
-        return errcnt_;
-    }
-
-    int Getopt::nonoption(const std::string& /*argv*/)
-    {
-        return 0;
-    }
 
 // *****************************************************************************
 // free functions

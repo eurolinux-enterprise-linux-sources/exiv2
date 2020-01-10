@@ -1,44 +1,58 @@
-# CMake build system for exiv2 library and executables
-# Copyright 2012-     Robin Mills      <robin@clanmills.com>
-# Copyright 2010-2012 Gilles Caulier   <caulier dot gilles at gmail dot com>
-# Copyright 2008      Patrick Spendrin <ps_ml at gmx dot de>
+add_library(xmp STATIC
+    src/ExpatAdapter.cpp
+    src/MD5.cpp
+    src/ParseRDF.cpp
+    src/UnicodeConversions.cpp
+    src/WXMPIterator.cpp
+    src/WXMPMeta.cpp
+    src/WXMPUtils.cpp
+    src/XML_Node.cpp
+    src/XMPCore_Impl.cpp
+    src/XMPIterator.cpp
+    src/XMPMeta-GetSet.cpp
+    src/XMPMeta-Parse.cpp
+    src/XMPMeta-Serialize.cpp
+    src/XMPMeta.cpp
+    src/XMPUtils-FileInfo.cpp
+    src/XMPUtils.cpp
+    include/MD5.h
+    include/TXMPIterator.hpp
+    include/TXMPMeta.hpp
+    include/TXMPUtils.hpp
+    include/XMP_Const.h
+    include/XMP_Environment.h
+    include/XMP.incl_cpp
+    include/XMPSDK.hpp
+    include/XMP_Version.h
+)
 
-# Redistribution and use is allowed according to the terms of the BSD license.
-# For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+target_link_libraries(xmp 
+    PRIVATE 
+        ${EXPAT_LIBRARY}
+)
 
-include(../CMake_msvc.txt)
-msvc_runtime_configure(${EXIV2_ENABLE_SHARED} ${EXIV2_ENABLE_DYNAMIC_RUNTIME})
+target_include_directories(xmp
+    PUBLIC 
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/xmpsdk/include>
+    PRIVATE 
+        ${EXPAT_INCLUDE_DIR}
+)
 
-if( POLICY CMP0026 )
-    cmake_policy(SET CMP0026 OLD) # Something to do with location
+if (MSVC)
+    target_compile_definitions(xmp PRIVATE XML_STATIC)
 endif()
 
-FOREACH(_currentfile ${XMPSRC})
-    # http://www.openguru.com/2009/04/cmake-detecting-platformoperating.html
-    IF(NOT MSVC AND NOT CYGWIN AND NOT MSYS AND NOT MINGW)
-        SET_SOURCE_FILES_PROPERTIES(${_currentfile} PROPERTIES COMPILE_FLAGS "-fPIC")
-    ENDIF()
-ENDFOREACH()
-
-if(NOT MSVC)
-  # http://stackoverflow.com/questions/10046114/in-cmake-how-can-i-test-if-the-compiler-is-clang
-  if ( NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang")
-    # 1123 - hide xmpsdk symbols
-    add_definitions( -fvisibility=hidden -fvisibility-inlines-hidden )
-  endif()
+check_include_file( "stdint.h"  EXV_HAVE_STDINT_H )
+if (EXV_HAVE_STDINT_H)
+    target_compile_definitions(xmp PRIVATE EXV_HAVE_STDINT_H)
 endif()
 
-IF( EXIV2_ENABLE_XMP AND EXIV2_ENABLE_LIBXMP )
-    ADD_LIBRARY( xmp STATIC ${XMPSRC} )
-    GET_TARGET_PROPERTY( XMPLIB xmp LOCATION )
-    if ( NOT MSVC )
-        TARGET_LINK_LIBRARIES(xmp ${EXPAT_LIBRARIES})
-    else()
-        TARGET_LINK_LIBRARIES(xmp Threads::Threads ${EXPAT_LIBRARIES})
-    endif()
-    # 1119  Install libxmp.a for use by third party applications (Thanks, Emmanuel)
-    INSTALL(TARGETS xmp ${INSTALL_TARGET_STANDARD_ARGS} )
-ENDIF()
+if (BUILD_SHARED_LIBS)
+    set_property(TARGET xmp PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
 
-# That's all Folks!
-##
+# 1119  Install libxmp.a for use by third party applications (Thanks, Emmanuel)
+install(TARGETS xmp EXPORT exiv2Config
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

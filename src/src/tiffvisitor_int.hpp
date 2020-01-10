@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +21,6 @@
   @file    tiffvisitor_int.hpp
   @brief   Internal operations on a TIFF composite tree, implemented as visitor
            classes.
-  @version $Rev: 4719 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    11-Apr-06, ahu: created
@@ -219,7 +217,7 @@ namespace Exiv2 {
     }; // class TiffFinder
 
     /*!
-      @brief Copy all image tags from the source tree (the tree that is traversed) to a 
+      @brief Copy all image tags from the source tree (the tree that is traversed) to a
              target tree, which is empty except for the root element provided in the
              constructor.
     */
@@ -231,7 +229,7 @@ namespace Exiv2 {
           @brief Constructor
 
           @param pRoot Pointer to the root element of the (empty) target tree.
-          @param root 
+          @param root
           @param pHeader Pointer to the TIFF header of the source image.
           @param pPrimaryGroups Pointer to the list of primary groups.
          */
@@ -548,7 +546,7 @@ namespace Exiv2 {
                                 ByteOrder byteOrder,
                                 TiffComponent* pTiffComponent) const;
         /*!
-          @brief Check if the tag is an image tag of an existing image. Such 
+          @brief Check if the tag is an image tag of an existing image. Such
                  tags are copied from the original image and can't be modifed.
 
                  The condition is true if there is an existing image (as

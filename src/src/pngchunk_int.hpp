@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -29,7 +28,6 @@
 
  /*
   File:    pngchunk.cpp
-  Version: $Rev: 4719 $
  */
 
 #ifndef PNGCHUNK_INT_HPP_

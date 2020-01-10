@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,11 @@
  */
 /*
   File:      rafimage.cpp
-  Version:   $Rev: 4736 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   05-Feb-07, ahu: created
   Credits:   See header file
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: rafimage.cpp 4736 2017-03-15 21:30:55Z robinwmills $")
-
 // included header files
 #include "config.h"
 
@@ -81,35 +76,35 @@ namespace Exiv2 {
     void RafImage::setExifData(const ExifData& /*exifData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "Exif metadata", "RAF"));
+        throw(Error(kerInvalidSettingForImage, "Exif metadata", "RAF"));
     }
 
     void RafImage::setIptcData(const IptcData& /*iptcData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "IPTC metadata", "RAF"));
+        throw(Error(kerInvalidSettingForImage, "IPTC metadata", "RAF"));
     }
 
     void RafImage::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "RAF"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "RAF"));
     }
 
     void RafImage::printStructure(std::ostream& out, PrintStructureOption option, int depth) {
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         // Ensure this is the correct image type
         if (!isRafType(*io_, true)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "RAF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "RAF");
         }
-        bool bPrint = option==kpsBasic || option==kpsRecursive;
+        const bool bPrint = option==kpsBasic || option==kpsRecursive;
         if ( bPrint ) {
             io_->seek(0,BasicIo::beg); // rewind
 
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << "STRUCTURE OF RAF FILE: "
                     << io().path()
@@ -122,7 +117,7 @@ namespace Exiv2 {
             byte magicdata [17];
             io_->read(magicdata, 16);
             magicdata[16] = 0;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 16, 0)
                     << "Magic number : "
@@ -133,7 +128,7 @@ namespace Exiv2 {
             byte data1 [5];
             io_->read(data1, 4);
             data1[4] = 0;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 4, 16)
                     << "data 1 : "
@@ -144,7 +139,7 @@ namespace Exiv2 {
             byte data2 [9];
             io_->read(data2, 8);
             data2[8] = 0;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 8, 20)
                     << "data 2 : "
@@ -155,7 +150,7 @@ namespace Exiv2 {
             byte camdata [33];
             io_->read(camdata, 32);
             camdata[32] = 0;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 32, 28)
                     << "camera : "
@@ -166,7 +161,7 @@ namespace Exiv2 {
             byte dir_version [5];
             io_->read(dir_version, 4);
             dir_version[4] = 0;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 4, 60)
                     << "dir version : "
@@ -187,7 +182,7 @@ namespace Exiv2 {
             std::stringstream j_len;
             j_off << jpg_img_off;
             j_len << jpg_img_len;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 4, 84)
                     << "JPEG Image Offset : "
@@ -210,7 +205,7 @@ namespace Exiv2 {
             std::stringstream ch_len;
             ch_off << cfa_hdr_off;
             ch_len << cfa_hdr_len;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 4, 92)
                     << "CFA Header Offset : "
@@ -233,7 +228,7 @@ namespace Exiv2 {
             std::stringstream c_len;
             c_off << cfa_off;
             c_len << cfa_len;
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", 4, 100)
                     << "CFA Offset : "
@@ -249,31 +244,31 @@ namespace Exiv2 {
             io_->seek(jpg_img_off, BasicIo::beg); // rewind
             DataBuf payload(16); // header is different from chunks
             io_->read(payload.pData_, payload.size_);
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", jpg_img_len, jpg_img_off)
                     << "jpg image / exif : "
-                    << Internal::binaryToString(payload, payload.size_)
+                    << Internal::binaryToString(makeSlice(payload, 0, payload.size_))
                     << std::endl;
             }
 
             io_->seek(cfa_hdr_off, BasicIo::beg); // rewind
             io_->read(payload.pData_, payload.size_);
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", cfa_hdr_len, cfa_hdr_off)
                     << "CFA Header: "
-                    << Internal::binaryToString(payload, payload.size_)
+                    << Internal::binaryToString(makeSlice(payload, 0, payload.size_))
                     << std::endl;
             }
 
             io_->seek(cfa_off, BasicIo::beg); // rewind
             io_->read(payload.pData_, payload.size_);
-            if ( bPrint ) {
+            {
                 out << Internal::indent(depth)
                     << Internal::stringFormat("  %8u | %8u | ", cfa_len, cfa_off)
                     << "CFA : "
-                    << Internal::binaryToString(payload, payload.size_)
+                    << Internal::binaryToString(makeSlice(payload, 0, payload.size_))
                     << std::endl;
             }
         }
@@ -284,12 +279,12 @@ namespace Exiv2 {
 #ifdef DEBUG
         std::cerr << "Reading RAF file " << io_->path() << "\n";
 #endif
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
         if (!isRafType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "RAF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "RAF");
         }
 
         clearMetadata();
@@ -305,7 +300,7 @@ namespace Exiv2 {
         DataBuf buf(jpg_img_len - 12);
         io_->seek(jpg_img_off + 12,BasicIo::beg);
         io_->read(buf.pData_, buf.size_ - 12);
-        if (io_->error() || io_->eof()) throw Error(14);
+        if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
 
         io_->seek(0,BasicIo::beg); // rewind
 
@@ -324,7 +319,7 @@ namespace Exiv2 {
     void RafImage::writeMetadata()
     {
         //! Todo: implement me!
-        throw(Error(31, "RAF"));
+        throw(Error(kerWritingImageFormatUnsupported, "RAF"));
     } // RafImage::writeMetadata
 
     // *************************************************************************

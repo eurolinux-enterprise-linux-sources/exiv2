@@ -1,6 +1,5 @@
 ################################################################################
 # File     : tags.awk
-# Version  : $Rev: 785 $
 # Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
 # History  : 07-Feb-04, ahu: created
 #

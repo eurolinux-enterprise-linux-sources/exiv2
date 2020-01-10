@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +21,6 @@
   @file    psdimage.hpp
   @brief   Photoshop image, implemented using the following references:
            <a href="http://www.fine-view.com/jp/lab/doc/ps6ffspecsv2.pdf">Adobe Photoshop 6.0 File Format Specification</a> by Adobe<br>
-  @version $Rev: 3091 $
   @author  Marco Piovanelli, Ovolab (marco)
            <a href="mailto:marco.piovanelli@pobox.com">marco.piovanelli@pobox.com</a>
   @author  Michael Ulbrich
@@ -81,7 +79,7 @@ namespace Exiv2 {
               instance after it is passed to this method.  Use the Image::io()
               method to get a temporary reference.
          */
-        PsdImage(BasicIo::AutoPtr io);
+        explicit PsdImage(BasicIo::AutoPtr io);
         //@}
 
         //! @name Manipulators
@@ -89,7 +87,7 @@ namespace Exiv2 {
         void readMetadata();
         void writeMetadata();
         /*!
-          @brief Not supported. Calling this function will throw an Error(32).
+          @brief Not supported. Calling this function will throw an Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         //@}
@@ -113,7 +111,7 @@ namespace Exiv2 {
     private:
         //! @name Manipulators
         //@{
-        EXV_DLLLOCAL void readResourceBlock(uint16_t resourceId, uint32_t resourceSize);
+        void readResourceBlock(uint16_t resourceId, uint32_t resourceSize);
         /*!
           @brief Provides the main implementation of writeMetadata() by
                 writing all buffered metadata to the provided BasicIo.
@@ -121,14 +119,14 @@ namespace Exiv2 {
 
           @return 4 if opening or writing to the associated BasicIo fails
          */
-        EXV_DLLLOCAL void doWriteMetadata(BasicIo& oIo);
-        EXV_DLLLOCAL uint32_t writeExifData(const ExifData& exifData, BasicIo& out);
+        void doWriteMetadata(BasicIo& oIo);
+        uint32_t writeExifData(const ExifData& exifData, BasicIo& out);
         //@}
 
         //! @name Accessors
         //@{
-        EXV_DLLLOCAL uint32_t writeIptcData(const IptcData& iptcData, BasicIo& out) const;
-        EXV_DLLLOCAL uint32_t writeXmpData(const XmpData& xmpData, BasicIo& out) const;
+        uint32_t writeIptcData(const IptcData& iptcData, BasicIo& out) const;
+        uint32_t writeXmpData(const XmpData& xmpData, BasicIo& out) const;
         //@}
 
     }; // class PsdImage

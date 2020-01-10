@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// prevtest.cpp, $Rev: 3090 $
+// prevtest.cpp
 // Test access to preview images
 
 #include <exiv2/exiv2.hpp>

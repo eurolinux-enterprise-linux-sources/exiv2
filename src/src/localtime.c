@@ -1,19 +1,13 @@
 /*!
   @file    localtime.c
   @brief   This file is from the tz distribution at ftp://elsie.nci.nih.gov/pub/
-  @version $Rev: 4544 $
 */
 
-
 #include "config.h"
-
-#ifdef  _MSC_VER
-#if     _MSC_VER >= _MSC_VER_2015
-#define tzname _tzname
-#endif
-#endif
-
 #include "timegm.h"
+#ifdef   EXV_HAVE_UNISTD_H
+#include "unistd.h"
+#endif
 
 /*
 ** This file is in the public domain, so clarified as of
@@ -1416,36 +1410,8 @@ const long		offset;
 	return WRONG;
 }
 
-/* ahu: deleted definition of mktime */
-
-#ifdef STD_INSPIRED
-
-/* ahu: deleted definition of timelocal */
-
-/* rmills - timegm is replaced with _mkgmtime on VC 2005 and up */
-/*        - see timegm.h                                        */
-#if !defined(_MSC_VER) || (_MSC_VER < 1400)
-time_t
-timegm(tmp)
-struct tm * const	tmp;
+time_t timegm(struct tm * const	tmp)
 {
 	tmp->tm_isdst = 0;
 	return time1(tmp, gmtsub, 0L);
 }
-#endif
-
-
-
-
-
-/* ahu: deleted definition of timeoff */
-
-#endif /* defined STD_INSPIRED */
-
-/* ahu: deleted definition of gtime */
-
-/* ahu: deleted definition of leapcorr */
-
-/* ahu: deleted definition of time2posix */
-
-/* ahu: deleted definition of posix2time */

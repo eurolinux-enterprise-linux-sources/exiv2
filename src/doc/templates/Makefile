@@ -31,7 +31,6 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # File:      Makefile
-# Version:   $Rev: 4742 $
 # Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
 # History:   28-May-05, ahu: created
 #
@@ -147,7 +146,7 @@ SCHEMA = xmp_dc \
          xmp_mwg-rs \
          xmp_mwg-kw
 
-TAGLIST = ../../bin/taglist
+TAGLIST = ${EXIV2HOME}/build/bin/taglist
 
 # **********************************************************************
 # ======================================================================

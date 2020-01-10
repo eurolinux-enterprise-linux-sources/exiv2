@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,19 +19,16 @@
  */
 /*
   File:      ssh.cpp
-  Version:   $Rev: 3201 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   06-Jan-09, ahu: created
 
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: rw2image.cpp 3201 2013-12-01 12:13:42Z ahuggel $")
-
 // included header files
 #include "config.h"
 #include "ssh.hpp"
-#if EXV_USE_SSH == 1
+
+#ifdef EXV_USE_SSH
 // class member definitions
 namespace Exiv2 {
 
@@ -42,12 +38,12 @@ namespace Exiv2 {
         std::string timeout = getEnv(envTIMEOUT);
         timeout_ = atol(timeout.c_str());
         if (timeout_ == 0) {
-            throw Error(1, "Timeout Environmental Variable must be a positive integer.");
+            throw Error(kerErrorMessage, "Timeout Environmental Variable must be a positive integer.");
         }
 
         session_ = ssh_new();
         if (session_ == NULL) {
-            throw Error(1, "Unable to create the the ssh session");
+            throw Error(kerErrorMessage, "Unable to create the the ssh session");
         }
 
         // try to connect
@@ -57,11 +53,11 @@ namespace Exiv2 {
         if (port != "") ssh_options_set(session_, SSH_OPTIONS_PORT_STR, port.c_str());
 
         if (ssh_connect(session_) != SSH_OK) {
-            throw Error(1, ssh_get_error(session_));
+            throw Error(kerErrorMessage, ssh_get_error(session_));
         }
         // Authentication
         if (ssh_userauth_password(session_, NULL, pass_.c_str()) != SSH_AUTH_SUCCESS) {
-            throw Error(1, ssh_get_error(session_));
+            throw Error(kerErrorMessage, ssh_get_error(session_));
         }
     }
 
@@ -102,11 +98,11 @@ namespace Exiv2 {
         scp = ssh_scp_new(session_, SSH_SCP_WRITE, path.c_str());
         if (scp == NULL) {
             rc = SSH_ERROR;
-            throw Error(1, ssh_get_error(session_));
+            throw Error(kerErrorMessage, ssh_get_error(session_));
         } else {
             rc = ssh_scp_init(scp);
             if (rc != SSH_OK) {
-                throw Error(1, ssh_get_error(session_));
+                throw Error(kerErrorMessage, ssh_get_error(session_));
             } else {
 #ifdef  _MSC_VER
 // S_IRUSR & S_IWUSR not in MSVC (0000400 & 0000200 in /usr/include/sys/stat.h on MacOS-X 10.8)
@@ -115,11 +111,11 @@ namespace Exiv2 {
 #endif
                 rc = ssh_scp_push_file (scp, filename.c_str(), size, S_IRUSR |  S_IWUSR);
                 if (rc != SSH_OK) {
-                    throw Error(1, ssh_get_error(session_));
+                    throw Error(kerErrorMessage, ssh_get_error(session_));
                 } else {
                     rc = ssh_scp_write(scp, data, size);
                     if (rc != SSH_OK) {
-                        throw Error(1, ssh_get_error(session_));
+                        throw Error(kerErrorMessage, ssh_get_error(session_));
                     }
                 }
                 ssh_scp_close(scp);
@@ -135,11 +131,11 @@ namespace Exiv2 {
 
         sftp_ = sftp_new(session_);
         if (sftp_ == NULL) {
-            throw Error(1, "Unable to create the the sftp session");
+            throw Error(kerErrorMessage, "Unable to create the the sftp session");
         }
         if (sftp_init(sftp_) != SSH_OK) {
             sftp_free(sftp_);
-            throw Error(1, "Error initializing SFTP session");
+            throw Error(kerErrorMessage, "Error initializing SFTP session");
         }
     }
 

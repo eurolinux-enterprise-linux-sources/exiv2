@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    rw2image.hpp
   @brief   Class Rw2Image
-  @version $Rev: 3090 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    06-Jan-09, ahu: created
@@ -71,7 +69,7 @@ namespace Exiv2 {
               instance after it is passed to this method.  Use the Image::io()
               method to get a temporary reference.
          */
-        Rw2Image(BasicIo::AutoPtr io);
+        explicit Rw2Image(BasicIo::AutoPtr io);
         //@}
 
         //! @name Manipulators
@@ -80,22 +78,22 @@ namespace Exiv2 {
         void readMetadata();
         /*!
           @brief Todo: Write metadata back to the image. This method is not
-              yet implemented. Calling it will throw an Error(31).
+              yet implemented. Calling it will throw an Error(kerWritingImageFormatUnsupported).
          */
         void writeMetadata();
         /*!
           @brief Todo: Not supported yet, requires writeMetadata(). Calling
-              this function will throw an Error(32).
+              this function will throw an Error(kerInvalidSettingForImage).
          */
         void setExifData(const ExifData& exifData);
         /*!
           @brief Todo: Not supported yet, requires writeMetadata(). Calling
-              this function will throw an Error(32).
+              this function will throw an Error(kerInvalidSettingForImage).
          */
         void setIptcData(const IptcData& iptcData);
         /*!
           @brief Not supported. RW2 format does not contain a comment.
-              Calling this function will throw an Error(32).
+              Calling this function will throw an Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         //@}

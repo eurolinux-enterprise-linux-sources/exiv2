@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// addmoddel.cpp, $Rev: 3353 $
+// addmoddel.cpp
 // Sample program showing how to add, modify and delete Exif metadata.
 
 #include <exiv2/exiv2.hpp>
@@ -29,7 +29,7 @@ try {
     // tag is added.
     exifData["Exif.Image.Model"] = "Test 1";                     // AsciiValue
     exifData["Exif.Image.SamplesPerPixel"] = uint16_t(162);      // UShortValue
-    exifData["Exif.Image.XResolution"] = int32_t(-2);            // LongValue
+    exifData["Exif.Image.XResolution"] = -2;            // LongValue
     exifData["Exif.Image.YResolution"] = Exiv2::Rational(-2, 3); // RationalValue
     std::cout << "Added a few tags the quick way.\n";
 
@@ -69,12 +69,12 @@ try {
     // Alternatively, we can use findKey()
     key = Exiv2::ExifKey("Exif.Image.PrimaryChromaticities");
     Exiv2::ExifData::iterator pos = exifData.findKey(key);
-    if (pos == exifData.end()) throw Exiv2::Error(1, "Key not found");
+    if (pos == exifData.end()) throw Exiv2::Error(Exiv2::kerErrorMessage, "Key not found");
     // Get a pointer to a copy of the value
     v = pos->getValue();
     // Downcast the Value pointer to its actual type
     Exiv2::URationalValue* prv = dynamic_cast<Exiv2::URationalValue*>(v.release());
-    if (prv == 0) throw Exiv2::Error(1, "Downcast failed");
+    if (prv == 0) throw Exiv2::Error(Exiv2::kerErrorMessage, "Downcast failed");
     rv = Exiv2::URationalValue::AutoPtr(prv);
     // Modify the value directly through the interface of URationalValue
     rv->value_[2] = std::make_pair(88,77);
@@ -89,7 +89,7 @@ try {
     // Delete the metadatum at iterator position pos
     key = Exiv2::ExifKey("Exif.Image.PrimaryChromaticities");
     pos = exifData.findKey(key);
-    if (pos == exifData.end()) throw Exiv2::Error(1, "Key not found");
+    if (pos == exifData.end()) throw Exiv2::Error(Exiv2::kerErrorMessage, "Key not found");
     exifData.erase(pos);
     std::cout << "Deleted key \"" << key << "\"\n";
 

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    quicktimevideo.hpp
   @brief   An Image subclass to support Quick Time video files
-  @version $Rev$
   @author  Abhinav Badola for GSoC 2012
            <a href="mailto:mail.abu.to@gmail.com">mail.abu.to@gmail.com</a>
   @date    28-Jun-12, AB: created
@@ -33,7 +31,6 @@
 // included header files
 #include "exif.hpp"
 #include "image.hpp"
-#include "tags_int.hpp"
 
 // *****************************************************************************
 // namespace extensions

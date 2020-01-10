@@ -917,14 +917,13 @@ namespace Jzon
 
 	void Parser::tokenize()
 	{
-		Token token;
+		Token token = T_UNKNOWN;
 		std::string valueBuffer;
 		bool saveBuffer;
 
-		char c = '\0';
 		for (; cursor < jsonSize; ++cursor)
 		{
-			c = json.at(cursor);
+            char c = json.at(cursor);
 
 			if (IsWhitespace(c))
 				continue;
@@ -1218,10 +1217,10 @@ namespace Jzon
 	void Parser::jumpToCommentEnd()
 	{
 		++cursor;
-		char c1 = '\0', c2 = '\0';
+        char c1 = '\0';
 		for (; cursor < jsonSize; ++cursor)
 		{
-			c2 = json.at(cursor);
+            char c2 = json.at(cursor);
 
 			if (c1 == '*' && c2 == '/')
 				break;
@@ -1239,10 +1238,10 @@ namespace Jzon
 
 		++cursor;
 
-		char c1 = '\0', c2 = '\0';
+        char c1 = '\0';
 		for (; cursor < jsonSize; ++cursor)
 		{
-			c2 = json.at(cursor);
+            char c2 = json.at(cursor);
 
 			if (c1 != '\\' && c2 == '"')
 			{

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,10 @@
  */
 /*
   File:      properties.cpp
-  Version:   $Rev: 4738 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
              Gilles Caulier (cgilles) <caulier dot gilles at gmail dot com>
   History:   13-July-07, ahu: created
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: properties.cpp 4738 2017-03-16 18:13:12Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "properties.hpp"
@@ -38,7 +32,7 @@ EXIV2_RCSID("@(#) $Id: properties.cpp 4738 2017-03-16 18:13:12Z robinwmills $")
 #include "value.hpp"
 #include "metadatum.hpp"
 #include "i18n.h"                // NLS support.
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "rwlock.hpp"
 
 #include <iostream>
@@ -293,17 +287,17 @@ namespace Exiv2 {
         { "OriginalDocumentID", N_("Original Document ID"), "URI",          xmpText,    xmpInternal, N_("Refer to Part 1, Data Model, Serialization, and Core "
                                                                                                         "Properties, for definition.") },
         { "Pantry",           N_("Pantry"),            "bag struct",        xmpText,    xmpInternal, N_("Each array item has a structure value with a potentially "
-																										"unique set of fields, containing extracted XMP from a "
-																										"component. Each field is a property from the XMP of a "
-																										"contained resource component, with all substructure "
-																										"preserved. "
-																										"Each pantry entry shall contain an xmpMM:InstanceID. "
-																										"Only one copy of the pantry entry for any given "
-																										"xmpMM:InstanceID shall be retained in the pantry. "
-																										"Nested pantry items shall be removed from the individual "
-																										"pantry item and promoted to the top level of the pantry.") },
+                                                                                                        "unique set of fields, containing extracted XMP from a "
+                                                                                                        "component. Each field is a property from the XMP of a "
+                                                                                                        "contained resource component, with all substructure "
+                                                                                                        "preserved. "
+                                                                                                        "Each pantry entry shall contain an xmpMM:InstanceID. "
+                                                                                                        "Only one copy of the pantry entry for any given "
+                                                                                                        "xmpMM:InstanceID shall be retained in the pantry. "
+                                                                                                        "Nested pantry items shall be removed from the individual "
+                                                                                                        "pantry item and promoted to the top level of the pantry.") },
         { "RenditionClass",   N_("Rendition Class"),   "RenditionClass",    xmpText,    xmpInternal, N_("The rendition class name for this resource. This property should be absent or set "
-		                                                                                                "to default for a document version that is not a derived rendition.") },
+                                                                                                        "to default for a document version that is not a derived rendition.") },
         { "RenditionParams",  N_("Rendition Params"),  "Text",              xmpText,    xmpInternal, N_("Can be used to provide additional rendition parameters that are too complex or "
                                                                                                         "verbose to encode in xmpMM: RenditionClass.") },
         { "VersionID",        N_("Version ID"),        "Text",              xmpText,    xmpInternal, N_("The document version identifier for this resource. Each version of a document gets "
@@ -351,10 +345,10 @@ namespace Exiv2 {
         { "altTimecode",                  N_("Alternative Time code"),            "Timecode",              xmpText, xmpExternal, N_("A timecode set by the user. When specified, it is used instead of the startTimecode.") },
         { "artist",                       N_("Artist"),                   		  "Text",                  xmpText, xmpExternal, N_("The name of the artist or artists.") },
         { "audioModDate",                 N_("Audio Modified Date"),              "Date",                  xmpText, xmpInternal, N_("(deprecated) The date and time when the audio was last modified.") },
-		{ "audioChannelType",             N_("Audio Channel Type"),               "closed Choice of Text", xmpText, xmpInternal, N_("The audio channel type. One of: Mono, Stereo, 5.1, 7.1, 16 Channel, Other.") },
-		{ "audioCompressor",              N_("Audio Compressor"),                 "Text",                  xmpText, xmpInternal, N_("The audio compression used. For example, MP3.") },
-		{ "audioSampleRate",              N_("Audio Sample Rate"),                "Integer",               xmpText, xmpInternal, N_("The audio sample rate. Can be any value, but commonly 32000, 44100, or 48000.") },
-		{ "audioSampleType",              N_("Audio Sample Type"),                "closed Choice of Text", xmpText, xmpInternal, N_("The audio sample type. One of: 8Int, 16Int, 24Int, 32Int, 32Float, Compressed, Packed, Other.") },
+        { "audioChannelType",             N_("Audio Channel Type"),               "closed Choice of Text", xmpText, xmpInternal, N_("The audio channel type. One of: Mono, Stereo, 5.1, 7.1, 16 Channel, Other.") },
+        { "audioCompressor",              N_("Audio Compressor"),                 "Text",                  xmpText, xmpInternal, N_("The audio compression used. For example, MP3.") },
+        { "audioSampleRate",              N_("Audio Sample Rate"),                "Integer",               xmpText, xmpInternal, N_("The audio sample rate. Can be any value, but commonly 32000, 44100, or 48000.") },
+        { "audioSampleType",              N_("Audio Sample Type"),                "closed Choice of Text", xmpText, xmpInternal, N_("The audio sample type. One of: 8Int, 16Int, 24Int, 32Int, 32Float, Compressed, Packed, Other.") },
         { "beatSpliceParams",             N_("Beat Splice Parameters"),           "beatSpliceStretch",     xmpText, xmpInternal, N_("Additional parameters for Beat Splice stretch mode.") },
         { "cameraAngle",                  N_("Camera Angle"),                     "open Choice of Text",   xmpText, xmpExternal, N_("The orientation of the camera to the subject in a static shot, from a fixed set of industry standard terminology. Predefined values include:Low Angle, Eye Level, High Angle, Overhead Shot, Birds Eye Shot, Dutch Angle, POV, Over the Shoulder, Reaction Shot.") },
         { "cameraLabel",                  N_("Camera Label"),                     "Text",                  xmpText, xmpExternal, N_("A description of the camera used for a shoot. Can be any string, but is usually simply a number, for example \"1\", \"2\", or more explicitly \"Camera 1\".") },
@@ -398,8 +392,8 @@ namespace Exiv2 {
         { "shotName",                     N_("Shot Name"),                        "Text",                  xmpText, xmpExternal, N_("The name of the shot or take.") },
         { "shotNumber",                   N_("Shot Number"),                      "Text",                  xmpText, xmpExternal, N_("The position of the shot in a script or production, relative to other shots. For example: 1, 2, 1a, 1b, 1.1, 1.2.") },
         { "shotSize",                     N_("Shot Size"),                        "open Choice of Text",   xmpText, xmpExternal, N_("The size or scale of the shot framing, from a fixed set of industry standard terminology. Predefined values include: "
-																																	"ECU --extreme close-up, MCU -- medium close-up. CU -- close-up, MS -- medium shot, "
-																																	"WS -- wide shot, MWS -- medium wide shot, EWS -- extreme wide shot.") },
+                                                                                                                                    "ECU --extreme close-up, MCU -- medium close-up. CU -- close-up, MS -- medium shot, "
+                                                                                                                                    "WS -- wide shot, MWS -- medium wide shot, EWS -- extreme wide shot.") },
         { "speakerPlacement",             N_("Speaker Placement"),                "Text",                  xmpText, xmpExternal, N_("A description of the speaker angles from center front in degrees. For example: "
                                                                                                                                     "\"Left = -30, Right = 30, Center = 0, LFE = 45, Left Surround = -110, Right Surround = 110\"") },
         { "startTimecode",                N_("Start Time Code"),                  "Timecode",              xmpText, xmpInternal, N_("The timecode of the first frame of video in the file, as obtained from the device control.") },
@@ -485,7 +479,7 @@ namespace Exiv2 {
         { "ColorMode",              N_("Color Mode"),              "Closed Choice of Integer", xmpText, xmpInternal, N_("The colour mode. One of: 0 = Bitmap, 1 = Grayscale, 2 = Indexed, 3 = RGB, 4 = CMYK, 7 = Multichannel, 8 = Duotone, 9 = Lab.") },
         { "AncestorID",             N_("Ancestor ID"),             "URI",        xmpText, xmpExternal, N_("The unique identifier of a document.") },
         { "DocumentAncestors", 		N_("Document Ancestors"), 	   "bag Ancestor", xmpBag, xmpExternal, N_("If the source document for a copy-and-paste or place operation has a document ID, that ID is added to this list in the destination document's XMP.") },
-		{ "History",                N_("History"),                 "Text",       xmpText, xmpExternal, N_("The history that appears in the FileInfo panel, if activated in the application preferences.") },
+        { "History",                N_("History"),                 "Text",       xmpText, xmpExternal, N_("The history that appears in the FileInfo panel, if activated in the application preferences.") },
         { "TextLayers", 			N_("Text Layers"), 			   "seq Layer",  xmpSeq,  xmpExternal, N_("If a document has text layers, this property caches the text for each layer.") },
         { "LayerName",       		N_("Layer Name"),      		   "Text",       xmpText, xmpExternal, N_("The identifying name of the text layer.") },
         { "LayerText",       		N_("Layer Text"),      		   "Text",       xmpText, xmpExternal, N_("The text content of the text layer.") },
@@ -557,7 +551,7 @@ namespace Exiv2 {
         { "VignetteMidpoint",     N_("Vignette Midpoint"),         "Integer",                          xmpText, xmpInternal, N_("\"Vignetting Midpoint\" setting. Range 0 to +100.") },
         { "WhiteBalance",         N_("White Balance"),             "Closed Choice Text",               xmpText, xmpInternal, N_("\"White Balance\" setting. One of: As Shot, Auto, Daylight, Cloudy, Shade, Tungsten, "
                                                                                                                                 "Fluorescent, Flash, Custom") },
-		// The following properties are not in the XMP specification. They are found in sample files from Adobe applications and in exiftool.
+        // The following properties are not in the XMP specification. They are found in sample files from Adobe applications and in exiftool.
     { "AlreadyApplied",			  	N_("Already Applied"),			"Boolean",						xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
     { "Converter",				  	N_("Converter"),				"Text",							xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
     { "MoireFilter",			  	N_("Moire Filter"),				"Text",							xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
@@ -706,11 +700,11 @@ namespace Exiv2 {
     { "NegativeCacheLargePreviewSize", N_("Negative Cache Large Preview Size"),	"Integer",			xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
     { "JPEGHandling",               N_("JPEG Handling"),			"Text",							xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
     { "TIFFHandling",               N_("TIFF Handling"),			"Text",							xmpText, xmpInternal, N_("Not in XMP Specification. Found in sample files.") },
-	// Corrections root structure properties
+    // Corrections root structure properties
     { "CircularGradientBasedCorrections", 	N_("CircularGradientBasedCorrections"),	"CircularGradientBasedCorrections", xmpText, xmpInternal, N_("*Root structure* ") },
     { "PaintBasedCorrections", 				N_("PaintBasedCorrections"), 			"PaintBasedCorrections", 			xmpText, xmpInternal, N_("*Root structure* ") },
         { "CorrectionMasks", 				N_("CorrectionMasks"), 					"CorrectionMasks", 					xmpText, xmpInternal, N_("*sub Root structure* ") },
-		// Corrections child properties
+        // Corrections child properties
         { "What",              				N_("What"),                  			"Text",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "MaskValue",              		N_("Mask Value"),                  		"Real",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "Radius",              			N_("Radius"),                  			"Real",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
@@ -738,9 +732,9 @@ namespace Exiv2 {
         { "Alpha",              			N_("Alpha"),                  			"Real",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "CenterValue",              		N_("Center Value"),                  	"Real",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "PerimeterValue",              	N_("Perimeter Value"),                  "Real",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
-	// Retouch root structure properties
-	{ "RetouchAreas", 						N_("RetouchAreas"), 					"RetouchAreas", 					xmpText, xmpInternal, N_("*Root structure* ") },
-		// Retouch child properties
+    // Retouch root structure properties
+    { "RetouchAreas", 						N_("RetouchAreas"), 					"RetouchAreas", 					xmpText, xmpInternal, N_("*Root structure* ") },
+        // Retouch child properties
         { "SpotType",              			N_("Spot Type"),                  		"Text",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "SourceState",              		N_("Source State"),                  	"Text",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
         { "Method",              			N_("Method"),                  			"Text",                             xmpText, xmpExternal, N_("Not in XMP Specification. Found in sample files.") },
@@ -1339,7 +1333,7 @@ namespace Exiv2 {
         { "Arranger",               N_("Arranger"),                         "Text",                     xmpText, xmpExternal, N_("Information about the Arranger.")   },
         { "ArrangerKeywords",       N_("Arranger Keywords"),                "Text",                     xmpText, xmpExternal, N_("Information about the Arranger Keywords.")   },
         { "Artist",                 N_("Artist"),                           "Text",                     xmpText, xmpExternal, N_("The name of the artist or artists.")   },
-        { "AspectRatio",            N_("Video Aspect Ratio"),               "Ratio",                    xmpText, xmpExternal, N_("Ratio of Width:Height, helps to determine how a video would be displayed on a screen")   },
+        { "AspectRatio",            N_("Video Aspect Ratio"),               "Rational",                 xmpText, xmpExternal, N_("Ratio of Width:Height, helps to determine how a video would be displayed on a screen")   },
         { "AspectRatioType",        N_("Video Aspect Ratio Type"),          "Text",                     xmpText, xmpExternal, N_("Aspect Ratio Type. Eg - Free-Resizing or Fixed")   },
         { "AttachFileData",         N_("Attached File Data"),               "Text",                     xmpText, xmpExternal, N_("Attached File Data")   },
         { "AttachFileDesc",         N_("Attached File Description"),        "Text",                     xmpText, xmpExternal, N_("Attached File Description")   },
@@ -2632,9 +2626,9 @@ namespace Exiv2 {
         const XmpPropertyInfo* pl = propertyList(prefix);
         if (!pl) return 0;
         const XmpPropertyInfo* pi = 0;
-        for (int i = 0; pl[i].name_ != 0; ++i) {
-            if (0 == strcmp(pl[i].name_, property.c_str())) {
-                pi = pl + i;
+        for (int j = 0; pl[j].name_ != 0; ++j) {
+            if (0 == strcmp(pl[j].name_, property.c_str())) {
+                pi = pl + j;
                 break;
             }
         }
@@ -2662,7 +2656,7 @@ namespace Exiv2 {
         const XmpNsInfo::Prefix pf(prefix);
         const XmpNsInfo* xn = lookupNsRegistryUnsafe(pf);
         if (!xn) xn = find(xmpNsInfo, pf);
-        if (!xn) throw Error(35, prefix);
+        if (!xn) throw Error(kerNoNamespaceInfoForXmpPrefix, prefix);
         return xn;
     }
 
@@ -2698,9 +2692,12 @@ namespace Exiv2 {
     }
 
     //! @brief Internal Pimpl structure with private members and data of class XmpKey.
-    struct XmpKey::Impl {
-        Impl() {}                       //!< Default constructor
-        Impl(const std::string& prefix, const std::string& property); //!< Constructor
+    struct XmpKey::Impl
+    {
+        Impl()
+        {
+        }                                                              //!< Default constructor
+        Impl(const std::string& prefix, const std::string& property);  //!< Constructor
 
         /*!
           @brief Parse and convert the \em key string into property and prefix.
@@ -2709,20 +2706,21 @@ namespace Exiv2 {
 
           @throw Error if the key cannot be decomposed.
         */
-        void decomposeKey(const std::string& key); //!< Misterious magic
+        void decomposeKey(const std::string& key);  //!< Misterious magic
 
         // DATA
-        static const char* familyName_; //!< "Xmp"
+        static const char* familyName_;  //!< "Xmp"
 
-        std::string prefix_;            //!< Prefix
-        std::string property_;          //!< Property name
+        std::string prefix_;    //!< Prefix
+        std::string property_;  //!< Property name
     };
 
     //! @brief Constructor for Internal Pimpl structure XmpKey::Impl::Impl
     XmpKey::Impl::Impl(const std::string& prefix, const std::string& property)
     {
         // Validate prefix
-        if (XmpProperties::ns(prefix).empty()) throw Error(46, prefix);
+        if (XmpProperties::ns(prefix).empty())
+            throw Error(kerNoNamespaceForPrefix, prefix);
 
         property_ = property;
         prefix_ = prefix;
@@ -2730,30 +2728,27 @@ namespace Exiv2 {
 
     const char* XmpKey::Impl::familyName_ = "Xmp";
 
-    XmpKey::XmpKey(const std::string& key)
-        : p_(new Impl)
+    XmpKey::XmpKey(const std::string& key) : p_(new Impl)
     {
         p_->decomposeKey(key);
     }
 
-    XmpKey::XmpKey(const std::string& prefix, const std::string& property)
-        : p_(new Impl(prefix, property))
+    XmpKey::XmpKey(const std::string& prefix, const std::string& property) : p_(new Impl(prefix, property))
     {
     }
 
     XmpKey::~XmpKey()
     {
-        delete p_;
     }
 
-    XmpKey::XmpKey(const XmpKey& rhs)
-        : Key(rhs), p_(new Impl(*rhs.p_))
+    XmpKey::XmpKey(const XmpKey& rhs) : Key(rhs), p_(new Impl(*rhs.p_))
     {
     }
 
     XmpKey& XmpKey::operator=(const XmpKey& rhs)
     {
-        if (this == &rhs) return *this;
+        if (this == &rhs)
+            return *this;
         Key::operator=(rhs);
         *p_ = *rhs.p_;
         return *this;
@@ -2792,7 +2787,8 @@ namespace Exiv2 {
     std::string XmpKey::tagLabel() const
     {
         const char* pt = XmpProperties::propertyTitle(*this);
-        if (!pt) return tagName();
+        if (!pt)
+            return tagName();
         return pt;
     }
 
@@ -2811,25 +2807,34 @@ namespace Exiv2 {
     {
         // Get the family name, prefix and property name parts of the key
         std::string::size_type pos1 = key.find('.');
-        if (pos1 == std::string::npos) throw Error(6, key);
+        if (pos1 == std::string::npos) {
+            throw Error(kerInvalidKey, key);
+        }
         std::string familyName = key.substr(0, pos1);
         if (0 != strcmp(familyName.c_str(), familyName_)) {
-            throw Error(6, key);
+            throw Error(kerInvalidKey, key);
         }
         std::string::size_type pos0 = pos1 + 1;
         pos1 = key.find('.', pos0);
-        if (pos1 == std::string::npos) throw Error(6, key);
+        if (pos1 == std::string::npos) {
+            throw Error(kerInvalidKey, key);
+        }
         std::string prefix = key.substr(pos0, pos1 - pos0);
-        if (prefix == "") throw Error(6, key);
+        if (prefix == "") {
+            throw Error(kerInvalidKey, key);
+        }
         std::string property = key.substr(pos1 + 1);
-        if (property == "") throw Error(6, key);
+        if (property == "") {
+            throw Error(kerInvalidKey, key);
+        }
 
         // Validate prefix
-        if (XmpProperties::ns(prefix).empty()) throw Error(46, prefix);
+        if (XmpProperties::ns(prefix).empty())
+            throw Error(kerNoNamespaceForPrefix, prefix);
 
         property_ = property;
         prefix_ = prefix;
-    } // XmpKey::Impl::decomposeKey
+    }  // XmpKey::Impl::decomposeKey
 
     // *************************************************************************
     // free functions

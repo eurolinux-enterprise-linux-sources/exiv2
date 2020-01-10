@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 
 /*
   File:      jp2image.cpp
-  Version:   $Rev: 4629 $
 */
 
 #ifndef JP2IMAGE_HPP_
@@ -90,7 +88,7 @@ namespace Exiv2
 
         /*!
           @brief Todo: Not supported yet(?). Calling this function will throw
-              an instance of Error(32).
+              an instance of Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         //@}
@@ -114,7 +112,7 @@ namespace Exiv2
 
           @return 4 if opening or writing to the associated BasicIo fails
          */
-        EXV_DLLLOCAL void doWriteMetadata(BasicIo& oIo);
+        void doWriteMetadata(BasicIo& oIo);
 
         /*!
          @brief reformats the Jp2Header to store iccProfile

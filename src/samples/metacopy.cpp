@@ -1,7 +1,5 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +20,6 @@
   Abstract : Tester application for image file handling
 
   File     : metacopy.cpp
-  Version  : $Rev: 4719 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
   History  : 13-Jul-04, brad: created
  */
@@ -34,7 +31,8 @@
 #include <fstream>
 #include <cassert>
 
-#include "utils.hpp"
+// include local header files which are not part of libexiv2
+#include "getopt.hpp"
 #include "metacopy.hpp"
 
 // *****************************************************************************

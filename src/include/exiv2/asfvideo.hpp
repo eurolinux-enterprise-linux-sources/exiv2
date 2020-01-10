@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    asfvideo.hpp
   @brief   An Image subclass to support ASF video files
-  @version $Rev$
   @author  Abhinav Badola for GSoC 2012
            <a href="mailto:mail.abu.to@gmail.com">mail.abu.to@gmail.com</a>
   @date    08-Aug-12, AB: created
@@ -33,11 +31,6 @@
 // included header files
 #include "exif.hpp"
 #include "image.hpp"
-#include "tags_int.hpp"
-
-// *****************************************************************************
-// namespace extensions
-using namespace Exiv2::Internal;
 
 namespace Exiv2 {
 
@@ -96,7 +89,7 @@ namespace Exiv2 {
           @param tv Pointer to current tag,
           @param size Size of the data block used to store Tag Information.
          */
-        void tagDecoder(const TagVocabulary* tv, uint64_t size);
+        void tagDecoder(const Internal::TagVocabulary* tv, uint64_t size);
         /*!
           @brief Interpret File_Properties tag information, and save it in
               the respective XMP container.

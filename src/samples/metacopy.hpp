@@ -1,7 +1,5 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +19,6 @@
 /*!
   @file    metacopy.hpp
   @brief   Defines class Params, used for the command line handling
-  @version $Rev: 4719 $
   @author  Brad Schick (brad) <brad@robotbattle.com>
   @date    13-Jul-04, brad: created
  */

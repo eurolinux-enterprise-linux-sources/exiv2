@@ -13,7 +13,7 @@
 
 #include <time.h>
 #include <string.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <locale.h>
 #include <errno.h>
 
@@ -783,7 +783,7 @@ XMPUtils::CatenateArrayItems ( const XMPMeta & xmpObj,
 	XMP_Assert ( (schemaNS != 0) && (arrayName != 0) ); // ! Enforced by wrapper.
 	XMP_Assert ( (separator != 0) && (quotes != 0) && (catedStr != 0) && (catedLen != 0) ); // ! Enforced by wrapper.
 	
-	size_t		 strLen, strPos, charLen;
+	size_t		 strLen=0, strPos=0, charLen=0;
 	UniCharKind	 charKind;
 	UniCodePoint currUCP, openQuote, closeQuote;
 	

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,19 +19,18 @@
  */
 /*
   File:      types.cpp
-  Version:   $Rev: 4764 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   26-Jan-04, ahu: created
              11-Feb-04, ahu: isolated as a component
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: types.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
-
-// *****************************************************************************
 // included header files
 #include "types.hpp"
-#include "i18n.h"                               // for _exvGettext
+#include "enforce.hpp"
+#include "futils.hpp"
+#include "i18n.h"  // for _exvGettext
+#include "safe_op.hpp"
+#include "unused.h"
 
 // + standard includes
 #ifdef EXV_UNICODE_PATH
@@ -50,6 +48,7 @@ EXIV2_RCSID("@(#) $Id: types.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
 #include <cassert>
 #include <cstring>
 #include <cmath>
+#include <math.h>
 
 // *****************************************************************************
 namespace {
@@ -129,8 +128,18 @@ namespace Exiv2 {
     DataBuf::DataBuf(DataBuf& rhs)
         : pData_(rhs.pData_), size_(rhs.size_)
     {
-        rhs.release();
+        std::pair<byte*, long> ret = rhs.release();
+        UNUSED(ret);
     }
+
+    DataBuf::~DataBuf()
+    { delete[] pData_; }
+
+    DataBuf::DataBuf() : pData_(0), size_(0)
+    {}
+
+    DataBuf::DataBuf(long size) : pData_(new byte[size]()), size_(size)
+    {}
 
     DataBuf::DataBuf(const byte* pData, long size)
         : pData_(0), size_(0)
@@ -160,12 +169,19 @@ namespace Exiv2 {
         }
     }
 
-    std::pair<byte*, long> DataBuf::release()
+    EXV_WARN_UNUSED_RESULT std::pair<byte*, long> DataBuf::release()
     {
         std::pair<byte*, long> p = std::make_pair(pData_, size_);
         pData_ = 0;
         size_ = 0;
         return p;
+    }
+
+    void DataBuf::free()
+    {
+        delete[] pData_;
+        pData_ = 0;
+        size_ = 0;
     }
 
     void DataBuf::reset(std::pair<byte*, long> p)
@@ -177,8 +193,32 @@ namespace Exiv2 {
         size_ = p.second;
     }
 
+    DataBuf::DataBuf(const DataBufRef &rhs) : pData_(rhs.p.first), size_(rhs.p.second) {}
+
+    DataBuf &DataBuf::operator=(DataBufRef rhs) { reset(rhs.p); return *this; }
+
+    Exiv2::DataBuf::operator DataBufRef() { return DataBufRef(release()); }
+
     // *************************************************************************
     // free functions
+
+    static void checkDataBufBounds(const DataBuf& buf, size_t end) {
+        enforce<std::invalid_argument>(end <= static_cast<size_t>(std::numeric_limits<long>::max()),
+                                       "end of slice too large to be compared with DataBuf bounds.");
+        enforce<std::out_of_range>(static_cast<long>(end) <= buf.size_, "Invalid slice bounds specified");
+    }
+
+    Slice<byte*> makeSlice(DataBuf& buf, size_t begin, size_t end)
+    {
+        checkDataBufBounds(buf, end);
+        return Slice<byte*>(buf.pData_, begin, end);
+    }
+
+    Slice<const byte*> makeSlice(const DataBuf& buf, size_t begin, size_t end)
+    {
+        checkDataBufBounds(buf, end);
+        return Slice<const byte*>(buf.pData_, begin, end);
+    }
 
     std::ostream& operator<<(std::ostream& os, const Rational& r)
     {
@@ -189,18 +229,20 @@ namespace Exiv2 {
     {
         // http://dev.exiv2.org/boards/3/topics/1912?r=1915
         if ( std::tolower(is.peek()) == 'f' ) {
-            char  F;
-            float f;
+            char  F = 0;
+            float f = 0.f;
             is >> F >> f ;
             f  = 2.0f * std::log(f) / std::log(2.0f) ;
             r  = Exiv2::floatToRationalCast(f);
         } else {
-            int32_t nominator;
-            int32_t denominator;
+            int32_t nominator = 0;
+            int32_t denominator = 0;
             char c('\0');
             is >> nominator >> c >> denominator;
-            if (c != '/') is.setstate(std::ios::failbit);
-            if (is) r = std::make_pair(nominator, denominator);
+            if (c != '/')
+                is.setstate(std::ios::failbit);
+            if (is)
+                r = std::make_pair(nominator, denominator);
         }
         return is;
     }
@@ -213,31 +255,29 @@ namespace Exiv2 {
     std::istream& operator>>(std::istream& is, URational& r)
     {
         // http://dev.exiv2.org/boards/3/topics/1912?r=1915
+        /// \todo This implementation seems to be duplicated for the Rational type. Try to remove duplication
         if ( std::tolower(is.peek()) == 'f' ) {
-            char  F;
-            float f;
+            char  F = 0;
+            float f = 0.f;
             is >> F >> f ;
             f  = 2.0f * std::log(f) / std::log(2.0f) ;
             r  = Exiv2::floatToRationalCast(f);
         } else {
-            uint32_t nominator;
-            uint32_t denominator;
+            uint32_t nominator = 0;
+            uint32_t denominator = 0;
             char c('\0');
             is >> nominator >> c >> denominator;
-            if (c != '/') is.setstate(std::ios::failbit);
-            if (is) r = std::make_pair(nominator, denominator);
+            if (c != '/')
+                is.setstate(std::ios::failbit);
+            if (is)
+                r = std::make_pair(nominator, denominator);
         }
         return is;
     }
 
     uint16_t getUShort(const byte* buf, ByteOrder byteOrder)
     {
-        if (byteOrder == littleEndian) {
-            return (byte)buf[1] << 8 | (byte)buf[0];
-        }
-        else {
-            return (byte)buf[0] << 8 | (byte)buf[1];
-        }
+        return getUShort(makeSliceUntil(buf, 2), byteOrder);
     }
 
     uint32_t getULong(const byte* buf, ByteOrder byteOrder)
@@ -249,6 +289,22 @@ namespace Exiv2 {
         else {
             return   (byte)buf[0] << 24 | (byte)buf[1] << 16
                    | (byte)buf[2] <<  8 | (byte)buf[3];
+        }
+    }
+
+    uint64_t getULongLong(const byte* buf, ByteOrder byteOrder)
+    {
+        if (byteOrder == littleEndian) {
+            return   (uint64_t)buf[7] << 56 | (uint64_t)buf[6] << 48
+                   | (uint64_t)buf[5] << 40 | (uint64_t)buf[4] << 32
+                   | (uint64_t)buf[3] << 24 | (uint64_t)buf[2] << 16
+                   | (uint64_t)buf[1] <<  8 | (uint64_t)buf[0];
+        }
+        else {
+            return   (uint64_t)buf[0] << 56 | (uint64_t)buf[1] << 48
+                   | (uint64_t)buf[2] << 40 | (uint64_t)buf[3] << 32
+                   | (uint64_t)buf[4] << 24 | (uint64_t)buf[5] << 16
+                   | (uint64_t)buf[6] <<  8 | (uint64_t)buf[7];
         }
     }
 
@@ -637,16 +693,30 @@ namespace Exiv2 {
 
     Rational floatToRationalCast(float f)
     {
+#if defined(_MSC_VER) && _MSC_VER < 1800
+        if (!_finite(f)) {
+#else
+        if (!std::isfinite(f)) {
+#endif
+            return Rational(f > 0 ? 1 : -1, 0);
+        }
         // Beware: primitive conversion algorithm
         int32_t den = 1000000;
-        if (std::labs(static_cast<long>(f)) > 2147) den = 10000;
-        if (std::labs(static_cast<long>(f)) > 214748) den = 100;
-        if (std::labs(static_cast<long>(f)) > 21474836) den = 1;
+        const long f_as_long = static_cast<long>(f);
+        if (Safe::abs(f_as_long) > 2147) {
+            den = 10000;
+        }
+        if (Safe::abs(f_as_long) > 214748) {
+            den = 100;
+        }
+        if (Safe::abs(f_as_long) > 21474836) {
+            den = 1;
+        }
         const float rnd = f >= 0 ? 0.5f : -0.5f;
         const int32_t nom = static_cast<int32_t>(f * den + rnd);
         const int32_t g = gcd(nom, den);
 
-        return Rational(nom/g, den/g);
+        return Rational(nom / g, den / g);
     }
 
 }                                       // namespace Exiv2
@@ -658,13 +728,15 @@ const char* _exvGettext(const char* str)
     static bool exvGettextInitialized = false;
 
     if (!exvGettextInitialized) {
-        bindtextdomain(EXV_PACKAGE, EXV_LOCALEDIR);
+        //bindtextdomain(EXV_PACKAGE_NAME, EXV_LOCALEDIR);
+        const std::string localeDir = Exiv2::getProcessPath() + EXV_LOCALEDIR;
+        bindtextdomain(EXV_PACKAGE_NAME, localeDir.c_str());
 # ifdef EXV_HAVE_BIND_TEXTDOMAIN_CODESET
-        bind_textdomain_codeset (EXV_PACKAGE, "UTF-8");
+        bind_textdomain_codeset (EXV_PACKAGE_NAME, "UTF-8");
 # endif
         exvGettextInitialized = true;
     }
 
-    return dgettext(EXV_PACKAGE, str);
+    return dgettext(EXV_PACKAGE_NAME, str);
 }
 #endif // EXV_ENABLE_NLS

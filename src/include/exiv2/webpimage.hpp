@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    webpimage.hpp
   @brief   An Image subclass to support WEBP image files
-  @version $Rev$
   @author  Ben Touchette
            <a href="mailto:draekko.software+exiv2@gmail.com">draekko.software+exiv2@gmail.com</a>
   @date    29-Jul-16
@@ -33,7 +31,6 @@
 // included header files
 #include "exif.hpp"
 #include "image.hpp"
-#include "tags_int.hpp"
 
 // *****************************************************************************
 // namespace extensions
@@ -77,7 +74,7 @@ namespace Exiv2 {
         //@}
 
         /*!
-          @brief Not supported. Calling this function will throw an Error(32).
+          @brief Not supported. Calling this function will throw an Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         void setIptcData(const IptcData& /*iptcData*/);
@@ -88,7 +85,7 @@ namespace Exiv2 {
         //@}
 
     private:
-        EXV_DLLLOCAL void doWriteMetadata(BasicIo& outIo);
+        void doWriteMetadata(BasicIo& outIo);
         //! @name NOT Implemented
         //@{
         long getHeaderOffset(byte *data, long data_size,

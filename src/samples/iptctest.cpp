@@ -4,7 +4,6 @@
              This is not designed to be a robust application.
 
   File     : iptctest.cpp
-  Version  : $Rev: 2286 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
   History  : 01-Aug-04, brad: created
  */
@@ -79,7 +78,7 @@ bool processLine(const std::string& line, int num, IptcData &iptcData)
         default:
             std::ostringstream os;
             os << "Unknown command (" << line.at(0) << ") at line " << num;
-            throw Error(1, os.str());
+            throw Error(kerErrorMessage, os.str());
     }
     return true;
 }
@@ -95,7 +94,7 @@ void processAdd(const std::string& line, int num, IptcData &iptcData)
         dataStart == std::string::npos) {
         std::ostringstream os;
         os << "Invalid \'a\' command at line " << num;
-        throw Error(1, os.str());
+        throw Error(kerErrorMessage, os.str());
     }
 
     std::string key(line.substr(keyStart, keyEnd-keyStart));
@@ -112,7 +111,7 @@ void processAdd(const std::string& line, int num, IptcData &iptcData)
 
     int rc = iptcData.add(iptcKey, value.get());
     if (rc) {
-        throw Error(1, "Iptc dataset already exists and is not repeatable");
+        throw Error(kerErrorMessage, "Iptc dataset already exists and is not repeatable");
     }
 }
 
@@ -123,7 +122,7 @@ void processRemove(const std::string& line, int num, IptcData &iptcData)
     if (keyStart == std::string::npos) {
         std::ostringstream os;
         os << "Invalid \'r\' command at line " << num;
-        throw Error(1, os.str());
+        throw Error(kerErrorMessage, os.str());
     }
 
     const std::string key( line.substr(keyStart) );
@@ -146,7 +145,7 @@ void processModify(const std::string& line, int num, IptcData &iptcData)
         dataStart == std::string::npos) {
         std::ostringstream os;
         os << "Invalid \'m\' command at line " << num;
-        throw Error(1, os.str());
+        throw Error(kerErrorMessage, os.str());
     }
 
     std::string key(line.substr(keyStart, keyEnd-keyStart));
@@ -168,7 +167,7 @@ void processModify(const std::string& line, int num, IptcData &iptcData)
     else {
         int rc = iptcData.add(iptcKey, value.get());
         if (rc) {
-            throw Error(1, "Iptc dataset already exists and is not repeatable");
+            throw Error(kerErrorMessage, "Iptc dataset already exists and is not repeatable");
         }
     }
 }

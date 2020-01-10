@@ -1,40 +1,37 @@
 language: cpp
 
-sudo: false
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: gcc
+      env: COVERAGE=1 CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DEXIV2_ENABLE_VIDEO=ON -DEXIV2_ENABLE_WEBREADY=ON -DEXIV2_BUILD_UNIT_TESTS=ON -DBUILD_WITH_COVERAGE=ON"
 
-addons:
-    apt:
-      packages:
-        - cmake
-        - zlib1g-dev
-        - libssh-dev
-        - libssh
-        - libcurl4-openssl-dev
-        - gettext
-      sources:
-        - kalakris-cmake
-        
-compiler:
-  - gcc
-  - clang
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: gcc
+      env:
+        - WITH_VALGRIND=1
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DEXIV2_ENABLE_VIDEO=ON -DEXIV2_ENABLE_WEBREADY=ON -DEXIV2_BUILD_UNIT_TESTS=ON"
 
-before_install:
-  - echo $LANG
-  - echo $LC_ALL
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew update && brew install libssh curl; fi
-  - rvm use $RVM --install --binary --fuzzy
-  - gem update --system
-#  - gem --version
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: clang
+      env: CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DEXIV2_ENABLE_VIDEO=ON -DEXIV2_ENABLE_WEBREADY=ON -DEXIV2_BUILD_UNIT_TESTS=ON"
 
-script:
-  - cmake -DCMAKE_INSTALL_PREFIX=..\dist -EXIV2_ENABLE_NLS=ON -DEXIV2_ENABLE_CURL=OFF -DEXIV2_ENABLE_SSH=OFF .
-  - cmake --build . && cmake --build . --target install 
-  - cmake -DCMAKE_INSTALL_PREFIX=..\dist2 -EXIV2_ENABLE_NLS=ON -DEXIV2_ENABLE_CURL=ON -DEXIV2_ENABLE_SSH=ON -DEXIV2_ENABLE_WEBREADY=ON .
-  - cmake --build . && cmake --build . --target install 
+    - os: osx
+      osx_image: xcode9
+      compiler: clang
+      env: PYTHON=3.6.2 CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DEXIV2_ENABLE_VIDEO=ON -DEXIV2_ENABLE_WEBREADY=ON -DEXIV2_BUILD_UNIT_TESTS=ON -DEXIV2_ENABLE_NLS=OFF"
 
-notifications:
-  email: false
-  
-os:
-  - linux
-  - osx
+install: ./ci/install.sh
+script:  ./ci/run.sh
+
+cache:
+    ccache: true
+    directories:
+    - conan         # Conan installation folder
+    - $HOME/conanData     # Conan storage location

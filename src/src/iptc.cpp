@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,14 +19,9 @@
  */
 /*
   File:      iptc.cpp
-  Version:   $Rev: 4719 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
   History:   31-July-04, brad: created
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: iptc.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "iptc.hpp"
@@ -215,7 +209,7 @@ namespace Exiv2 {
 
     const Value& Iptcdatum::value() const
     {
-        if (value_.get() == 0) throw Error(8);
+        if (value_.get() == 0) throw Error(kerValueNotSet);
         return *value_;
     }
 
@@ -353,24 +347,31 @@ namespace Exiv2 {
         return iptcMetadata_.erase(pos);
     }
 
-	void IptcData::printStructure(std::ostream& out, const byte* bytes,const size_t size,uint32_t depth)
-	{
-		uint32_t i     = 0 ;
-		while  ( i < size-3 && bytes[i] != 0x1c ) i++;
-		depth++;
-		out << Internal::indent(depth) << "Record | DataSet | Name                     | Length | Data" << std::endl;
-		while ( bytes[i] == 0x1c && i < size-3 ) {
-			char buff[100];
-			uint16_t record  = bytes[i+1];
-			uint16_t dataset = bytes[i+2];
-			uint16_t len     = getUShort(bytes+i+3,bigEndian);
-			sprintf(buff,"  %6d | %7d | %-24s | %6d | ",record,dataset, Exiv2::IptcDataSets::dataSetName(dataset,record).c_str(), len);
+    void IptcData::printStructure(std::ostream& out, const Slice<byte*>& bytes, uint32_t depth)
+    {
+        uint32_t i = 0;
+        while (i < bytes.size() - 3 && bytes.at(i) != 0x1c)
+            i++;
+        depth++;
+        out << Internal::indent(depth) << "Record | DataSet | Name                     | Length | Data" << std::endl;
+        while (i < bytes.size() - 3) {
+            if (bytes.at(i) != 0x1c) {
+                break;
+            }
+            char buff[100];
+            uint16_t record = bytes.at(i + 1);
+            uint16_t dataset = bytes.at(i + 2);
+            uint16_t len = getUShort(bytes.subSlice(i + 3, bytes.size()), bigEndian);
+            sprintf(buff, "  %6d | %7d | %-24s | %6d | ", record, dataset,
+                    Exiv2::IptcDataSets::dataSetName(dataset, record).c_str(), len);
 
-			out << buff << Internal::binaryToString(bytes,(len>40?40:len),i+5) << (len>40?"...":"") << std::endl;
-			i += 5 + len;
-		}
-		depth--;
-	}
+            out << buff << Internal::binaryToString(makeSlice(bytes, i + 5, i + 5 + (len > 40 ? 40 : len)))
+                << (len > 40 ? "..." : "")
+                << std::endl;
+            i += 5 + len;
+        }
+        depth--;
+    }
 
     const char *IptcData::detectCharset() const
     {

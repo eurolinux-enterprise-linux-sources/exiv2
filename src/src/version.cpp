@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,26 +19,13 @@
  */
 /*
   File:      version.cpp
-  Version:   $Rev: 4764 $
  */
-
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: version.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
 
 // *****************************************************************************
 
 #include "config.h"
 
-#ifndef EXV_USE_SSH
-#define EXV_USE_SSH 0
-#endif
-
-#ifndef EXV_USE_CURL
-#define EXV_USE_CURL 0
-#endif
-
-#if EXV_USE_CURL == 1
+#ifdef EXV_USE_CURL
 #include <curl/curl.h>
 #endif
 
@@ -53,49 +39,20 @@ EXIV2_RCSID("@(#) $Id: version.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
 # endif
 #endif
 
-#ifndef EXV_HAVE_XMP_TOOLKIT
-#define EXV_HAVE_XMP_TOOLKIT 0
-#endif
-
-#ifndef EXV_HAVE_STRINGS
-#define EXV_HAVE_STRINGS 0
-#endif
-
-#ifndef  EXV_SYS_TYPES
-#define  EXV_SYS_TYPES 0
-#endif
-
-#ifndef  EXV_HAVE_UNISTD
-#define  EXV_HAVE_UNISTD 0
-#endif
-
-#ifndef  EXV_UNICODE_PATH
-#define  EXV_UNICODE_PATH 0
-#endif
-
-#ifndef  EXV_ENABLE_VIDEO
-#define  EXV_ENABLE_VIDEO 0
-#endif
-
-#ifndef  EXV_ENABLE_WEBREADY
-#define  EXV_ENABLE_WEBREADY 0
-#endif
-
 #include "http.hpp"
-#include "svn_version.h"
 #include "version.hpp"
 #include "makernote_int.hpp"
+#include "futils.hpp"
 
 // Adobe XMP Toolkit
-#if EXV_HAVE_XMP_TOOLKIT
-#include "xmp.hpp"
+#ifdef EXV_HAVE_XMP_TOOLKIT
+#include "xmp_exiv2.hpp"
 #endif
 
 // + standard includes
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <stdio.h>
 #include <iostream>
 
@@ -135,6 +92,7 @@ namespace Exiv2 {
     {
         return versionNumber() >= EXIV2_MAKE_VERSION(major,minor,patch);
     }
+
 }                                       // namespace Exiv2
 
 #ifndef lengthof
@@ -182,11 +140,7 @@ static bool shouldOutput(const exv_grep_keys_t& greps,const char* key,const std:
       !bPrint && g != greps.end() ; ++g
     ) {
         std::string Key(key);
-#if __cplusplus >= CPLUSPLUS11
-        std::smatch m;
-        bPrint = std::regex_search(Key,m,*g) || std::regex_search(value,m,*g);
-#else
-#if EXV_HAVE_REGEX
+#if defined(EXV_HAVE_REGEX_H)
         bPrint = (  0 == regexec( &(*g), key          , 0, NULL, 0)
                  || 0 == regexec( &(*g), value.c_str(), 0, NULL, 0)
                  );
@@ -200,7 +154,6 @@ static bool shouldOutput(const exv_grep_keys_t& greps,const char* key,const std:
                 std::transform(Value.begin()  , Value.end()  ,Value.begin()    , ::tolower);
             }
             bPrint = Key.find(Pattern) != std::string::npos || Value.find(Pattern) != std::string::npos;
-#endif
 #endif
     }
     return bPrint;
@@ -223,13 +176,13 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     Exiv2::StringVector libs; // libs[0] == executable
 
     int      bits = 8*sizeof(void*);
-#if defined(_DEBUG) || defined(DEBUG)
-    int debug=1;
-#else
+#ifdef NDEBUG
     int debug=0;
+#else
+    int debug=1;
 #endif
 
-#if defined(DLL_EXPORT) || defined(EXV_HAVE_DLL)
+#if defined(DLL_EXPORT)
     int dll=1;
 #else
     int dll=0;
@@ -246,7 +199,9 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     // add edition in brackets
     // 7.10 = 2003 8.00 = 2005 etc 12.00 = 2013 13.00 = 2015 (yet the installer labels it as 14.0!)
     size_t      edition       = (_MSC_VER-600)/100;
-    const char* editions[]    = { "0","1","2","3","4","5","6","2003", "2005", "2008", "2010", "2012","2013","2015"};
+    const char* editions[]    = { "0","1","2","3","4","5","6","2003", "2005", "2008", "2010", "2012","2013","2015","2017"};
+    if (  edition == 13 && _MSC_VER >= 1910 ) edition++ ; // 2017 _MSC_VAR  == 1910!
+
     if  ( edition > lengthof(editions) ) edition = 0 ;
     if  ( edition ) sprintf(version+::strlen(version)," (%s/%s)",editions[edition],bits==64?"x64":"x86");
 #define __VERSION__ version
@@ -279,7 +234,9 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
 #endif
 
     const char* platform =
-#if defined(__CYGWIN__)
+#if defined(__MSYS__)
+    "msys";
+#elif defined(__CYGWIN__)
     "cygwin";
 #elif defined(_MSC_VER)
     "windows";
@@ -295,44 +252,39 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     "unknown";
 #endif
 
-    int have_regex       =0;
     int have_gmtime_r    =0;
     int have_inttypes    =0;
     int have_libintl     =0;
     int have_lensdata    =0;
     int have_iconv       =0;
     int have_memory      =0;
-    int have_memset      =0;
     int have_lstat       =0;
     int have_stdbool     =0;
     int have_stdint      =0;
     int have_stdlib      =0;
     int have_strlib      =0;
-    int have_strchr      =0;
-    int have_strerror    =0;
     int have_strerror_r  =0;
     int have_strings_h   =0;
-    int have_strtol      =0;
     int have_mmap        =0;
     int have_munmap      =0;
     int have_sys_stat    =0;
-    int have_timegm      =0;
     int have_unistd_h    =0;
     int have_sys_mman    =0;
     int have_libz        =0;
     int have_xmptoolkit  =0;
+    int adobe_xmpsdk     =0;
     int have_bool        =0;
     int have_strings     =0;
     int have_sys_types   =0;
     int have_unistd      =0;
     int have_unicode_path=0;
+    int have_regex       =0;
 
     int enable_video     =0;
     int enable_webready  =0;
-
-#ifdef EXV_HAVE_DECL_STRERROR_R
-    have_strerror_r=1;
-#endif
+    int enable_nls       =0;
+    int use_curl         =0;
+    int use_ssh          =0;
 
 #ifdef EXV_HAVE_GMTIME_R
     have_gmtime_r=1;
@@ -358,16 +310,8 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     have_libintl=1;
 #endif
 
-#ifdef EXV_HAVE_REGEX
-    have_regex=1;
-#endif
-
 #ifdef EXV_HAVE_MEMORY_H
     have_memory=1;
-#endif
-
-#ifdef EXV_HAVE_MEMSET
-    have_memset=1;
 #endif
 
 #ifdef EXV_HAVE_LSTAT
@@ -386,24 +330,12 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     have_stdlib=1;
 #endif
 
-#ifdef EXV_HAVE_STRCHR
-    have_strchr=1;
-#endif
-
-#ifdef EXV_HAVE_STRERROR
-    have_strerror=1;
-#endif
-
 #ifdef EXV_HAVE_STRERROR_R
     have_strerror_r=1;
 #endif
 
 #ifdef EXV_HAVE_STRINGS_H
     have_strings=1;
-#endif
-
-#ifdef EXV_HAVE_STRTOL
-    have_strtol=1;
 #endif
 
 #ifdef EXV_HAVE_MMAP
@@ -422,10 +354,6 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     have_sys_types=1;
 #endif
 
-#ifdef EXV_HAVE_TIMEGM
-    have_timegm=1;
-#endif
-
 #ifdef EXV_HAVE_UNISTD_H
     have_unistd=1;
 #endif
@@ -440,6 +368,10 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
 
 #ifdef EXV_HAVE_XMP_TOOLKIT
     have_xmptoolkit=1;
+#endif
+
+#ifdef EXV_ADOBE_XMPSDK
+    adobe_xmpsdk=EXV_ADOBE_XMPSDK;
 #endif
 
 #ifdef EXV_HAVE_BOOL
@@ -468,6 +400,22 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
 
 #ifdef EXV_ENABLE_WEBREADY
      enable_webready=1;
+#endif
+
+#ifdef EXV_ENABLE_NLS
+     enable_nls=1;
+#endif
+
+#ifdef EXV_USE_CURL
+    use_curl=1;
+#endif
+
+#ifdef EXV_USE_SSH
+     use_ssh=1;
+#endif
+
+#ifdef EXV_HAVE_REGEX_H
+      have_regex=1;
 #endif
 
 #if defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW__)
@@ -522,13 +470,16 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     output(os,keys,"dll"            , dll        );
     output(os,keys,"debug"          , debug      );
     output(os,keys,"cplusplus"      , __cplusplus);
-    output(os,keys,"cplusplus11"    , __cplusplus >= CPLUSPLUS11 );
     output(os,keys,"version"        , __VERSION__);
     output(os,keys,"date"           , __DATE__   );
     output(os,keys,"time"           , __TIME__   );
-    output(os,keys,"svn"            , SVN_VERSION);
-    output(os,keys,"ssh"            , EXV_USE_SSH);
-#if EXV_USE_CURL == 1
+    output(os,keys,"processpath"    , Exiv2::getProcessPath());
+#ifdef EXV_ENABLE_NLS
+    output(os,keys,"localedir"      , EXV_LOCALEDIR);
+#endif
+    output(os,keys,"package_name"   , EXV_PACKAGE_NAME);
+
+#ifdef EXV_USE_CURL
     std::string curl_protocols;
     curl_version_info_data* vinfo = curl_version_info(CURLVERSION_NOW);
     for (int i = 0; vinfo->protocols[i]; i++) {
@@ -536,17 +487,15 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
         curl_protocols += " " ;
     }
     output(os,keys,"curlprotocols" ,curl_protocols);
-#else
-    output(os,keys,"curl"          , EXV_USE_CURL);
 #endif
-    output(os,keys,"id"        , "$Id: version.cpp 4764 2017-04-23 19:29:19Z robinwmills $");
+
+    output(os,keys,"curl"          , use_curl);
     if ( libs.begin() != libs.end() ) {
         output(os,keys,"executable" ,*libs.begin());
-        for ( Exiv2::StringVector_i lib = libs.begin()+1 ; lib != libs.end() ; lib++ )
+        for ( Exiv2::StringVector_i lib = libs.begin()+1 ; lib != libs.end() ; ++lib )
             output(os,keys,"library",*lib);
     }
 
-    output(os,keys,"have_regex"        ,have_regex       );
     output(os,keys,"have_strerror_r"   ,have_strerror_r  );
     output(os,keys,"have_gmtime_r"     ,have_gmtime_r    );
     output(os,keys,"have_inttypes"     ,have_inttypes    );
@@ -554,25 +503,21 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     output(os,keys,"have_lensdata"     ,have_lensdata    );
     output(os,keys,"have_iconv"        ,have_iconv       );
     output(os,keys,"have_memory"       ,have_memory      );
-    output(os,keys,"have_memset"       ,have_memset      );
     output(os,keys,"have_lstat"        ,have_lstat       );
     output(os,keys,"have_stdbool"      ,have_stdbool     );
     output(os,keys,"have_stdint"       ,have_stdint      );
     output(os,keys,"have_stdlib"       ,have_stdlib      );
     output(os,keys,"have_strlib"       ,have_strlib      );
-    output(os,keys,"have_strchr"       ,have_strchr      );
-    output(os,keys,"have_strerror"     ,have_strerror    );
     output(os,keys,"have_strerror_r"   ,have_strerror_r  );
     output(os,keys,"have_strings_h"    ,have_strings_h   );
-    output(os,keys,"have_strtol"       ,have_strtol      );
     output(os,keys,"have_mmap"         ,have_mmap        );
     output(os,keys,"have_munmap"       ,have_munmap      );
     output(os,keys,"have_sys_stat"     ,have_sys_stat    );
-    output(os,keys,"have_timegm"       ,have_timegm      );
     output(os,keys,"have_unistd_h"     ,have_unistd_h    );
     output(os,keys,"have_sys_mman"     ,have_sys_mman    );
     output(os,keys,"have_libz"         ,have_libz        );
     output(os,keys,"have_xmptoolkit"   ,have_xmptoolkit  );
+    output(os,keys,"adobe_xmpsdk"      ,adobe_xmpsdk     );
     output(os,keys,"have_bool"         ,have_bool        );
     output(os,keys,"have_strings"      ,have_strings     );
     output(os,keys,"have_sys_types"    ,have_sys_types   );
@@ -580,6 +525,11 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     output(os,keys,"have_unicode_path" ,have_unicode_path);
     output(os,keys,"enable_video"      ,enable_video     );
     output(os,keys,"enable_webready"   ,enable_webready  );
+    output(os,keys,"enable_nls"        ,enable_nls       );
+    output(os,keys,"use_curl"          ,use_curl         );
+    output(os,keys,"use_ssh"           ,use_ssh          );
+    output(os,keys,"have_regex"        ,have_regex       );
+
     output(os,keys,"config_path"       ,Exiv2::Internal::getExiv2ConfigPath());
 
 // #1147
@@ -589,12 +539,12 @@ void Exiv2::dumpLibraryInfo(std::ostream& os,const exv_grep_keys_t& keys)
     uid_t gid  = getgid()  ; output(os,keys,"gid" ,  gid  );
 #endif
 
-#if EXV_HAVE_XMP_TOOLKIT
+#ifdef EXV_HAVE_XMP_TOOLKIT
     const char* name = "xmlns";
 
     Exiv2::Dictionary ns;
     Exiv2::XmpProperties::registeredNamespaces(ns);
-    for ( Exiv2::Dictionary_i it = ns.begin(); it != ns.end() ; it++ ) {
+    for ( Exiv2::Dictionary_i it = ns.begin(); it != ns.end() ; ++it ) {
         std::string xmlns = (*it).first;
         std::string uri   = (*it).second;
         output(os,keys,name,xmlns+":"+uri);

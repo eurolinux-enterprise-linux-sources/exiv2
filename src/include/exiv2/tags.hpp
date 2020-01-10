@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    tags.hpp
   @brief   Exif tag and type information
-  @version $Rev: 3090 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    15-Jan-04, ahu: created<BR>
@@ -75,7 +73,7 @@ namespace Exiv2 {
 
     //! Search key to find a GroupInfo by its group name.
     struct EXIV2API GroupInfo::GroupName {
-        GroupName(const std::string& groupName); //!< Constructor
+        explicit GroupName(const std::string& groupName);
         std::string g_;                          //!< Group name
     };
 
@@ -118,7 +116,6 @@ namespace Exiv2 {
         static const GroupInfo* groupList();
         //! Return read-only list of built-in \em groupName tags.
         static const TagInfo* tagList(const std::string& groupName);
-
         //! Print a list of all standard Exif tags to output stream
         static void taglist(std::ostream& os);
         //! Print the list of tags for \em groupName
@@ -179,7 +176,8 @@ namespace Exiv2 {
           @throw Error if the key cannot be constructed from the tag number
                  and group name.
          */
-        ExifKey(const TagInfo& ti);
+        explicit ExifKey(const TagInfo& ti);
+
         //! Copy constructor
         ExifKey(const ExifKey& rhs);
         //! Destructor
@@ -218,12 +216,12 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual ExifKey* clone_() const;
+        virtual ExifKey* clone_() const;
 
     private:
         // Pimpl idiom
         struct Impl;
-        Impl* p_;
+        std::auto_ptr<Impl> p_;
 
     }; // class ExifKey
 

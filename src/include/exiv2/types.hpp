@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    types.hpp
   @brief   Type definitions for %Exiv2 and related functionality
-  @version $Rev: 3090 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    09-Jan-04, ahu: created<BR>
@@ -33,21 +31,20 @@
 
 // included header files
 #include "config.h"
-#include "version.hpp"
+#include "slice.hpp"
+#include "exiv2lib_export.h"
+#include "slice.hpp"
 
 // + standard includes
 #include <string>
 #include <vector>
 #include <iosfwd>
+#include <limits>
 #include <utility>
 #include <algorithm>
 #include <sstream>
 
 #ifdef _MSC_VER
-// Don't assume the value of EXV_HAVE_STDINT_H in exv_msvc.h has been set correctly
-# ifdef  EXV_HAVE_STDINT_H
-#  undef EXV_HAVE_STDINT_H
-# endif
 // Visual Studio 2010 and later has stdint.h
 # if   _MSC_VER >= _MSC_VER_2010
 #  include <stdint.h>
@@ -62,11 +59,12 @@
    typedef          __int32 int32_t;
    typedef          __int64 int64_t;
 # endif
+#else
+  #ifdef EXV_HAVE_STDINT_H
+  # include <stdint.h>
+  #endif
 #endif
 
-#ifdef EXV_HAVE_STDINT_H
-# include <stdint.h>
-#endif
 
 // MSVC macro to convert a string to a wide string
 #ifdef EXV_UNICODE_PATH
@@ -85,6 +83,14 @@
 #define EXV_MIN(a,b) ((a) < (b) ? (a) : (b))
 //! Simple common max macro
 #define EXV_MAX(a,b) ((a) > (b) ? (a) : (b))
+
+#if defined(__GNUC__) && (__GNUC__ >= 4) || defined(__clang__)
+#define EXV_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
+#elif defined(_MSC_VER) && (_MSC_VER >= 1700)
+#define EXV_WARN_UNUSED_RESULT _Check_return_
+#else
+#define EXV_WARN_UNUSED_RESULT
+#endif
 
 // *****************************************************************************
 // forward declarations
@@ -137,6 +143,9 @@ namespace Exiv2 {
         tiffFloat          =11, //!< TIFF FLOAT type, single precision (4-byte) IEEE format.
         tiffDouble         =12, //!< TIFF DOUBLE type, double precision (8-byte) IEEE format.
         tiffIfd            =13, //!< TIFF IFD type, 32-bit (4-byte) unsigned integer.
+        unsignedLongLong   =16, //!< Exif LONG LONG type, 64-bit (8-byte) unsigned integer.
+        signedLongLong     =17, //!< Exif LONG LONG type, 64-bit (8-byte) signed integer.
+        tiffIfd8           =18, //!< TIFF IFD type, 64-bit (8-byte) unsigned integer.
         string        =0x10000, //!< IPTC string type.
         date          =0x10001, //!< IPTC date type.
         time          =0x10002, //!< IPTC time type.
@@ -183,7 +192,7 @@ namespace Exiv2 {
      */
     struct EXIV2API DataBufRef {
         //! Constructor
-        DataBufRef(std::pair<byte*, long> rhs) : p(rhs) {}
+        explicit DataBufRef(std::pair<byte*, long> rhs) : p(rhs) {}
         //! Pointer to a byte array and its size
         std::pair<byte*, long> p;
     };
@@ -199,9 +208,9 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Default constructor
-        DataBuf() : pData_(0), size_(0) {}
+        DataBuf();
         //! Constructor with an initial buffer size
-        explicit DataBuf(long size) : pData_(new byte[size]), size_(size) {}
+        explicit DataBuf(long size);
         //! Constructor, copies an existing buffer
         DataBuf(const byte* pData, long size);
         /*!
@@ -211,7 +220,7 @@ namespace Exiv2 {
          */
         DataBuf(DataBuf& rhs);
         //! Destructor, deletes the allocated buffer
-        ~DataBuf() { delete[] pData_; }
+        ~DataBuf();
         //@}
 
         //! @name Manipulators
@@ -233,7 +242,13 @@ namespace Exiv2 {
                  buffer as a data pointer and size pair, resets the internal
                  buffer.
          */
-        std::pair<byte*, long> release();
+        EXV_WARN_UNUSED_RESULT std::pair<byte*, long> release();
+
+         /*!
+           @brief Free the internal buffer and reset the size to 0.
+          */
+        void free();
+
         //! Reset value
         void reset(std::pair<byte*, long> =std::make_pair((byte*)(0),long(0)));
         //@}
@@ -246,9 +261,9 @@ namespace Exiv2 {
           See http://www.josuttis.com/libbook/auto_ptr.html for a discussion.
          */
         //@{
-        DataBuf(DataBufRef rhs) : pData_(rhs.p.first), size_(rhs.p.second) {}
-        DataBuf& operator=(DataBufRef rhs) { reset(rhs.p); return *this; }
-        operator DataBufRef() { return DataBufRef(release()); }
+        DataBuf(const DataBufRef& rhs);
+        DataBuf& operator=(DataBufRef rhs);
+        operator DataBufRef();
         //@}
 
         // DATA
@@ -258,14 +273,42 @@ namespace Exiv2 {
         long size_;
     }; // class DataBuf
 
+    /*!
+     * @brief Create a new Slice from a DataBuf given the bounds.
+     *
+     * @param[in] begin, end  Bounds of the new Slice. `begin` must be smaller
+     *     than `end` and both must not be larger than LONG_MAX.
+     * @param[in] buf  The DataBuf from which' data the Slice will be
+     *     constructed
+     *
+     * @throw std::invalid_argument when `end` is larger than `LONG_MAX` or
+     * anything that the constructor of @ref Slice throws
+     */
+    EXIV2API Slice<byte*> makeSlice(DataBuf& buf, size_t begin, size_t end);
+
+    //! Overload of makeSlice for `const DataBuf`, returning an immutable Slice
+    EXIV2API Slice<const byte*> makeSlice(const DataBuf& buf, size_t begin, size_t end);
 
 // *****************************************************************************
 // free functions
 
     //! Read a 2 byte unsigned short value from the data buffer
     EXIV2API uint16_t getUShort(const byte* buf, ByteOrder byteOrder);
+    //! Read a 2 byte unsigned short value from a Slice
+    template <typename T>
+    uint16_t getUShort(const Slice<T>& buf, ByteOrder byteOrder)
+    {
+        if (byteOrder == littleEndian) {
+            return static_cast<byte>(buf.at(1)) << 8 | static_cast<byte>(buf.at(0));
+        } else {
+            return static_cast<byte>(buf.at(0)) << 8 | static_cast<byte>(buf.at(1));
+        }
+    }
+
     //! Read a 4 byte unsigned long value from the data buffer
     EXIV2API uint32_t getULong(const byte* buf, ByteOrder byteOrder);
+    //! Read a 8 byte unsigned long value from the data buffer
+    EXIV2API uint64_t getULongLong(const byte* buf, ByteOrder byteOrder);
     //! Read an 8 byte unsigned rational value from the data buffer
     EXIV2API URational getURational(const byte* buf, ByteOrder byteOrder);
     //! Read a 2 byte signed short value from the data buffer
@@ -500,7 +543,7 @@ namespace Exiv2 {
     {
         std::istringstream is(s);
         T tmp;
-        ok = is >> tmp ? true : false;
+        ok = (is >> tmp) ? true : false;
         std::string rest;
         is >> std::skipws >> rest;
         if (!rest.empty()) ok = false;
@@ -536,9 +579,16 @@ namespace Exiv2 {
         // IntType may be a user-defined type).
 #ifdef _MSC_VER
 #pragma warning( disable : 4146 )
+#undef max
+#undef min
 #endif
-        if (n < zero)
-            n = -n;
+        if (n < zero) {
+            if (n == std::numeric_limits<IntType>::min()) {
+                n = std::numeric_limits<IntType>::max();
+            } else {
+                n = -n;
+            }
+        }
         if (m < zero)
             m = -m;
 #ifdef _MSC_VER

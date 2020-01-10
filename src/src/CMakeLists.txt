@@ -1,346 +1,283 @@
-# CMake build system for exiv2 library and executables
-# Copyright 2015-     Daniel Kaneider  <danielkaneider@users.sf.net>
-# Copyright 2010-2012 Gilles Caulier   <caulier dot gilles at gmail dot com>
-# Copyright 2008      Patrick Spendrin <ps_ml@gmx.de>
+# CMakeLists.txt for exiv2 library and command-line program
 
-# Redistribution and use is allowed according to the terms of the BSD license.
-# For details see the accompanying COPYING-CMAKE-SCRIPTS file.
-
-if ( NOT MSVC )
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Note that this is a hack for testing the internals of the library. If EXIV2_BUILD_UNIT_TESTS==OFF
+# Then we only export the symbols that are explicitly exported
+if( EXIV2_BUILD_UNIT_TESTS )
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # Requires CMake 3.3.3
 endif()
 
-# Private headers which are only needed for the library itself
-SET( LIBEXIV2_PRIVATE_HDR canonmn_int.hpp
-                          casiomn_int.hpp
-                          cr2image_int.hpp
-                          crwimage_int.hpp
-                          fujimn_int.hpp
-                          makernote_int.hpp
-                          minoltamn_int.hpp
-                          nikonmn_int.hpp
-                          olympusmn_int.hpp
-                          orfimage_int.hpp
-                          panasonicmn_int.hpp
-                          pentaxmn_int.hpp
-                          pngchunk_int.hpp
-                          rcsid_int.hpp
-                          rw2image_int.hpp
-                          samsungmn_int.hpp
-                          sigmamn_int.hpp
-                          sonymn_int.hpp
-                          tags_int.hpp
-                          tiffcomposite_int.hpp
-                          tifffwd_int.hpp
-                          tiffimage_int.hpp
-                          tiffvisitor_int.hpp
-   )
 
-# Add standalone C++ header files to this list
-SET( LIBEXIV2_HDR         ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/asfvideo.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/basicio.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/bmpimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/config.h
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/convert.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/cr2image.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/crwimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/datasets.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/easyaccess.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/epsimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/error.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/exif.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/exiv2.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/futils.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/gifimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/http.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/image.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/ini.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/iptc.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/jp2image.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/jpgimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/matroskavideo.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/metadatum.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/mrwimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/orfimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/pgfimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/preview.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/properties.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/psdimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/quicktimevideo.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/rafimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/riffvideo.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/rwlock.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/rw2image.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/tags.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/tgaimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/tiffimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/types.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/utilsvideo.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/value.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/version.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/webpimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/xmp.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/xmpsidecar.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/utilsvideo.hpp
-   )
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-# Add library C++ source files to this list
-SET( LIBEXIV2_SRC         asfvideo.cpp
-                          basicio.cpp
-                          bmpimage.cpp
-                          canonmn.cpp
-                          casiomn.cpp
-                          convert.cpp
-                          cr2image.cpp
-                          crwedit.cpp
-                          crwimage.cpp
-                          datasets.cpp
-                          easyaccess.cpp
-                          epsimage.cpp
-                          error.cpp
-                          exif.cpp
-                          futils.cpp
-                          fujimn.cpp
-                          gifimage.cpp
-                          http.cpp
-                          image.cpp
-                          ini.cpp
-                          iptc.cpp
-                          jp2image.cpp
-                          jpgimage.cpp
-                          makernote.cpp
-                          matroskavideo.cpp
-                          metadatum.cpp
-                          minoltamn.cpp
-                          mrwimage.cpp
-                          nikonmn.cpp
-                          olympusmn.cpp
-                          orfimage.cpp
-                          panasonicmn.cpp
-                          pentaxmn.cpp
-                          pgfimage.cpp
-                          preview.cpp
-                          properties.cpp
-                          psdimage.cpp
-                          quicktimevideo.cpp
-                          rafimage.cpp
-                          riffvideo.cpp
-                          rw2image.cpp
-                          samsungmn.cpp
-                          sigmamn.cpp
-                          sonymn.cpp
-                          tags.cpp
-                          tgaimage.cpp
-                          tiffcomposite.cpp
-                          tiffimage.cpp
-                          tiffvisitor.cpp
-                          types.cpp
-                          utilsvideo.cpp
-                          value.cpp
-                          version.cpp
-                          webpimage.cpp
-                          xmp.cpp
-                          xmpsidecar.cpp
-                          utilsvideo.cpp
-   )
 
-IF( EXIV2_ENABLE_WEBREADY )
-    ##
-    # add curl support
-    IF( EXIV2_ENABLE_CURL )
-        IF( CURL_FOUND )
-            SET( LIBEXIV2_SRC ${LIBEXIV2_SRC}
-                              easyaccess.cpp
-               )
-            set( LIBEXIV2_HDR ${LIBEXIV2_HDR}
-               ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/easyaccess.hpp
-            )
-        ENDIF()
-    ENDIF()
-
-    ##
-    # add ssh support
-    IF( EXIV2_ENABLE_SSH )
-        IF( SSH_FOUND )
-            SET( LIBEXIV2_SRC ${LIBEXIV2_SRC}
-                              ssh.cpp
-               )
-            set( LIBEXIV2_HDR ${LIBEXIV2_HDR}
-            ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/ssh.hpp
-            )
-        ENDIF()
-    ENDIF()
-ENDIF( EXIV2_ENABLE_WEBREADY )
-
-##
-# add png*.cpp files if PNG support requested
-IF( EXIV2_ENABLE_PNG )
-    IF( ZLIB_FOUND )
-        SET( LIBEXIV2_SRC ${LIBEXIV2_SRC}
-                          pngchunk.cpp
-                          pngimage.cpp
-           )
-        set( LIBEXIV2_HDR ${LIBEXIV2_HDR} ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/pngimage.hpp )
-    ENDIF( ZLIB_FOUND )
-ENDIF( EXIV2_ENABLE_PNG )
-
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-
-##
-# add xmp source if xmp is requested and xmp library not built
-IF( EXIV2_ENABLE_XMP )
-    IF( NOT EXIV2_ENABLE_LIBXMP )
-        SET( LIBEXIV2_SRC ${XMPSRC} ${LIBEXIV2_SRC} )
-    ENDIF( NOT EXIV2_ENABLE_LIBXMP )
-ENDIF( EXIV2_ENABLE_XMP )
-
-##
-# Create source file lists for applications
-# exiv2 application
-SET( EXIV2_SRC            exiv2.cpp
-                          actions.cpp
-                          utils.cpp
-)
-SET( EXIV2_HDR            exiv2app.hpp
-                          actions.hpp
-                          utils.hpp
+add_library( exiv2lib_int OBJECT
+    canonmn_int.cpp         canonmn_int.hpp
+    casiomn_int.cpp         casiomn_int.hpp
+    cr2header_int.cpp       cr2header_int.hpp
+    crwimage_int.cpp        crwimage_int.hpp
+    fujimn_int.cpp          fujimn_int.hpp
+    helper_functions.cpp    helper_functions.hpp
+    image_int.cpp           image_int.hpp
+    makernote_int.cpp       makernote_int.hpp
+    minoltamn_int.cpp       minoltamn_int.hpp
+    nikonmn_int.cpp         nikonmn_int.hpp
+    olympusmn_int.cpp       olympusmn_int.hpp
+    orfimage_int.cpp        orfimage_int.hpp
+    panasonicmn_int.cpp     panasonicmn_int.hpp
+    pentaxmn_int.cpp        pentaxmn_int.hpp
+    rw2image_int.cpp        rw2image_int.hpp
+    safe_op.hpp
+    samsungmn_int.cpp       samsungmn_int.hpp
+    sigmamn_int.cpp         sigmamn_int.hpp
+    sonymn_int.cpp          sonymn_int.hpp
+    tags_int.cpp            tags_int.hpp
+    tiffcomposite_int.cpp   tiffcomposite_int.hpp
+    tiffimage_int.cpp       tiffimage_int.hpp
+    tiffvisitor_int.cpp     tiffvisitor_int.hpp
+    tifffwd_int.hpp
+    timegm.h
+    unused.h
 )
 
-
-# connection test application
-SET( CONNTEST             ../samples/conntest.cpp)
-# exifprint application
-SET( EXIFPRINT            ../samples/exifprint.cpp)
-# cmdfiletest application
-SET( REMOTETEST           ../samples/remotetest.cpp)
-
-##
-# modify source lists to suit environment
-IF(NOT HAVE_TIMEGM )
-    SET( LIBEXIV2_SRC     ${LIBEXIV2_SRC} localtime.c    )
-    SET( EXIV2_SRC        ${EXIV2_SRC}    localtime.c    )
-    SET( PATHTEST_SRC     ${PATHTEST_SRC} localtime.c    )
-ENDIF( NOT HAVE_TIMEGM )
-
-IF( MSVC )
-    SET( EXIV2_SRC        ${EXIV2_SRC}    getopt_win32.c )
-    SET( LIBEXIV2_SRC     ${LIBEXIV2_SRC} getopt_win32.c )
-ENDIF( MSVC )
-
-##
-# msvn tuning
-IF( MSVC )
-    include(../CMake_msvc.txt)
-    msvc_runtime_configure(${EXIV2_ENABLE_SHARED} ${EXIV2_ENABLE_DYNAMIC_RUNTIME})
-ENDIF( MSVC )
-
-# ******************************************************************************
-# exiv2lib library
-
-ADD_LIBRARY( exiv2lib ${STATIC_FLAG} ${LIBEXIV2_SRC} ${LIBEXIV2_HDR} ${LIBEXIV2_PRIVATE_HDR} )
-
-SET_TARGET_PROPERTIES( exiv2lib PROPERTIES
-    VERSION       ${GENERIC_LIB_VERSION}
-    SOVERSION     ${GENERIC_LIB_SOVERSION}
-    DEFINE_SYMBOL EXV_BUILDING_LIB
-    OUTPUT_NAME   exiv2
+add_library( exiv2lib
+    ../include/exiv2/config.h
+    ../include/exiv2/exiv2.hpp
+    ../include/exiv2/rwlock.hpp
+    ../include/exiv2/slice.hpp
+    asfvideo.cpp            ../include/exiv2/asfvideo.hpp
+    basicio.cpp             ../include/exiv2/basicio.hpp
+    bigtiffimage.cpp
+    bmpimage.cpp            ../include/exiv2/bmpimage.hpp
+    convert.cpp             ../include/exiv2/convert.hpp
+    cr2image.cpp            ../include/exiv2/cr2image.hpp
+    crwimage.cpp            ../include/exiv2/crwimage.hpp
+    datasets.cpp            ../include/exiv2/datasets.hpp
+    easyaccess.cpp          ../include/exiv2/easyaccess.hpp
+    epsimage.cpp            ../include/exiv2/epsimage.hpp
+    error.cpp               ../include/exiv2/error.hpp
+    exif.cpp                ../include/exiv2/exif.hpp
+    futils.cpp              ../include/exiv2/futils.hpp
+    gifimage.cpp            ../include/exiv2/gifimage.hpp
+    http.cpp                ../include/exiv2/http.hpp
+    image.cpp               ../include/exiv2/image.hpp
+    ini.cpp                 ../include/exiv2/ini.hpp
+    iptc.cpp                ../include/exiv2/iptc.hpp
+    jp2image.cpp            ../include/exiv2/jp2image.hpp
+    jpgimage.cpp            ../include/exiv2/jpgimage.hpp
+    matroskavideo.cpp       ../include/exiv2/matroskavideo.hpp
+    metadatum.cpp           ../include/exiv2/metadatum.hpp
+    mrwimage.cpp            ../include/exiv2/mrwimage.hpp
+    orfimage.cpp            ../include/exiv2/orfimage.hpp
+    pgfimage.cpp            ../include/exiv2/pgfimage.hpp
+    preview.cpp             ../include/exiv2/preview.hpp
+    properties.cpp          ../include/exiv2/properties.hpp
+    psdimage.cpp            ../include/exiv2/psdimage.hpp
+    quicktimevideo.cpp      ../include/exiv2/quicktimevideo.hpp
+    rafimage.cpp            ../include/exiv2/rafimage.hpp
+    riffvideo.cpp           ../include/exiv2/riffvideo.hpp
+    rw2image.cpp            ../include/exiv2/rw2image.hpp
+    tags.cpp                ../include/exiv2/tags.hpp
+    tgaimage.cpp            ../include/exiv2/tgaimage.hpp
+    tiffimage.cpp           ../include/exiv2/tiffimage.hpp
+    types.cpp               ../include/exiv2/types.hpp
+    utilsvideo.cpp          ../include/exiv2/utilsvideo.hpp
+    value.cpp               ../include/exiv2/value.hpp
+    version.cpp             ../include/exiv2/version.hpp
+    webpimage.cpp           ../include/exiv2/webpimage.hpp
+    xmp.cpp                 ../include/exiv2/xmp_exiv2.hpp
+    xmpsidecar.cpp          ../include/exiv2/xmpsidecar.hpp
+    $<TARGET_OBJECTS:exiv2lib_int>
 )
 
-IF ( UNIX )
-  IF ( NOT CYGWIN AND NOT MINGW )
-    SET (LINUX 1)
-  ENDIF()
-  IF ( CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" )
-    SET (FREEBSD 1)
-  ENDIF()
-ENDIF()
+generate_export_header(exiv2lib
+    EXPORT_MACRO_NAME EXIV2API
+    EXPORT_FILE_NAME ${CMAKE_BINARY_DIR}/exiv2lib_export.h
+    STATIC_DEFINE exiv2lib_STATIC
+)
 
-if ( MSVC )
-    source_group("Header Files" FILES ${LIBEXIV2_HDR} )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${ZLIB_LIBRARIES} )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} )
-    source_group("Header Files" FILES ${LIBCURL_HDR} )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CURL_LIBRARIES} )
-    source_group("Header Files" FILES ${SSH_HDR} )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${SSH_LIBRARIES} )
-else()
-    if ( UNIX AND NOT FREEBSD )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${EXPAT_LIBRARIES} )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${CURL_LIBRARIES} )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${SSH_LIBRARIES} )
-    else()
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CURL_LIBRARIES} )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${SSH_LIBRARIES} )
+# Conditional addition of sources to library targets
+# ---------------------------------------------------------
+
+if(MINGW OR MSYS)
+    target_sources(exiv2lib_int PRIVATE localtime.c)
+endif()
+
+if( EXIV2_ENABLE_WEBREADY )
+    if( EXIV2_ENABLE_CURL)
+        target_sources(exiv2lib PRIVATE easyaccess.cpp ../include/exiv2/easyaccess.hpp)
+    endif()
+
+    if( EXIV2_ENABLE_SSH )
+        target_sources(exiv2lib PRIVATE ssh.cpp ../include/exiv2/ssh.hpp)
     endif()
 endif()
 
-if( EXIV2_ENABLE_LIBXMP )
-    ADD_DEPENDENCIES( exiv2lib xmp )
-    if  ( MSVC )
-        LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH}/$(ConfigurationName))
-    else()
-        ADD_DEPENDENCIES( exiv2lib xmp Threads::Threads)
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} Threads::Threads)
-    endif(MSVC)
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} xmp )
-ENDIF()
+if( EXIV2_ENABLE_PNG )
+    target_sources(exiv2lib_int PRIVATE pngchunk_int.cpp)
+    target_sources(exiv2lib PRIVATE pngimage.cpp ../include/exiv2/pngimage.hpp)
+endif()
 
-IF( EXIV2_ENABLE_PNG )
-    IF( ZLIB_FOUND )
-        IF( MSVC )
-            TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} optimized ${ZLIB_LIBRARIES} )
-        ELSE()
-            TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${ZLIB_LIBRARIES} )
-        ENDIF()
-    ENDIF()
-ENDIF()
+# Other library target properties
+# ---------------------------------------------------------
 
-IF( EXIV2_ENABLE_NLS )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR}  ${LIBINTL_LIBRARIES} )
-ENDIF( EXIV2_ENABLE_NLS )
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+    # Do not check format overflows on this file, to skip a false positive warning
+    set_source_files_properties(value.cpp PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+endif()
 
-IF( ICONV_FOUND )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR}  ${ICONV_LIBRARIES} )
-ENDIF( ICONV_FOUND )
+set_target_properties( exiv2lib PROPERTIES
+    VERSION       ${PROJECT_VERSION}
+    SOVERSION     ${PROJECT_VERSION_MINOR}
+    OUTPUT_NAME   exiv2
+    PDB_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMPILE_FLAGS ${EXTRA_COMPILE_FLAGS}
+)
 
-IF (CYGWIN OR MINGW)
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR}  psapi ws2_32 )
-ENDIF(CYGWIN OR MINGW)
+if (MSVC)
+    set_target_properties(exiv2lib PROPERTIES LINK_FLAGS "/ignore:4099")
+endif()
 
-INSTALL( TARGETS exiv2lib ${INSTALL_TARGET_STANDARD_ARGS} )
+set_target_properties( exiv2lib_int PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    COMPILE_DEFINITIONS exiv2lib_STATIC
+)
 
-include(../CMake_msvc.txt)
-msvc_runtime_configure(${EXIV2_ENABLE_SHARED} ${EXIV2_ENABLE_DYNAMIC_RUNTIME})
+
+target_include_directories(exiv2lib_int PRIVATE ${ZLIB_INCLUDE_DIR})
+target_include_directories(exiv2lib PRIVATE ${ZLIB_INCLUDE_DIR})
+
+if (EXIV2_ENABLE_XMP)
+    target_link_libraries(exiv2lib PUBLIC xmp)
+elseif(EXIV2_ENABLE_EXTERNAL_XMP)
+    target_link_libraries(exiv2lib PUBLIC ${XMPSDK_LIBRARY})
+    target_include_directories(exiv2lib PUBLIC ${XMPSDK_INCLUDE_DIR})
+    target_compile_definitions(exiv2lib PUBLIC EXV_ADOBE_XMPSDK=2016)
+endif()
+
+# Use include/exiv2 to build libary code
+target_include_directories(exiv2lib PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/exiv2>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(exiv2lib_int PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/exiv2>
+)
+
+if (EXIV2_ENABLE_WEBREADY)
+
+    if( EXIV2_ENABLE_SSH )
+        target_include_directories(exiv2lib SYSTEM PUBLIC ${SSH_INCLUDE_DIR} )
+        target_link_libraries( exiv2lib PUBLIC ${SSH_LIBRARIES})
+    endif()
+
+    if( EXIV2_ENABLE_CURL )
+        target_include_directories(exiv2lib SYSTEM PUBLIC ${CURL_INCLUDE_DIR} )
+        if (USING_CONAN)
+            target_link_libraries(exiv2lib PUBLIC ${CONAN_LIBS_LIBCURL} ${CONAN_LIBS_OPENSSL})
+            target_compile_definitions(exiv2lib PUBLIC ${CONAN_COMPILE_DEFINITIONS_LIBCURL})
+            target_link_libraries(exiv2lib PUBLIC ${CONAN_EXE_LINKER_FLAGS_LIBCURL})
+        else()
+            target_link_libraries(exiv2lib PRIVATE ${CURL_LIBRARIES})
+        endif()
+    endif()
+
+endif()
+
+if (WIN32)
+    target_compile_definitions(exiv2lib PRIVATE PSAPI_VERSION=1) # to be compatible with <= WinVista (#905)
+endif()
+
+if (NOT MSVC)
+    if ( UNIX AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" )
+        target_link_libraries( exiv2lib PRIVATE ${CMAKE_DL_LIBS}) # -ldl = dynamic loader used by src/version.cpp
+    endif()
+
+    if (CYGWIN OR MINGW OR MSYS)
+        target_link_libraries( exiv2lib PRIVATE psapi ws2_32 )
+    endif()
+
+    target_link_libraries( exiv2lib PRIVATE Threads::Threads)
+else()
+    target_link_libraries( exiv2lib PRIVATE psapi ws2_32 )
+endif()
+
+if( EXIV2_ENABLE_PNG )
+    target_link_libraries( exiv2lib PRIVATE ${ZLIB_LIBRARIES} )
+endif()
+
+if( EXIV2_ENABLE_NLS )
+    target_link_libraries(exiv2lib PRIVATE ${Intl_LIBRARIES})
+    target_include_directories(exiv2lib PRIVATE ${Intl_INCLUDE_DIRS})
+    # Definition needed for translations
+    target_compile_definitions(exiv2lib PUBLIC EXV_LOCALEDIR="/../${CMAKE_INSTALL_LOCALEDIR}")
+endif()
+
+if( ICONV_FOUND )
+    target_link_libraries( exiv2lib PRIVATE Iconv::Iconv )
+endif()
+
+
+install(TARGETS exiv2lib EXPORT exiv2Config
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(DIRECTORY ../include/exiv2
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h*")
+
+install(FILES
+    ${CMAKE_BINARY_DIR}/exv_conf.h
+    ${CMAKE_BINARY_DIR}/exiv2lib_export.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/exiv2)
+
+install(EXPORT exiv2Config DESTINATION "share/exiv2/cmake")
 
 # ******************************************************************************
 # exiv2 application
-ADD_EXECUTABLE( exiv2 ${EXIV2_SRC}  ${EXIV2_HDR} )
-TARGET_LINK_LIBRARIES( exiv2 exiv2lib )
-INSTALL( TARGETS exiv2 ${INSTALL_TARGET_STANDARD_ARGS} )
 
-# ******************************************************************************
-# connection test application
-ADD_EXECUTABLE( conntest ${CONNTEST} )
-TARGET_LINK_LIBRARIES( conntest ${PRIVATE_VAR}  exiv2lib ${CURL_LIBRARIES} ${SSH_LIBRARIES})
+if(EXIV2_BUILD_EXIV2_COMMAND)
+    add_executable( exiv2
+         exiv2.cpp
+         exiv2app.hpp
+         actions.cpp actions.hpp
+         getopt.cpp getopt.hpp
+         utils.cpp utils.hpp
+    )
 
-# ******************************************************************************
-# exifprint application
-# ADD_EXECUTABLE( exifprint ${EXIFPRINT} )
-# TARGET_LINK_LIBRARIES( exifprint exiv2lib )
+    set_target_properties( exiv2 PROPERTIES
+        COMPILE_FLAGS ${EXTRA_COMPILE_FLAGS}
+        XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS[variant=Debug] "YES"
+    )
 
-# ******************************************************************************
-# remotetest application
-ADD_EXECUTABLE( remotetest ${REMOTETEST} )
-TARGET_LINK_LIBRARIES( remotetest exiv2lib )
+    target_link_libraries( exiv2 PRIVATE exiv2lib )
 
-# ******************************************************************************
-# Headers
-INSTALL( FILES ${LIBEXIV2_HDR} DESTINATION include/exiv2 )
+    if( EXIV2_ENABLE_NLS )
+        target_link_libraries(exiv2 PRIVATE ${Intl_LIBRARIES})
+        target_include_directories(exiv2lib PRIVATE ${Intl_INCLUDE_DIRS})
+    endif()
+
+    if (USING_CONAN AND WIN32 AND EXISTS ${PROJECT_BINARY_DIR}/conanDlls)
+        # In case of using conan recipes with their 'shared' option turned on, we will have dlls of
+        # the 3rd party dependencies in the conanDlls folder.
+
+        # Copy 3rd party DLLs the bin folder. [build step]
+        add_custom_command(TARGET exiv2 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_BINARY_DIR}/conanDlls ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+        # Copy 3rd party DLLs the bin folder. [install step]
+        install(DIRECTORY ${PROJECT_BINARY_DIR}/conanDlls/ DESTINATION bin)
+    endif()
+
+    install(TARGETS exiv2 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 # ******************************************************************************
 # Man page
-INSTALL( FILES exiv2.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 )
+install( FILES exiv2.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 )
 
 # That's all Folks!
 ##

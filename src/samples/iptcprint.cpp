@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// iptcprint.cpp, $Rev: 3090 $
+// iptcprint.cpp
 // Sample program to print the IPTC metadata of an image
 
 #include <exiv2/exiv2.hpp>
@@ -24,7 +24,7 @@ try {
     if (iptcData.empty()) {
         std::string error(argv[1]);
         error += ": No IPTC data found in the file";
-        throw Exiv2::Error(1, error);
+        throw Exiv2::Error(Exiv2::kerErrorMessage, error);
     }
 
     Exiv2::IptcData::iterator end = iptcData.end();

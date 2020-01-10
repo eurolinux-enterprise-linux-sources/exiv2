@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,36 +19,31 @@
  */
 /*
   File:      bmpimage.cpp
-  Version:   $Rev: 4719 $
   Author(s): Marco Piovanelli, Ovolab (marco)
   History:   05-Mar-2007, marco: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: bmpimage.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
 #include "config.h"
 
-#include "bmpimage.hpp"
-#include "image.hpp"
 #include "basicio.hpp"
+#include "bmpimage.hpp"
 #include "error.hpp"
 #include "futils.hpp"
+#include "image.hpp"
 
 // + standard includes
-#include <string>
 #include <cstring>
 #include <iostream>
+#include <string>
 
 // *****************************************************************************
 // class member definitions
-namespace Exiv2 {
-
-    BmpImage::BmpImage(BasicIo::AutoPtr io)
-        : Image(ImageType::bmp, mdNone, io)
+namespace Exiv2
+{
+    BmpImage::BmpImage(BasicIo::AutoPtr io) : Image(ImageType::bmp, mdNone, io)
     {
-    } // BmpImage::BmpImage
+    }
 
     std::string BmpImage::mimeType() const
     {
@@ -59,19 +53,19 @@ namespace Exiv2 {
     void BmpImage::setExifData(const ExifData& /*exifData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "Exif metadata", "BMP"));
+        throw(Error(kerInvalidSettingForImage, "Exif metadata", "BMP"));
     }
 
     void BmpImage::setIptcData(const IptcData& /*iptcData*/)
     {
         // Todo: implement me!
-        throw(Error(32, "IPTC metadata", "BMP"));
+        throw(Error(kerInvalidSettingForImage, "IPTC metadata", "BMP"));
     }
 
     void BmpImage::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "BMP"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "BMP"));
     }
 
     void BmpImage::readMetadata()
@@ -79,16 +73,14 @@ namespace Exiv2 {
 #ifdef DEBUG
         std::cerr << "Exiv2::BmpImage::readMetadata: Reading Windows bitmap file " << io_->path() << "\n";
 #endif
-        if (io_->open() != 0)
-        {
-            throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) {
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
-        if (!isBmpType(*io_, false))
-        {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "BMP");
+        if (!isBmpType(*io_, false)) {
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "BMP");
         }
         clearMetadata();
 
@@ -114,26 +106,24 @@ namespace Exiv2 {
           50      4 bytes  important colors       number of "important" colors
         */
         byte buf[54];
-        if (io_->read(buf, sizeof(buf)) == sizeof(buf))
-        {
+        if (io_->read(buf, sizeof(buf)) == sizeof(buf)) {
             pixelWidth_ = getLong(buf + 18, littleEndian);
             pixelHeight_ = getLong(buf + 22, littleEndian);
         }
-    } // BmpImage::readMetadata
+    }
 
     void BmpImage::writeMetadata()
     {
         // Todo: implement me!
-        throw(Error(31, "BMP"));
-    } // BmpImage::writeMetadata
+        throw(Error(kerWritingImageFormatUnsupported, "BMP"));
+    }
 
     // *************************************************************************
     // free functions
     Image::AutoPtr newBmpInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
         Image::AutoPtr image(new BmpImage(io));
-        if (!image->good())
-        {
+        if (!image->good()) {
             image.reset();
         }
         return image;
@@ -142,18 +132,16 @@ namespace Exiv2 {
     bool isBmpType(BasicIo& iIo, bool advance)
     {
         const int32_t len = 2;
-        const unsigned char BmpImageId[2] = { 'B', 'M' };
+        const unsigned char BmpImageId[2] = {'B', 'M'};
         byte buf[len];
         iIo.read(buf, len);
-        if (iIo.error() || iIo.eof())
-        {
+        if (iIo.error() || iIo.eof()) {
             return false;
         }
         bool matched = (memcmp(buf, BmpImageId, len) == 0);
-        if (!advance || !matched)
-        {
+        if (!advance || !matched) {
             iIo.seek(-len, BasicIo::cur);
         }
         return matched;
     }
-}                                       // namespace Exiv2
+}

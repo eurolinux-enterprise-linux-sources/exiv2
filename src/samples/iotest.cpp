@@ -1,7 +1,5 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -23,7 +21,6 @@
         since FileIo just sits atop of FILE* streams.
 
   File     : iotest.cpp
-  Version  : $Rev: 4765 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
   History  : 04-Dec-04, brad: created
  */
@@ -58,12 +55,12 @@ try {
 
     FileIo fileIn(argv[1]);
     if (fileIn.open() != 0) {
-        throw Error(9, fileIn.path(), strError());
+        throw Error(Exiv2::kerDataSourceOpenFailed, fileIn.path(), strError());
     }
 
     FileIo fileOut1(argv[2]);
     if (fileOut1.open("w+b") != 0) {
-        throw Error(10, argv[2], "w+b", strError());
+        throw Error(Exiv2::kerFileOpenFailed, argv[2], "w+b", strError());
     }
 
     MemIo memIo1;
@@ -89,7 +86,7 @@ try {
     // Create or overwrite the file, then close it
     FileIo fileTest("iotest.txt");
     if (fileTest.open("w+b") != 0) {
-        throw Error(10, "iotest.txt", "w+b", strError());
+        throw Error(Exiv2::kerFileOpenFailed, "iotest.txt", "w+b", strError());
     }
 
     fileTest.close();
@@ -101,7 +98,7 @@ try {
     memIo2.seek(0, BasicIo::beg);
     FileIo fileOut2(argv[3]);
     if (fileOut2.open("w+b") != 0) {
-        throw Error(10, argv[3], "w+b", strError());
+        throw Error(Exiv2::kerFileOpenFailed, argv[3], "w+b", strError());
     }
 
     long readCount = 0;
@@ -139,10 +136,10 @@ int WriteReadSeek(BasicIo &io)
     const size_t size2  = std::strlen(tester2) + 1;
 
     if (io.open() != 0) {
-        throw Error(9, io.path(), strError());
+        throw Error(Exiv2::kerDataSourceOpenFailed, io.path(), strError());
     }
     IoCloser closer(io);
-    if ((size_t) io.write((byte*)tester1, size1) != size1) {
+    if ((size_t) io.write((byte*)tester1, (long)size1) != size1) {
         std::cerr << ": WRS initial write failed\n";
         return 2;
     }
@@ -195,14 +192,14 @@ int WriteReadSeek(BasicIo &io)
     }
 
     io.seek(insert, BasicIo::beg);
-    if((size_t)io.write((byte*)tester2, size2) != size2) {
+    if((size_t)io.write((byte*)tester2, (long)size2) != size2) {
         std::cerr << ": WRS bad write 1\n";
         return 9;
     }
 
     // open should seek to beginning
     if (io.open() != 0)  {
-        throw Error(9, io.path(), strError());
+        throw Error(Exiv2::kerDataSourceOpenFailed, io.path(), strError());
     }
     std::memset(buf, -1, sizeof(buf));
     if ((size_t) io.read(buf, sizeof(buf)) != insert + size2) {

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    crwimage_int.hpp
   @brief   Internal classes to support CRW/CIFF format.
-  @version $Rev: 4719 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    28-Aug-05, ahu: created
@@ -31,10 +29,8 @@
 
 // *****************************************************************************
 // included header files
-#include "types.hpp"
 #include "tags_int.hpp"
 #include "image.hpp"
-#include "basicio.hpp"
 
 // + standard includes
 #include <iosfwd>

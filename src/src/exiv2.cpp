@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,23 +21,22 @@
   Abstract:  Command line program to display and manipulate image metadata.
 
   File:      exiv2.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   10-Dec-03, ahu: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: exiv2.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
-#include "config.h"
+#include <exiv2/exiv2.hpp>
 
-#include "exiv2app.hpp"
+// include local header files which are not part of libexiv2
 #include "actions.hpp"
-#include "utils.hpp"
 #include "convert.hpp"
-#include "i18n.h"      // NLS support.
-#include "xmp.hpp"
+#include "exiv2app.hpp"
+#include "futils.hpp"
+#include "getopt.hpp"
+#include "i18n.h"  // NLS support.
+#include "utils.hpp"
+#include "xmp_exiv2.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -47,7 +45,7 @@ EXIV2_RCSID("@(#) $Id: exiv2.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include <cassert>
 #include <cctype>
 
-#if EXV_HAVE_REGEX
+#if defined(EXV_HAVE_REGEX_H)
 #include <regex.h>
 #endif
 
@@ -131,8 +129,9 @@ int main(int argc, char* const argv[])
 {
 #ifdef EXV_ENABLE_NLS
     setlocale(LC_ALL, "");
-    bindtextdomain(EXV_PACKAGE, EXV_LOCALEDIR);
-    textdomain(EXV_PACKAGE);
+    const std::string localeDir = Exiv2::getProcessPath() + EXV_LOCALEDIR;
+    bindtextdomain(EXV_PACKAGE_NAME, localeDir.c_str());
+    textdomain(EXV_PACKAGE_NAME);
 #endif
 
     // Handle command line arguments
@@ -150,30 +149,36 @@ int main(int argc, char* const argv[])
         return 0;
     }
 
-    // Create the required action class
-    Action::TaskFactory& taskFactory = Action::TaskFactory::instance();
-    Action::Task::AutoPtr task
-        = taskFactory.create(Action::TaskType(params.action_));
-    assert(task.get());
-
-    // Process all files
     int rc = 0;
-    int n = 1;
-    int s = static_cast<int>(params.files_.size());
-    int w = s > 9 ? s > 99 ? 3 : 2 : 1;
-    for (Params::Files::const_iterator i = params.files_.begin();
-         i != params.files_.end(); ++i) {
-        if (params.verbose_) {
-            std::cout << _("File") << " " << std::setw(w) << std::right << n++ << "/" << s << ": "
-                      << *i << std::endl;
-        }
-        int ret = task->run(*i);
-        if (rc == 0) rc = ret;
-    }
 
-    taskFactory.cleanup();
-    params.cleanup();
-    Exiv2::XmpParser::terminate();
+    try {
+        // Create the required action class
+        Action::TaskFactory& taskFactory = Action::TaskFactory::instance();
+        Action::Task::AutoPtr task = taskFactory.create(Action::TaskType(params.action_));
+        assert(task.get());
+
+        // Process all files
+        int n = 1;
+        int s = static_cast<int>(params.files_.size());
+        int w = s > 9 ? s > 99 ? 3 : 2 : 1;
+        for (Params::Files::const_iterator i = params.files_.begin(); i != params.files_.end(); ++i) {
+            if (params.verbose_) {
+                std::cout << _("File") << " " << std::setw(w) << std::right << n++ << "/" << s << ": " << *i
+                          << std::endl;
+            }
+            int ret = task->run(*i);
+            if (rc == 0)
+                rc = ret;
+        }
+
+        taskFactory.cleanup();
+        params.cleanup();
+        Exiv2::XmpParser::terminate();
+
+    } catch (const std::exception& exc) {
+        std::cerr << "Uncaught exception: " << exc.what() << std::endl;
+        rc = 1;
+    }
 
     // Return a positive one byte code for better consistency across platforms
     return static_cast<unsigned int>(rc) % 256;
@@ -197,6 +202,14 @@ Params& Params::instance()
     return *instance_;
 }
 
+Params::~Params() {
+#if defined(EXV_HAVE_REGEX_H)
+    for (size_t i=0; i<instance().greps_.size(); ++i) {
+        regfree(&instance().greps_.at(i));
+    }
+#endif
+}
+
 void Params::cleanup()
 {
     delete instance_;
@@ -205,12 +218,9 @@ void Params::cleanup()
 
 void Params::version(bool verbose,std::ostream& os) const
 {
-    bool  b64    = sizeof(void*)==8;
-    const char* sBuild = b64 ? "(64 bit build)" : "(32 bit build)" ;
-    os << EXV_PACKAGE_STRING << " " << Exiv2::versionNumberHexString() << " " << sBuild << "\n";
+    os << EXV_PACKAGE_STRING << std::endl;
     if ( Params::instance().greps_.empty() ) {
-    os << _("Copyright (C) 2004-2017 Andreas Huggel.\n")
-       << "\n"
+    os << "\n"
        << _("This program is free software; you can redistribute it and/or\n"
             "modify it under the terms of the GNU General Public License\n"
             "as published by the Free Software Foundation; either version 2\n"
@@ -237,7 +247,7 @@ void Params::usage(std::ostream& os) const
        << _("Manipulate the Exif metadata of images.\n");
 }
 
-std::string Params::printTarget(std::string before,int target,bool bPrint,std::ostream& out)
+std::string Params::printTarget(const std::string &before, int target, bool bPrint, std::ostream& out)
 {
     std::string t;
     if ( target & Params::ctExif       ) t+= 'e';
@@ -451,10 +461,7 @@ int Params::evalGrep( const std::string& optarg)
     std::string pattern;
     std::string ignoreCase("/i");
     bool bIgnoreCase = ends_with(optarg,ignoreCase,pattern);
-#if __cplusplus >= CPLUSPLUS11
-    greps_.push_back( std::regex(pattern, bIgnoreCase ? std::regex::icase|std::regex::extended : std::regex::extended) );
-#else
-#if EXV_HAVE_REGEX
+#if defined(EXV_HAVE_REGEX_H)
     // try to compile a reg-exp from the input argument and store it in the vector
     const size_t i = greps_.size();
     greps_.resize(i + 1);
@@ -478,7 +485,6 @@ int Params::evalGrep( const std::string& optarg)
     }
 #else
     greps_.push_back(Exiv2_grep_key_t(pattern,bIgnoreCase));
-#endif
 #endif
     return result;
 } // Params::evalGrep
@@ -589,41 +595,79 @@ int Params::evalPrint(const std::string& optarg)
 {
     int rc = 0;
     switch (action_) {
-    case Action::none:
-        switch (optarg[0]) {
-        case 's': action_ = Action::print; printMode_ = pmSummary; break;
-        case 'a': rc = evalPrintFlags("kyct"); break;
-        case 'e': rc = evalPrintFlags("Ekycv"); break;
-        case 't': rc = evalPrintFlags("Ekyct"); break;
-        case 'v': rc = evalPrintFlags("Exgnycv"); break;
-        case 'h': rc = evalPrintFlags("Exgnycsh"); break;
-        case 'i': rc = evalPrintFlags("Ikyct"); break;
-        case 'x': rc = evalPrintFlags("Xkyct"); break;
-        case 'c': action_ = Action::print; printMode_ = pmComment    ; break;
-        case 'p': action_ = Action::print; printMode_ = pmPreview    ; break;
-        case 'C': action_ = Action::print; printMode_ = pmIccProfile ; break;
-        case 'R': action_ = Action::print; printMode_ = pmRecursive  ; break;
-        case 'S': action_ = Action::print; printMode_ = pmStructure  ; break;
-        case 'X': action_ = Action::print; printMode_ = pmXMP        ; break;
+        case Action::none:
+            switch (optarg[0]) {
+                case 's':
+                    action_ = Action::print;
+                    printMode_ = pmSummary;
+                    break;
+                case 'a':
+                    rc = evalPrintFlags("kyct");
+                    break;
+                case 'e':
+                    rc = evalPrintFlags("Ekycv");
+                    break;
+                case 't':
+                    rc = evalPrintFlags("Ekyct");
+                    break;
+                case 'v':
+                    rc = evalPrintFlags("Exgnycv");
+                    break;
+                case 'h':
+                    rc = evalPrintFlags("Exgnycsh");
+                    break;
+                case 'i':
+                    rc = evalPrintFlags("Ikyct");
+                    break;
+                case 'x':
+                    rc = evalPrintFlags("Xkyct");
+                    break;
+                case 'c':
+                    action_ = Action::print;
+                    printMode_ = pmComment;
+                    break;
+                case 'p':
+                    action_ = Action::print;
+                    printMode_ = pmPreview;
+                    break;
+                case 'C':
+                    action_ = Action::print;
+                    printMode_ = pmIccProfile;
+                    break;
+                case 'R':
+                #ifdef NDEBUG
+                    std::cerr << progname() << ": " << _("Action not available in Release mode")
+                              << ": '" << optarg << "'\n";
+                    rc = 1;
+                #else
+                    action_ = Action::print;
+                    printMode_ = pmRecursive;
+                #endif
+                    break;
+                case 'S':
+                    action_ = Action::print;
+                    printMode_ = pmStructure;
+                    break;
+                case 'X':
+                    action_ = Action::print;
+                    printMode_ = pmXMP;
+                    break;
+                default:
+                    std::cerr << progname() << ": " << _("Unrecognized print mode") << " `" << optarg << "'\n";
+                    rc = 1;
+                    break;
+            }
+            break;
+        case Action::print:
+            std::cerr << progname() << ": " << _("Ignoring surplus option -p") << optarg << "\n";
+            break;
         default:
-            std::cerr << progname() << ": " << _("Unrecognized print mode") << " `"
-                      << optarg << "'\n";
+            std::cerr << progname() << ": " << _("Option -p is not compatible with a previous option\n");
             rc = 1;
             break;
-        }
-        break;
-    case Action::print:
-        std::cerr << progname() << ": "
-                  << _("Ignoring surplus option -p") << optarg << "\n";
-        break;
-    default:
-        std::cerr << progname() << ": "
-                  << _("Option -p is not compatible with a previous option\n");
-        rc = 1;
-        break;
     }
     return rc;
-} // Params::evalPrint
+}  // Params::evalPrint
 
 int Params::evalPrintFlags(const std::string& optarg)
 {
@@ -1011,7 +1055,9 @@ int Params::getopt(int argc, char* const Argv[])
 
     int rc = Util::Getopt::getopt(argc, argv, optstring_);
     // Further consistency checks
-    if (help_ || version_) return 0;
+    if (help_ || version_) {
+        goto cleanup;
+    }
     if (action_ == Action::none) {
         // This shouldn't happen since print is taken as default action
         std::cerr << progname() << ": " << _("An action must be specified\n");
@@ -1076,6 +1122,7 @@ int Params::getopt(int argc, char* const Argv[])
         rc = 1;
     }
 
+ cleanup:
     // cleanup the argument vector
     for ( int i = 0 ; i < argc ; i++ ) ::free((void*)argv[i]);
     delete [] argv;
@@ -1127,49 +1174,73 @@ namespace {
         return true;
     } // parseTime
 
-    int parseCommonTargets(const std::string& optarg,
-                           const std::string& action)
+    void printUnrecognizedArgument(const char argc, const std::string& action)
     {
-        int rc     = 0;
+        std::cerr << Params::instance().progname() << ": " << _("Unrecognized ")
+                  << action << " " << _("target") << " `"  << argc << "'\n";
+    }
+
+    int parseCommonTargets(const std::string& optarg, const std::string& action)
+    {
+        int rc = 0;
         int target = 0;
-        int all    = Params::ctExif | Params::ctIptc | Params::ctComment | Params::ctXmp;
-        int extra  = Params::ctXmpSidecar|Params::ctExif|Params::ctIptc|Params::ctXmp;
+        int all = Params::ctExif | Params::ctIptc | Params::ctComment | Params::ctXmp;
+        int extra = Params::ctXmpSidecar | Params::ctExif | Params::ctIptc | Params::ctXmp;
         for (size_t i = 0; rc == 0 && i < optarg.size(); ++i) {
             switch (optarg[i]) {
-            case 'e': target |= Params::ctExif; break;
-            case 'i': target |= Params::ctIptc; break;
-            case 'x': target |= Params::ctXmp; break;
-            case 'c': target |= Params::ctComment; break;
-            case 't': target |= Params::ctThumb; break;
-            case 'C': target |= Params::ctIccProfile; break;
-            case 'I': target |= Params::ctIptcRaw;break;
-            case '-': target |= Params::ctStdInOut;break;
-            case 'a': target |= all ; break;
-            case 'X': target |= extra ; // -eX
-                 if ( i > 0 ) { // -eXX or -iXX
-                    target |=  Params::ctXmpRaw ;
-                    target &= ~extra; // turn off those bits
-                 }
-            break;
+                case 'e':
+                    target |= Params::ctExif;
+                    break;
+                case 'i':
+                    target |= Params::ctIptc;
+                    break;
+                case 'x':
+                    target |= Params::ctXmp;
+                    break;
+                case 'c':
+                    target |= Params::ctComment;
+                    break;
+                case 't':
+                    target |= Params::ctThumb;
+                    break;
+                case 'C':
+                    target |= Params::ctIccProfile;
+                    break;
+                case 'I':
+                    target |= Params::ctIptcRaw;
+                    break;
+                case '-':
+                    target |= Params::ctStdInOut;
+                    break;
+                case 'a':
+                    target |= all;
+                    break;
+                case 'X':
+                    target |= extra;  // -eX
+                    if (i > 0) {      // -eXX or -iXX
+                        target |= Params::ctXmpRaw;
+                        target &= ~extra;  // turn off those bits
+                    }
+                    break;
 
-            case 'p':
-            {
-                if (strcmp(action.c_str(), "extract") == 0) {
-                    i += (size_t) parsePreviewNumbers(Params::instance().previewNumbers_, optarg, (int) i + 1);
-                    target |= Params::ctPreview;
+                case 'p': {
+                    if (strcmp(action.c_str(), "extract") == 0) {
+                        i += (size_t)parsePreviewNumbers(Params::instance().previewNumbers_, optarg, (int)i + 1);
+                        target |= Params::ctPreview;
+                        break;
+                    }
+                    printUnrecognizedArgument(optarg[i], action);
+                    rc = -1;
                     break;
                 }
-                // fallthrough
-            }
-            default:
-                std::cerr << Params::instance().progname() << ": " << _("Unrecognized ")
-                          << action << " " << _("target") << " `"  << optarg[i] << "'\n";
-                rc = -1;
-                break;
+                default:
+                    printUnrecognizedArgument(optarg[i], action);
+                    rc = -1;
+                    break;
             }
         }
         return rc ? rc : target;
-    } // parseCommonTargets
+    }
 
     int parsePreviewNumbers(Params::PreviewNumbers& previewNumbers,
                             const std::string& optarg,
@@ -1304,14 +1375,14 @@ namespace {
 #if defined(_MSC_VER) || defined(__MINGW__)
             for ( int i = 1 ; i < __argc ; i++ ) { cmdLine += std::string(" ") + formatArg(__argv[i]) ; }
 #endif
-            throw Exiv2::Error(1, Exiv2::toString(num)
+            throw Exiv2::Error(Exiv2::kerErrorMessage, Exiv2::toString(num)
                                + ": " + _("Invalid command line:") + cmdLine);
         }
 
         std::string cmd(line.substr(cmdStart, cmdEnd-cmdStart));
         CmdId cmdId = commandId(cmd);
         if (cmdId == invalidCmdId) {
-            throw Exiv2::Error(1, Exiv2::toString(num)
+            throw Exiv2::Error(Exiv2::kerErrorMessage, Exiv2::toString(num)
                                + ": " + _("Invalid command") + " `" + cmd + "'");
         }
 
@@ -1343,7 +1414,7 @@ namespace {
                 catch (const Exiv2::AnyError&) {}
             }
             if (metadataId == invalidMetadataId) {
-                throw Exiv2::Error(1, Exiv2::toString(num)
+                throw Exiv2::Error(Exiv2::kerErrorMessage, Exiv2::toString(num)
                                    + ": " + _("Invalid key") + " `" + key + "'");
             }
         }
@@ -1363,7 +1434,7 @@ namespace {
             if (   cmdId == reg
                 && (   keyEnd == std::string::npos
                     || valStart == std::string::npos)) {
-                throw Exiv2::Error(1, Exiv2::toString(num)
+                throw Exiv2::Error(Exiv2::kerErrorMessage, Exiv2::toString(num)
                                    + ": " + _("Invalid command line") + " " );
             }
 
@@ -1375,7 +1446,7 @@ namespace {
                 if (tmpType != Exiv2::invalidTypeId) {
                     valStart = line.find_first_not_of(delim, typeEnd+1);
                     if (valStart == std::string::npos) {
-                        throw Exiv2::Error(1, Exiv2::toString(num)
+                        throw Exiv2::Error(Exiv2::kerErrorMessage, Exiv2::toString(num)
                                            + ": " + _("Invalid command line") + " " );
                     }
                     type = tmpType;

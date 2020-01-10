@@ -3,7 +3,6 @@
   Abstract : Key unit tests
 
   File     : key-test.cpp
-  Version  : $Rev: 2348 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History  : 24-Aug-04, ahu: created
 

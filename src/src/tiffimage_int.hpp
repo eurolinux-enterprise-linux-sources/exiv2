@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    tiffimage_int.hpp
   @brief   Internal class TiffParserWorker to parse TIFF data.
-  @version $Rev: 4719 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    23-Apr-08, ahu: created
@@ -478,7 +476,7 @@ namespace Exiv2 {
     class FindExifdatum {
     public:
         //! Constructor, initializes the object with the IfdId to look for.
-        FindExifdatum(Exiv2::Internal::IfdId ifdId) : ifdId_(ifdId) {}
+        explicit FindExifdatum(Exiv2::Internal::IfdId ifdId) : ifdId_(ifdId) {}
         //! Returns true if IFD id matches.
         bool operator()(const Exiv2::Exifdatum& md) const { return ifdId_ == md.ifdId(); }
 

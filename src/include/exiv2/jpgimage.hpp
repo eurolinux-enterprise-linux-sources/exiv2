@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    jpgimage.hpp
   @brief   Class JpegImage to access JPEG images
-  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @author  Brad Schick (brad)
@@ -274,7 +272,7 @@ namespace Exiv2 {
           @return 0 if successful;<BR>
                   4 if the image can not be written to.
          */
-        EXV_DLLLOCAL int initImage(const byte initData[], long dataSize);
+        int initImage(const byte initData[], long dataSize);
         /*!
           @brief Provides the main implementation of writeMetadata() by
                 writing all buffered metadata to the provided BasicIo.
@@ -282,7 +280,7 @@ namespace Exiv2 {
 
           @return 4 if opening or writing to the associated BasicIo fails
          */
-        EXV_DLLLOCAL void doWriteMetadata(BasicIo& oIo);
+        void doWriteMetadata(BasicIo& oIo);
         //@}
 
         //! @name Accessors
@@ -295,7 +293,7 @@ namespace Exiv2 {
           @return the next Jpeg segment marker if successful;<BR>
                  -1 if a maker was not found before EOF
          */
-        EXV_DLLLOCAL int advanceToMarker() const;
+        int advanceToMarker() const;
         //@}
 
     }; // class JpegBase

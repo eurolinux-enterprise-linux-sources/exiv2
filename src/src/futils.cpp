@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,41 +19,46 @@
  */
 /*
   File:      futils.cpp
-  Version:   $Rev: 4738 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   08-Dec-03, ahu: created
              02-Apr-05, ahu: moved to Exiv2 namespace
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: futils.cpp 4738 2017-03-16 18:13:12Z robinwmills $")
-
 // included header files
 #include "config.h"
 
 #include "futils.hpp"
+#include "enforce.hpp"
 
 // + standard includes
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #ifdef _MSC_VER
-# define S_ISREG(m)      (((m) & S_IFMT) == S_IFREG)
-#endif
-#ifdef EXV_HAVE_UNISTD_H
-# include <unistd.h>                     // for stat()
+    #include <Windows.h>
+    # define S_ISREG(m)      (((m) & S_IFMT) == S_IFREG)
+    #include <psapi.h>  // For access to GetModuleFileNameEx
+#elif defined(__APPLE__)
+    #include <libproc.h>
 #endif
 
+#ifdef EXV_HAVE_UNISTD_H
+  # include <unistd.h>                     // for stat()
+#endif
+
+#include <cstdio>
 #include <cerrno>
 #include <sstream>
 #include <cstring>
 #include <algorithm>
+#include <stdexcept>
 
-#if defined EXV_HAVE_STRERROR_R && !defined EXV_HAVE_DECL_STRERROR_R
-# ifdef EXV_STRERROR_R_CHAR_P
+#ifdef EXV_HAVE_STRERROR_R
+#ifdef _GNU_SOURCE
 extern char *strerror_r(int errnum, char *buf, size_t n);
-# else
+#else
 extern int strerror_r(int errnum, char *buf, size_t n);
-# endif
+#endif
 #endif
 
 namespace Exiv2 {
@@ -62,22 +66,31 @@ namespace Exiv2 {
     const char* ENVARKEY[] = {"EXIV2_HTTP_POST", "EXIV2_TIMEOUT"}; //!< @brief request keys for http exiv2 handler and time-out
 // *****************************************************************************
 // free functions
-    std::string getEnv(EnVar var) {
-        return getenv(ENVARKEY[var]) ? getenv(ENVARKEY[var]) : ENVARDEF[var];
-    } // getEnv
+    std::string getEnv(int env_var)
+    {
+        // this check is relying on undefined behavior and might not be effective
+        if (env_var < envHTTPPOST || env_var > envTIMEOUT) {
+            throw std::out_of_range("Unexpected env variable");
+        }
+        return getenv(ENVARKEY[env_var]) ? getenv(ENVARKEY[env_var]) : ENVARDEF[env_var];
+    }
 
+    /// @brief Convert an integer value to its hex character.
     char to_hex(char code) {
         static char hex[] = "0123456789abcdef";
         return hex[code & 15];
-    } // to_hex
+    }
 
+    /// @brief Convert a hex character to its integer value.
     char from_hex(char ch) {
         return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
-    } // from_hex
+    }
 
-    char* urlencode(char* str) {
-        char* pstr = str;
-        char* buf  = (char*)malloc(strlen(str) * 3 + 1);
+    std::string urlencode(const char* str) {
+        const char* pstr = str;
+        // \todo try to use std::string for buf and avoid the creation of another string for just
+        // returning the final value
+        char* buf  = new char[strlen(str) * 3 + 1];
         char* pbuf = buf;
         while (*pstr) {
             if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~')
@@ -89,12 +102,14 @@ namespace Exiv2 {
             pstr++;
         }
         *pbuf = '\0';
-        return buf;
-    } // urlencode
+        std::string ret(buf);
+        delete [] buf;
+        return ret;
+    }
 
     char* urldecode(const char* str) {
         const char* pstr = str;
-        char* buf  = (char*)malloc(strlen(str) + 1);
+        char* buf  = new char [(strlen(str) + 1)];
         char* pbuf = buf;
         while (*pstr) {
             if (*pstr == '%') {
@@ -111,13 +126,13 @@ namespace Exiv2 {
         }
         *pbuf = '\0';
         return buf;
-    } // urldecode
+    }
 
     void urldecode(std::string& str) {
         char* decodeStr = Exiv2::urldecode(str.c_str());
         str = std::string(decodeStr);
-        free(decodeStr);
-    } // urldecode(const std::string& str)
+        delete [] decodeStr;
+    }
 
     int base64encode(const void* data_buf, size_t dataLength, char* result, size_t resultSize) {
         const char base64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -241,8 +256,8 @@ namespace Exiv2 {
     Protocol fileProtocol(const std::string& path) {
         Protocol result = pFile ;
         struct {
-        	std::string name ;
-        	Protocol    prot ;
+            std::string name ;
+            Protocol    prot ;
         } prots[] =
         { { "http://"   ,pHttp     }
         , { "https://"  ,pHttps    }
@@ -254,8 +269,8 @@ namespace Exiv2 {
         , { "-"         ,pStdin    }
         };
         for ( size_t i = 0 ; result == pFile && i < sizeof(prots)/sizeof(prots[0]) ; i ++ )
-        	if ( path.find(prots[i].name) == 0 )
-        		result = prots[i].prot;
+            if ( path.find(prots[i].name) == 0 )
+                result = prots[i].prot;
 
         return result;
     } // fileProtocol
@@ -263,8 +278,8 @@ namespace Exiv2 {
     Protocol fileProtocol(const std::wstring& wpath) {
         Protocol result = pFile ;
         struct {
-        	std::wstring wname ;
-        	Protocol      prot ;
+            std::wstring wname ;
+            Protocol      prot ;
         } prots[] =
         { { L"http://"   ,pHttp     }
         , { L"https://"  ,pHttps    }
@@ -276,21 +291,21 @@ namespace Exiv2 {
         , { L"-"         ,pStdin    }
         };
         for ( size_t i = 0 ; result == pFile && i < sizeof(prots)/sizeof(prots[0]) ; i ++ )
-        	if ( wpath.find(prots[i].wname) == 0 )
-        		result = prots[i].prot;
+            if ( wpath.find(prots[i].wname) == 0 )
+                result = prots[i].prot;
 
         return result;
     } // fileProtocol
 #endif
     bool fileExists(const std::string& path, bool ct)
     {
-		// special case: accept "-" (means stdin)
-        if (path.compare("-") == 0 || fileProtocol(path)) {
-			return true;
+        // special case: accept "-" (means stdin)
+        if (path.compare("-") == 0 || fileProtocol(path) != pFile) {
+            return true;
         }
 
         struct stat buf;
-		int ret = ::stat(path.c_str(), &buf);
+        int ret = ::stat(path.c_str(), &buf);
         if (0 != ret)                    return false;
         if (ct && !S_ISREG(buf.st_mode)) return false;
         return true;
@@ -299,9 +314,9 @@ namespace Exiv2 {
 #ifdef EXV_UNICODE_PATH
     bool fileExists(const std::wstring& wpath, bool ct)
     {
-		// special case: accept "-" (means stdin)
-        if (wpath.compare(L"-") == 0 || fileProtocol(wpath)) {
-			return true;
+        // special case: accept "-" (means stdin)
+        if (wpath.compare(L"-") == 0 || fileProtocol(wpath) != pFile) {
+            return true;
         }
 
         struct _stat buf;
@@ -326,27 +341,30 @@ namespace Exiv2 {
         else return path.substr(found);
     }
 #endif
+
     std::string strError()
     {
         int error = errno;
         std::ostringstream os;
 #ifdef EXV_HAVE_STRERROR_R
         const size_t n = 1024;
-// _GNU_SOURCE: See Debian bug #485135
-# if defined EXV_STRERROR_R_CHAR_P && defined _GNU_SOURCE
+#ifdef _GNU_SOURCE
         char *buf = 0;
         char buf2[n];
         std::memset(buf2, 0x0, n);
         buf = strerror_r(error, buf2, n);
-# else
+#else
         char buf[n];
         std::memset(buf, 0x0, n);
-        strerror_r(error, buf, n);
-# endif
+        const int ret = strerror_r(error, buf, n);
+        enforce(ret != ERANGE, Exiv2::kerCallFailed);
+#endif
         os << buf;
         // Issue# 908.
         // report strerror() if strerror_r() returns empty
-        if ( !buf[0] ) os << strerror(error);
+        if ( !buf[0] ) {
+            os << strerror(error);
+        }
 #else
         os << std::strerror(error);
 #endif
@@ -402,12 +420,12 @@ namespace Exiv2 {
             iterator_t userEnd   = std::find(authStart, authEnd, ':');
             if (userEnd != authEnd) {
                 result.Username = std::string(userStart, userEnd);
-                userEnd++;
+                ++userEnd;
                 result.Password = std::string(userEnd, authEnd);
             } else {
                 result.Username = std::string(authStart, authEnd);
             }
-            authEnd++;
+            ++authEnd;
         } else {
           authEnd = protocolEnd;
         }
@@ -425,7 +443,7 @@ namespace Exiv2 {
         // port
         if ((hostEnd != uriEnd) && ((&*(hostEnd))[0] == ':'))  // we have a port
         {
-            hostEnd++;
+            ++hostEnd;
             iterator_t portEnd = (pathStart != uriEnd) ? pathStart : queryStart;
             result.Port = std::string(hostEnd, portEnd);
         }
@@ -440,5 +458,43 @@ namespace Exiv2 {
             result.QueryString = std::string(queryStart, uri.end());
 
         return result;
-    }   // Uri::Parse
+    }
+
+    std::string getProcessPath()
+    {
+        std::string ret("unknown");
+    #if defined(WIN32)
+        HANDLE processHandle = NULL;
+        processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+        if (processHandle != NULL) {
+            TCHAR filename[MAX_PATH];
+            if (GetModuleFileNameEx(processHandle, NULL, filename, MAX_PATH) != 0) {
+                ret = filename;
+            }
+            CloseHandle(processHandle);
+        }
+    #elif defined(__APPLE__)
+        const int pid = getpid();
+        char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
+        if (proc_pidpath (pid, pathbuf, sizeof(pathbuf)) > 0) {
+            ret = pathbuf;
+        }
+    #elif defined(__linux__) || defined(__CYGWIN__) || defined(__MINGW__)
+        // http://stackoverflow.com/questions/606041/how-do-i-get-the-path-of-a-process-in-unix-linux
+        char proc[100];
+        char path[500];
+        sprintf(proc,"/proc/%d/exe", getpid());
+        ssize_t l = readlink (proc, path,sizeof(path)-1);
+        if (l>0) {
+            path[l]=0;
+            ret = path;
+        }
+    #endif
+    #if defined(WIN32)
+        const size_t idxLastSeparator = ret.find_last_of('\\');
+    #else
+        const size_t idxLastSeparator = ret.find_last_of('/');
+    #endif
+        return ret.substr(0, idxLastSeparator);
+    }
 }                                       // namespace Exiv2

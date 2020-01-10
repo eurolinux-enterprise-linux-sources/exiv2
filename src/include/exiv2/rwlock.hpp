@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -30,72 +29,9 @@
 
 namespace Exiv2 {
 #ifdef _MSC_VER
-/*
-Visual Studio 2013 and later use SRWLOCK, however don't use Vista/7+ features
-when targeting XP.
-
-_USING_V110_SDK71_ is defined when Platform Toolset is set to target XP (and
-thus uses Windows 7.1 SDK).
-
-_ATL_XP_TARGETING can be used if you want to target XP but also want to use
-a newer SDK, such as 8.
-*/
-#if _MSC_VER >= 1800 \
-    && !(defined(_USING_V110_SDK71_) || defined(_ATL_XP_TARGETING))
         /*!
          @brief Class to provide a Read-Write Lock
         */
-        class RWLock
-        {
-        public:
-            RWLock()
-            {
-                InitializeSRWLock(&rwlock_);
-            }
-
-            ~RWLock()
-            {
-                // do not explicitly destroy
-            }
-
-            void wrlock()
-            {
-                AcquireSRWLockExclusive(&rwlock_);
-            }
-
-            bool trywrlock()
-            {
-                return 0 != TryAcquireSRWLockExclusive(&rwlock_);
-            }
-
-            void rdlock()
-            {
-                AcquireSRWLockShared(&rwlock_);
-            }
-
-            bool tryrdlock()
-            {
-                return 0 != TryAcquireSRWLockShared(&rwlock_);
-            }
-
-            void rdunlock()
-            {
-                ReleaseSRWLockShared(&rwlock_);
-            }
-
-            void wrunlock()
-            {
-                ReleaseSRWLockExclusive(&rwlock_);
-            }
-
-        private:
-            SRWLOCK rwlock_;
-        };
-#else
-        /*!
-         @brief Class to provide a Read-Write Lock
-        */
-        // Visual Studio 2005,8,10,12 and XP targets use CRITICAL_SECTION
         class RWLock
         {
         public:
@@ -145,8 +81,6 @@ a newer SDK, such as 8.
         private:
             CRITICAL_SECTION lock_;
         };
-#endif
-
 #else
         /*!
          @brief Class to provide a Read-Write Lock
@@ -155,19 +89,19 @@ a newer SDK, such as 8.
         class RWLock
         {
         public:
-        	//! constructor (acquires the lock)
-            RWLock(const pthread_rwlockattr_t *attr = 0)
+            //! constructor (acquires the lock)
+            explicit RWLock(const pthread_rwlockattr_t *attr = 0)
             {
                 pthread_rwlock_init(&rwlock_, attr);
             }
 
-        	//! constructor (releases lock)
+            //! constructor (releases lock)
             ~RWLock()
             {
                 pthread_rwlock_destroy(&rwlock_);
             }
 
-        	//! acquire rw lock
+            //! acquire rw lock
             void wrlock()
             {
                 pthread_rwlock_wrlock(&rwlock_);
@@ -204,7 +138,7 @@ a newer SDK, such as 8.
             void wrunlock() { unlock(); }
 
         private:
-        	//! the lock itself
+            //! the lock itself
             pthread_rwlock_t rwlock_;
         };
 #endif
@@ -217,7 +151,7 @@ a newer SDK, such as 8.
         {
         public:
             //! constructor - locks the object
-            ScopedReadLock(RWLock &rwlock):
+            explicit ScopedReadLock(RWLock &rwlock):
                 rwlock_(rwlock)
             {
                 rwlock_.rdlock();
@@ -227,7 +161,7 @@ a newer SDK, such as 8.
             ~ScopedReadLock() { rwlock_.rdunlock(); }
 
         private:
-        	//! object locked by the constructor (and released by destructor)
+            //! object locked by the constructor (and released by destructor)
             RWLock &rwlock_;
         };
 
@@ -239,7 +173,7 @@ a newer SDK, such as 8.
         {
         public:
             //! constructor - locks the object
-            ScopedWriteLock(RWLock &rwlock):
+            explicit ScopedWriteLock(RWLock &rwlock):
                 rwlock_(rwlock)
             {
                 rwlock_.wrlock();
@@ -249,7 +183,7 @@ a newer SDK, such as 8.
             ~ScopedWriteLock() { rwlock_.wrunlock(); }
 
         private:
-        	//! object locked by the constructor (and released by destructor)
+            //! object locked by the constructor (and released by destructor)
             RWLock &rwlock_;
         };
 }

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,7 +19,6 @@
  */
 /*
   File:      basicio.hpp
-  Version:   $Rev: 4633 $
  */
 #ifndef BASICIO_HPP_
 #define BASICIO_HPP_
@@ -42,12 +40,6 @@
 // it uses MemIo. Otherwises, it uses FileIo.
 #ifndef EXV_XPATH_MEMIO
 #define EXV_XPATH_MEMIO 0
-#endif
-#ifndef EXV_USE_CURL
-#define EXV_USE_CURL 0
-#endif
-#ifndef EXV_USE_SSH
-#define EXV_USE_SSH 0
 #endif
 
 // *****************************************************************************
@@ -278,7 +270,7 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Constructor, takes a BasicIo reference
-        IoCloser(BasicIo& bio) : bio_(bio) {}
+        explicit IoCloser(BasicIo& bio) : bio_(bio) {}
         //! Destructor, closes the BasicIo reference
         virtual ~IoCloser() { close(); }
         //@}
@@ -315,7 +307,7 @@ namespace Exiv2 {
               therefore never failes.
           @param path The full path of a file
          */
-        FileIo(const std::string& path);
+        explicit FileIo(const std::string& path);
 #ifdef EXV_UNICODE_PATH
         /*!
           @brief Like FileIo(const std::string& path) but accepts a
@@ -533,7 +525,7 @@ namespace Exiv2 {
 
         // Pimpl idiom
         class Impl;
-        Impl* p_;
+        std::auto_ptr<Impl> p_;
 
     }; // class FileIo
 
@@ -733,7 +725,7 @@ namespace Exiv2 {
 
         // Pimpl idiom
         class Impl;
-        Impl* p_;
+        std::auto_ptr<Impl> p_;
 
     }; // class MemIo
 
@@ -786,7 +778,7 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Default constructor that reads data from stdin/data uri path and writes them to the temp file.
-        XPathIo(const std::string& orgPath);
+        explicit XPathIo(const std::string& orgPath);
 #ifdef EXV_UNICODE_PATH
         /*!
           @brief Like XPathIo(const std::string& orgPath) but accepts a
@@ -835,60 +827,6 @@ namespace Exiv2 {
     }; // class XPathIo
 #endif
 
-    /*!
-      @brief Utility class provides the block mapping to the part of data. This avoids allocating
-            a single contiguous block of memory to the big data.
-     */
-    class EXIV2API BlockMap {
-    public:
-        //! the status of the block.
-        enum    blockType_e {bNone, bKnown, bMemory};
-        //! @name Creators
-        //@{
-        //! Default constructor. the init status of the block is bNone.
-        BlockMap():type_(bNone), data_(NULL),size_(0) {}
-        //! Destructor. Releases all managed memory.
-        virtual ~BlockMap() {
-            if (data_) {std::free(data_); data_ = NULL;}
-        }
-        //@}
-        //! @name Manipulators
-        //@{
-        /*!
-          @brief Populate the block.
-          @param source The data populate to the block
-          @param num The size of data
-         */
-        void    populate (byte* source, size_t num) {
-            size_ = num;
-            data_ = (byte*) std::malloc(size_);
-            type_ = bMemory;
-            std::memcpy(data_, source, size_);
-        }
-        /*!
-          @brief Change the status to bKnow. bKnow blocks do not contain the data,
-                but they keep the size of data. This avoids allocating memory for parts
-                of the file that contain image-date (non-metadata/pixel data) which never change in exiv2.
-          @param num The size of the data
-         */
-        void    markKnown(size_t num) {
-            type_ = bKnown;
-            size_ = num;
-        }
-        //@}
-        //! @name Accessors
-        //@{
-        bool    isNone()  {return type_ == bNone;}
-        bool    isInMem ()  {return type_ == bMemory;}
-        bool    isKnown ()  {return type_ == bKnown;}
-        byte*   getData ()  {return data_;}
-        size_t  getSize ()  {return size_;}
-        //@}
-    private:
-        blockType_e type_;
-        byte*       data_;
-        size_t      size_;
-    }; // class BlockMap
 
     /*!
         @brief Provides remote binary file IO by implementing the BasicIo interface. This is an
@@ -1117,7 +1055,7 @@ namespace Exiv2 {
         //@}
     };
 
-#if EXV_USE_CURL == 1
+#ifdef EXV_USE_CURL
     /*!
         @brief Provides the http, https read/write access and ftp read access for the RemoteIo.
             This class is based on libcurl.
@@ -1173,7 +1111,7 @@ namespace Exiv2 {
     };
 #endif
 
-#if EXV_USE_SSH == 1
+#ifdef EXV_USE_SSH
     /*!
         @brief Provides the ssh read/write access and sftp read access for the RemoteIo.
             This class is based on libssh.
@@ -1262,7 +1200,7 @@ namespace Exiv2 {
     EXIV2API std::wstring ReplaceStringInPlace(std::wstring subject, const std::wstring& search,
                           const std::wstring& replace);
 #endif
-#if EXV_USE_CURL == 1
+#ifdef EXV_USE_CURL
     /*!
       @brief The callback function is called by libcurl to write the data
     */

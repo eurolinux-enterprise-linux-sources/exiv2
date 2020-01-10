@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    tags_int.hpp
   @brief   Internal Exif tag and type information
-  @version $Rev: 4719 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    15-Jan-04, ahu: created<BR>
@@ -308,6 +306,9 @@ namespace Exiv2 {
     const TagInfo* mnTagList();
     //! Return read-only list of built-in mfp Tags http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/MPF.html
     const TagInfo* mpfTagList();
+
+    const GroupInfo* groupList();
+    const TagInfo* tagList(const std::string& groupName);
 
     //! Return the group id for a group name
     IfdId groupId(const std::string& groupName);

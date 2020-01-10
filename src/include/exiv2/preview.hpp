@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    preview.hpp
   @brief   Classes to access all preview images embedded in an image.
-  @version $Rev: 3091 $
   @author  Vladimir Nadvornik (vn)
            <a href="mailto:nadvornik@suse.cz">nadvornik@suse.cz</a>
   @date    18-Sep-08, vn: created
@@ -160,7 +158,7 @@ namespace Exiv2 {
 
     private:
         //! Private constructor
-        EXV_DLLLOCAL PreviewImage(const PreviewProperties& properties, DataBuf data);
+        PreviewImage(const PreviewProperties& properties, DataBuf data);
 
         PreviewProperties properties_;          //!< Preview image properties
         byte* pData_;                           //!< Pointer to the preview image data
@@ -176,7 +174,7 @@ namespace Exiv2 {
         //! @name Constructors
         //@{
         //! Constructor.
-        PreviewManager(const Image& image);
+        explicit PreviewManager(const Image& image);
         //@}
 
         //! @name Accessors
@@ -194,7 +192,7 @@ namespace Exiv2 {
         //@}
 
     private:
-	const Image& image_;
+    const Image& image_;
 
     }; // class PreviewManager
 }                                       // namespace Exiv2

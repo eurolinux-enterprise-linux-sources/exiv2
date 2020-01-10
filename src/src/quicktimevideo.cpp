@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,24 +19,20 @@
  */
 /*
   File:      quicktimevideo.cpp
-  Version:   $Rev: 4719 $
   Author(s): Abhinav Badola for GSoC 2012 (AB) <mail.abu.to@gmail.com>
   History:   28-Jun-12, AB: created
   Credits:   See header file
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: quicktimevideo.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
-// *****************************************************************************
 // included header files
 #include "config.h"
 
 #ifdef EXV_ENABLE_VIDEO
+#include "tags.hpp"
+#include "tags_int.hpp"
 #include "quicktimevideo.hpp"
 #include "futils.hpp"
 #include "basicio.hpp"
-#include "tags.hpp"
 // + standard includes
 #include <cmath>
 
@@ -629,12 +624,12 @@ namespace Exiv2 {
 
     void QuickTimeVideo::readMetadata()
     {
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
 
         // Ensure that this is the correct image type
         if (!isQTimeType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "QuickTime");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "QuickTime");
         }
 
         IoCloser closer(*io_);
@@ -1069,12 +1064,13 @@ namespace Exiv2 {
                               << " Entries considered invalid. Not Processed.\n";
 #endif
                     io_->seek(io_->tell() + dataLength, BasicIo::beg);
+                } else {
+                    io_->read(buf.pData_, dataLength);
                 }
-            else
-                io_->read(buf.pData_, dataLength);
 
-                if(td)
+                if(td) {
                     xmpData_[exvGettext(td->label_)] = Exiv2::toString(buf.pData_);
+                }
             }
             else if(dataType == 4)  {
                 dataLength = Exiv2::getUShort(buf.pData_, bigEndian) * 4;
@@ -1581,8 +1577,10 @@ namespace Exiv2 {
                 if (timeScale_ <= 0) timeScale_ = 1;
                 break;
             case Duration:
-                if(timeScale_ != 0) // To prevent division by zero
-                xmpData_["Xmp.video.Duration"] = returnBufValue(buf) * 1000 / timeScale_; break;
+                if(timeScale_ != 0) { // To prevent division by zero
+                    xmpData_["Xmp.video.Duration"] = returnBufValue(buf) * 1000 / timeScale_;
+                }
+                break;
             case PreferredRate:
                 xmpData_["Xmp.video.PreferredRate"] = returnBufValue(buf, 2) + ((buf.pData_[2] * 256 + buf.pData_[3]) * 0.01); break;
             case PreferredVolume:

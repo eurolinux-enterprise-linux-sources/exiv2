@@ -33,7 +33,7 @@ https://github.com/benhoyt/inih
 #include <string.h>
 
 #if !INI_USE_STACK
-#include <stdlib.h>
+#include <cstdlib>
 #endif
 
 #define MAX_SECTION 50
@@ -208,7 +208,7 @@ int Exiv2::ini_parse(const char* filename, ini_handler handler, void* user)
     return error;
 }
 
-INIReader::INIReader(string filename)
+INIReader::INIReader(const std::string &filename)
 {
     _error = ini_parse(filename.c_str(), ValueHandler, this);
 }

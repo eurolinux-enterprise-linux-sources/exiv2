@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,12 +19,7 @@
  */
 /*
   File:      easyaccess.cpp
-  Version:   $Rev: 4719 $
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: easyaccess.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "easyaccess.hpp"
@@ -152,8 +146,7 @@ namespace Exiv2 {
         // ISO value (see EXIF 2.3 Annex G)
         long iso_tmp_val = -1;
         while (iso_tmp_val == -1 && (iso_val == 65535 || md == ed.end())) {
-            ExifData::const_iterator md_st = ed.end();
-            md_st = findMetadatum(ed, sensitivityType, 1);
+            ExifData::const_iterator md_st = findMetadatum(ed, sensitivityType, 1);
             // no SensitivityType? exit with existing data
             if (md_st == ed.end())
                 break;
@@ -161,7 +154,7 @@ namespace Exiv2 {
             std::ostringstream os;
             md_st->write(os, &ed);
             bool ok = false;
-            long st_val = parseLong(os.str(), ok);
+            const long st_val = parseLong(os.str(), ok);
             // SensivityType out of range or cannot be parsed properly
             if (!ok || st_val < 1 || st_val > 7)
                 break;
@@ -182,7 +175,7 @@ namespace Exiv2 {
                     md = md_st;
                     break;
                 }
-                while (strcmp(sensKeys->keys[idx++], md_st->key().c_str()) != 0 && idx < cnt) {}
+                while (strcmp(sensKeys->keys[idx++], md_st->key().c_str()) != 0 && idx < sensKeys->count) {}
             }
             break;
         }

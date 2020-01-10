@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,16 +19,11 @@
  */
 /*
   File:      metadatum.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
              Brad Schick (brad) <brad@robotbattle.com>
   History:   26-Jan-04, ahu: created
              31-Jul-04, brad: isolated as a component
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: metadatum.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "metadatum.hpp"

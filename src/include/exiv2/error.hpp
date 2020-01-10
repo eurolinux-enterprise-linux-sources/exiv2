@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    error.hpp
   @brief   Error class for exceptions, log message class
-  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    15-Jan-04, ahu: created<BR>
@@ -96,15 +94,16 @@ namespace Exiv2 {
         //! @name Creators
         //@{
         //! Constructor, takes the log message type as an argument
-        explicit LogMsg(Level msgType) : msgType_(msgType) {}
+        explicit LogMsg(Level msgType);
+
         //! Destructor, passes the log message to the message handler depending on the log level
-        ~LogMsg() { if (msgType_ >= level_ && handler_) handler_(msgType_, os_.str().c_str()); }
+        ~LogMsg();
         //@}
 
         //! @name Manipulators
         //@{
         //! Return a reference to the ostringstream which holds the log message
-        std::ostringstream& os() { return os_; }
+        std::ostringstream& os();
         //@}
 
         /*!
@@ -113,17 +112,17 @@ namespace Exiv2 {
                  log level is \c warn. To suppress all log messages, set the log
                  level to \c mute (or set the log message handler to 0).
         */
-        static void setLevel(Level level) { level_ = level; }
+        static void setLevel(Level level);
         /*!
           @brief Set the log message handler. The default handler writes log
                  messages to standard error. To suppress all log messages, set
                  the log message handler to 0 (or set the log level to \c mute).
          */
-        static void setHandler(Handler handler) { handler_ = handler; }
+        static void setHandler(Handler handler);
         //! Return the current log level
-        static Level level() { return level_; }
+        static Level level();
         //! Return the current log message handler
-        static Handler handler() { return handler_; }
+        static Handler handler();
         //! The default log handler. Sends the log message to standard error.
         static void defaultHandler(int level, const char* s);
 
@@ -174,18 +173,13 @@ namespace Exiv2 {
      */
     class EXIV2API AnyError : public std::exception {
     public:
-        //! @name Creators
-        //@{
-        //! Virtual destructor.
-        virtual ~AnyError() throw();
-        //@}
+        AnyError();
+        AnyError(const AnyError& o);
 
-        //! @name Accessors
-        //@{
-        //! Return the error code.
+        virtual ~AnyError() throw();
+        ///@brief  Return the error code.
         virtual int code() const throw() =0;
-        //@}
-    }; // AnyError
+    };
 
     //! %AnyError output operator
     inline std::ostream& operator<<(std::ostream& os, const AnyError& error)
@@ -193,44 +187,116 @@ namespace Exiv2 {
         return os << error.what();
     }
 
+    //! Complete list of all Exiv2 error codes
+    enum ErrorCode {
+        kerGeneralError = -1,
+        kerSuccess = 0,
+        kerErrorMessage,
+        kerCallFailed,
+        kerNotAnImage,
+        kerInvalidDataset,
+        kerInvalidRecord,
+        kerInvalidKey,
+        kerInvalidTag,
+        kerValueNotSet,
+        kerDataSourceOpenFailed,
+        kerFileOpenFailed,
+        kerFileContainsUnknownImageType,
+        kerMemoryContainsUnknownImageType,
+        kerUnsupportedImageType,
+        kerFailedToReadImageData,
+        kerNotAJpeg,
+        kerFailedToMapFileForReadWrite,
+        kerFileRenameFailed,
+        kerTransferFailed,
+        kerMemoryTransferFailed,
+        kerInputDataReadFailed,
+        kerImageWriteFailed,
+        kerNoImageInInputData,
+        kerInvalidIfdId,
+        //! Entry::setValue: Value too large
+        kerValueTooLarge,
+        //! Entry::setDataArea: Value too large
+        kerDataAreaValueTooLarge,
+        kerOffsetOutOfRange,
+        kerUnsupportedDataAreaOffsetType,
+        kerInvalidCharset,
+        kerUnsupportedDateFormat,
+        kerUnsupportedTimeFormat,
+        kerWritingImageFormatUnsupported,
+        kerInvalidSettingForImage,
+        kerNotACrwImage,
+        kerFunctionNotSupported,
+        kerNoNamespaceInfoForXmpPrefix,
+        kerNoPrefixForNamespace,
+        kerTooLargeJpegSegment,
+        kerUnhandledXmpdatum,
+        kerUnhandledXmpNode,
+        kerXMPToolkitError,
+        kerDecodeLangAltPropertyFailed,
+        kerDecodeLangAltQualifierFailed,
+        kerEncodeLangAltPropertyFailed,
+        kerPropertyNameIdentificationFailed,
+        kerSchemaNamespaceNotRegistered,
+        kerNoNamespaceForPrefix,
+        kerAliasesNotSupported,
+        kerInvalidXmpText,
+        kerTooManyTiffDirectoryEntries,
+        kerMultipleTiffArrayElementTagsInDirectory,
+        kerWrongTiffArrayElementTagType,
+        kerInvalidKeyXmpValue,
+        kerInvalidIccProfile,
+        kerInvalidXMP,
+        kerTiffDirectoryTooLarge,
+        kerInvalidTypeValue,
+        kerInvalidMalloc,
+        kerCorruptedMetadata,
+        kerArithmeticOverflow,
+        kerMallocFailed,
+    };
+
     /*!
       @brief Simple error class used for exceptions. An output operator is
              provided to print errors to a stream.
      */
     template<typename charT>
-    class EXV_DLLPUBLIC BasicError : public AnyError {
+    class BasicError : public AnyError {
     public:
         //! @name Creators
         //@{
         //! Constructor taking only an error code
-        EXV_DLLLOCAL explicit BasicError(int code);
+        explicit BasicError(ErrorCode code);
+
         //! Constructor taking an error code and one argument
         template<typename A>
-        EXV_DLLLOCAL BasicError(int code, const A& arg1);
+        BasicError(ErrorCode code, const A& arg1);
+
         //! Constructor taking an error code and two arguments
         template<typename A, typename B>
-        EXV_DLLLOCAL BasicError(int code, const A& arg1, const B& arg2);
+        BasicError(ErrorCode code, const A& arg1, const B& arg2);
+
         //! Constructor taking an error code and three arguments
         template<typename A, typename B, typename C>
-        EXV_DLLLOCAL BasicError(int code, const A& arg1, const B& arg2, const C& arg3);
+        BasicError(ErrorCode code, const A& arg1, const B& arg2, const C& arg3);
+
         //! Virtual destructor. (Needed because of throw())
-        EXV_DLLLOCAL virtual ~BasicError() throw();
+        virtual ~BasicError() throw();
         //@}
 
         //! @name Accessors
         //@{
-        EXV_DLLLOCAL virtual int code() const throw();
+        virtual int code() const throw();
         /*!
           @brief Return the error message as a C-string. The pointer returned by what()
                  is valid only as long as the BasicError object exists.
          */
-        EXV_DLLLOCAL virtual const char* what() const throw();
+        virtual const char* what() const throw();
 #ifdef EXV_UNICODE_PATH
         /*!
           @brief Return the error message as a wchar_t-string. The pointer returned by
                  wwhat() is valid only as long as the BasicError object exists.
          */
-        EXV_DLLLOCAL virtual const wchar_t* wwhat() const throw();
+        virtual const wchar_t* wwhat() const throw();
 #endif
         //@}
 
@@ -242,14 +308,14 @@ namespace Exiv2 {
         //@}
 
         // DATA
-        int code_;                              //!< Error code
+        ErrorCode code_;                       //!< Error code
         int count_;                             //!< Number of arguments
         std::basic_string<charT> arg1_;         //!< First argument
         std::basic_string<charT> arg2_;         //!< Second argument
         std::basic_string<charT> arg3_;         //!< Third argument
         std::string              msg_;          //!< Complete error message
 #ifdef EXV_UNICODE_PATH
-	std::wstring             wmsg_;         //!< Complete error message as a wide string
+    std::wstring             wmsg_;         //!< Complete error message as a wide string
 #endif
     }; // class BasicError
 
@@ -264,27 +330,24 @@ namespace Exiv2 {
 // free functions, template and inline definitions
 
     //! Return the error message for the error with code \em code.
-    EXIV2API const char* errMsg(int code);
+    const char* errMsg(int code);
 
     template<typename charT>
-    //! BasicError constructor
-    BasicError<charT>::BasicError(int code)
+    BasicError<charT>::BasicError(ErrorCode code)
         : code_(code), count_(0)
     {
         setMsg();
     }
 
     template<typename charT> template<typename A>
-    //! BasicError constructor
-    BasicError<charT>::BasicError(int code, const A& arg1)
+    BasicError<charT>::BasicError(ErrorCode code, const A& arg1)
         : code_(code), count_(1), arg1_(toBasicString<charT>(arg1))
     {
         setMsg();
     }
 
     template<typename charT> template<typename A, typename B>
-    //! BasicError constructor
-    BasicError<charT>::BasicError(int code, const A& arg1, const B& arg2)
+    BasicError<charT>::BasicError(ErrorCode code, const A& arg1, const B& arg2)
         : code_(code), count_(2),
           arg1_(toBasicString<charT>(arg1)),
           arg2_(toBasicString<charT>(arg2))
@@ -293,8 +356,7 @@ namespace Exiv2 {
     }
 
     template<typename charT> template<typename A, typename B, typename C>
-    //! BasicError constructor
-    BasicError<charT>::BasicError(int code, const A& arg1, const B& arg2, const C& arg3)
+    BasicError<charT>::BasicError(ErrorCode code, const A& arg1, const B& arg2, const C& arg3)
         : code_(code), count_(3),
           arg1_(toBasicString<charT>(arg1)),
           arg2_(toBasicString<charT>(arg2)),

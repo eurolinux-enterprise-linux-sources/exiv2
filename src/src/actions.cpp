@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,18 +19,11 @@
  */
 /*
   File:      actions.cpp
-  Version:   $Rev: 4719 $
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: actions.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
 #include "config.h"
 
-#ifndef EXV_HAVE_TIMEGM
-# include "timegm.h"
-#endif
 #include "actions.hpp"
 #include "exiv2app.hpp"
 #include "image.hpp"
@@ -42,11 +34,10 @@ EXIV2_RCSID("@(#) $Id: actions.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include "exif.hpp"
 #include "easyaccess.hpp"
 #include "iptc.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "preview.hpp"
 #include "futils.hpp"
 #include "i18n.h"                // NLS support.
-#include "version.hpp"
 
 // + standard includes
 #include <string>
@@ -59,6 +50,7 @@ EXIV2_RCSID("@(#) $Id: actions.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include <ctime>
 #include <cmath>
 #include <cassert>
+#include <stdexcept>
 #include <sys/types.h>                  // for stat()
 #include <sys/stat.h>                   // for stat()
 #ifdef EXV_HAVE_UNISTD_H
@@ -161,6 +153,9 @@ namespace {
              os << make_pair( myString, width)
      */
     std::ostream& operator<<( std::ostream& os, std::pair<std::string, int> strAndWidth);
+
+    //! Print image Structure information
+    int printStructure(std::ostream& out, Exiv2::PrintStructureOption option, const std::string &path);
 }
 
 // *****************************************************************************
@@ -235,46 +230,48 @@ namespace Action {
     {
     }
 
-    int Print::run(const std::string& path)
-    try {
-        path_ = path;
-        int rc = 0;
-        Exiv2::PrintStructureOption option = Exiv2::kpsNone ;
-        switch (Params::instance().printMode_) {
-            case Params::pmSummary:   rc = printSummary();     break;
-            case Params::pmList:      rc = printList();        break;
-            case Params::pmComment:   rc = printComment();     break;
-            case Params::pmPreview:   rc = printPreviewList(); break;
-            case Params::pmStructure: rc = printStructure(std::cout,Exiv2::kpsBasic)     ; break;
-            case Params::pmRecursive: rc = printStructure(std::cout,Exiv2::kpsRecursive) ; break;
-
-            case Params::pmXMP:
-                 option = option == Exiv2::kpsNone ? Exiv2::kpsXMP        : option;  // drop
-            case Params::pmIccProfile:{
-                 option = option == Exiv2::kpsNone ? Exiv2::kpsIccProfile : option;
-                 _setmode(_fileno(stdout),O_BINARY);
-                 rc = printStructure(std::cout,option);
-            } break;
-        }
-        return rc;
-    }
-    catch(const Exiv2::AnyError& e) {
-        std::cerr << "Exiv2 exception in print action for file "
-                  << path << ":\n" << e << "\n";
-        return 1;
-    } // Print::run
-
-    int Print::printStructure(std::ostream& out, Exiv2::PrintStructureOption option)
+    int setModeAndPrintStructure(Exiv2::PrintStructureOption option, const std::string& path)
     {
-        if (!Exiv2::fileExists(path_, true)) {
-            std::cerr << path_ << ": "
-                      << _("Failed to open the file\n");
-            return -1;
+        _setmode(_fileno(stdout),O_BINARY);
+        return printStructure(std::cout, option, path);
+    }
+
+    int Print::run(const std::string& path)
+    {
+        try {
+            path_ = path;
+            int rc = 0;
+            Exiv2::PrintStructureOption option = Exiv2::kpsNone ;
+            switch (Params::instance().printMode_) {
+                case Params::pmSummary:   rc = printSummary();     break;
+                case Params::pmList:      rc = printList();        break;
+                case Params::pmComment:   rc = printComment();     break;
+                case Params::pmPreview:   rc = printPreviewList(); break;
+                case Params::pmStructure: rc = printStructure(std::cout,Exiv2::kpsBasic, path_)     ; break;
+                case Params::pmRecursive: rc = printStructure(std::cout,Exiv2::kpsRecursive, path_) ; break;
+                case Params::pmXMP:
+                    if (option == Exiv2::kpsNone)
+                        option = Exiv2::kpsXMP;
+                    rc = setModeAndPrintStructure(option, path_);
+                    break;
+                case Params::pmIccProfile:
+                    if (option == Exiv2::kpsNone)
+                        option = Exiv2::kpsIccProfile;
+                    rc = setModeAndPrintStructure(option, path_);
+                    break;
+            }
+            return rc;
         }
-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(path_);
-        assert(image.get() != 0);
-        image->printStructure(out,option);
-        return 0;
+        catch(const Exiv2::AnyError& e) {
+            std::cerr << "Exiv2 exception in print action for file "
+                      << path << ":\n" << e << "\n";
+            return 1;
+        }
+        catch(const std::overflow_error& e) {
+            std::cerr << "std::overflow_error exception in print action for file "
+                      << path << ":\n" << e.what() << "\n";
+            return 1;
+        }
     }
 
     int Print::printSummary()
@@ -330,11 +327,8 @@ namespace Action {
 
         // Exposure time
         // From ExposureTime, failing that, try ShutterSpeedValue
-        bool done = false;
         printLabel(_("Exposure time"));
-        if (!done) {
-            done = 0 != printTag(exifData, "Exif.Photo.ExposureTime");
-        }
+        bool done = 0 != printTag(exifData, "Exif.Photo.ExposureTime");
         if (!done) {
             done = 0 != printTag(exifData, "Exif.Photo.ShutterSpeedValue");
         }
@@ -344,10 +338,7 @@ namespace Action {
         // Get if from FNumber and, failing that, try ApertureValue
         {
             printLabel(_("Aperture"));
-            bool done = false;
-            if (!done) {
-                done = 0 != printTag(exifData, "Exif.Photo.FNumber");
-            }
+            bool done = 0 != printTag(exifData, "Exif.Photo.FNumber");
             if (!done) {
                 done = 0 != printTag(exifData, "Exif.Photo.ApertureValue");
             }
@@ -383,14 +374,11 @@ namespace Action {
         // Subject distance
         {
             printLabel(_("Subject distance"));
-            bool done = false;
+            bool done = 0 != printTag(exifData, "Exif.Photo.SubjectDistance");
             if (!done) {
-                done = 0 != printTag(exifData, "Exif.Photo.SubjectDistance");
-            }
-            if (!done) {
-                done = 0 != printTag(exifData, "Exif.CanonSi.SubjectDistance");
-                done = 0 != printTag(exifData, "Exif.CanonFi.FocusDistanceLower");
-                done = 0 != printTag(exifData, "Exif.CanonFi.FocusDistanceUpper");
+                printTag(exifData, "Exif.CanonSi.SubjectDistance");
+                printTag(exifData, "Exif.CanonFi.FocusDistanceLower");
+                printTag(exifData, "Exif.CanonFi.FocusDistanceUpper");
             }
             std::cout << std::endl;
         }
@@ -591,11 +579,7 @@ namespace Action {
         for (Params::Greps::const_iterator g = Params::instance().greps_.begin();
                 !result && g != Params::instance().greps_.end(); ++g)
         {
-#if __cplusplus >= CPLUSPLUS11
-            std::smatch m;
-            result = std::regex_search(key,m, *g);
-#else
-#if EXV_HAVE_REGEX
+#if defined(EXV_HAVE_REGEX_H)
             result = regexec( &(*g), key.c_str(), 0, NULL, 0) == 0 ;
 #else
             std::string Pattern(g->pattern_);
@@ -606,7 +590,6 @@ namespace Action {
                 std::transform(Key.begin()    , Key.end()    ,Key.begin()    , ::tolower);
             }
             result = Key.find(Pattern) != std::string::npos;
-#endif
 #endif
         }
         return result ;
@@ -625,91 +608,90 @@ namespace Action {
 
     bool Print::printMetadatum(const Exiv2::Metadatum& md, const Exiv2::Image* pImage)
     {
-        if (!grepTag(md.key())) return false;
-        if (!keyTag (md.key())) return false;
+        if (!grepTag(md.key()))
+            return false;
+        if (!keyTag(md.key()))
+            return false;
 
-        if (   Params::instance().unknown_
-            && md.tagName().substr(0, 2) == "0x") {
+        if (Params::instance().unknown_ && md.tagName().substr(0, 2) == "0x") {
             return false;
         }
+
         bool const manyFiles = Params::instance().files_.size() > 1;
         if (manyFiles) {
-            std::cout << std::setfill(' ') << std::left << std::setw(20)
-                      << path_ << "  ";
+            std::cout << std::setfill(' ') << std::left << std::setw(20) << path_ << "  ";
         }
+
         bool first = true;
         if (Params::instance().printItems_ & Params::prTag) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << "0x" << std::setw(4) << std::setfill('0')
-                      << std::right << std::hex
-                      << md.tag();
+            std::cout << "0x" << std::setw(4) << std::setfill('0') << std::right << std::hex << md.tag();
         }
         if (Params::instance().printItems_ & Params::prSet) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << "set" ;
+            std::cout << "set";
         }
         if (Params::instance().printItems_ & Params::prGroup) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::setw(12) << std::setfill(' ') << std::left
-                      << md.groupName();
+            std::cout << std::setw(12) << std::setfill(' ') << std::left << md.groupName();
         }
         if (Params::instance().printItems_ & Params::prKey) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::setfill(' ') << std::left << std::setw(44)
-                      << md.key();
+            std::cout << std::setfill(' ') << std::left << std::setw(44) << md.key();
         }
         if (Params::instance().printItems_ & Params::prName) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::setw(27) << std::setfill(' ') << std::left
-                      << md.tagName();
+            std::cout << std::setw(27) << std::setfill(' ') << std::left << md.tagName();
         }
         if (Params::instance().printItems_ & Params::prLabel) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::setw(30) << std::setfill(' ') << std::left
-                      << md.tagLabel();
+            std::cout << std::setw(30) << std::setfill(' ') << std::left << md.tagLabel();
         }
         if (Params::instance().printItems_ & Params::prType) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
             std::cout << std::setw(9) << std::setfill(' ') << std::left;
             const char* tn = md.typeName();
             if (tn) {
                 std::cout << tn;
-            }
-            else {
+            } else {
                 std::ostringstream os;
                 os << "0x" << std::setw(4) << std::setfill('0') << std::hex << md.typeId();
                 std::cout << os.str();
             }
         }
         if (Params::instance().printItems_ & Params::prCount) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::dec << std::setw(3)
-                      << std::setfill(' ') << std::right
-                      << md.count();
+            std::cout << std::dec << std::setw(3) << std::setfill(' ') << std::right << md.count();
         }
         if (Params::instance().printItems_ & Params::prSize) {
-            if (!first) std::cout << " ";
+            if (!first)
+                std::cout << " ";
             first = false;
-            std::cout << std::dec << std::setw(3)
-                      << std::setfill(' ') << std::right
-                      << md.size();
+            std::cout << std::dec << std::setw(3) << std::setfill(' ') << std::right << md.size();
         }
-        if (Params::instance().printItems_ & Params::prValue) {
-            if (!first) std::cout << "  ";
+        if (Params::instance().printItems_ & Params::prValue && md.size() > 0) {
+            if (!first)
+                std::cout << "  ";
             first = false;
-            if (   Params::instance().binary_
-                && (   md.typeId() == Exiv2::undefined
-                    || md.typeId() == Exiv2::unsignedByte
-                    || md.typeId() == Exiv2::signedByte)
-                && md.size() > 128) {
+            if (md.size() > 128 && Params::instance().binary_ &&
+                (md.typeId() == Exiv2::undefined || md.typeId() == Exiv2::unsignedByte ||
+                 md.typeId() == Exiv2::signedByte)) {
                 std::cout << _("(Binary value suppressed)") << std::endl;
                 return true;
             }
@@ -727,22 +709,22 @@ namespace Action {
             }
             if (!done) {
                 // #1114 - show negative values for SByte
-                if (md.typeId() != Exiv2::signedByte){
+                if (md.typeId() != Exiv2::signedByte) {
                     std::cout << std::dec << md.value();
                 } else {
                     int value = md.value().toLong();
-                    std::cout << std::dec << (value<128?value:value-256);
+                    std::cout << std::dec << (value < 128 ? value : value - 256);
                 }
             }
         }
         if (Params::instance().printItems_ & Params::prTrans) {
-            if (!first) std::cout << "  ";
+            if (!first)
+                std::cout << "  ";
             first = false;
-            if (   Params::instance().binary_
-                && (   md.typeId() == Exiv2::undefined
-                    || md.typeId() == Exiv2::unsignedByte
-                    || md.typeId() == Exiv2::signedByte)
-                && md.size() > 128) {
+            if (Params::instance().binary_ &&
+                (md.typeId() == Exiv2::undefined || md.typeId() == Exiv2::unsignedByte ||
+                 md.typeId() == Exiv2::signedByte) &&
+                md.size() > 128) {
                 std::cout << _("(Binary value suppressed)") << std::endl;
                 return true;
             }
@@ -754,16 +736,17 @@ namespace Action {
                     done = true;
                 }
             }
-            if (!done) std::cout << std::dec << md.print(&pImage->exifData());
+            if (!done)
+                std::cout << std::dec << md.print(&pImage->exifData());
         }
         if (Params::instance().printItems_ & Params::prHex) {
-            if (!first) std::cout << std::endl;
+            if (!first)
+                std::cout << std::endl;
             first = false;
-            if (   Params::instance().binary_
-                && (   md.typeId() == Exiv2::undefined
-                    || md.typeId() == Exiv2::unsignedByte
-                    || md.typeId() == Exiv2::signedByte)
-                && md.size() > 128) {
+            if (Params::instance().binary_ &&
+                (md.typeId() == Exiv2::undefined || md.typeId() == Exiv2::unsignedByte ||
+                 md.typeId() == Exiv2::signedByte) &&
+                md.size() > 128) {
                 std::cout << _("(Binary value suppressed)") << std::endl;
                 return true;
             }
@@ -773,7 +756,7 @@ namespace Action {
         }
         std::cout << std::endl;
         return true;
-    } // Print::printMetadatum
+    }  // Print::printMetadatum
 
     int Print::printComment()
     {
@@ -960,7 +943,7 @@ namespace Action {
             rc = eraseIccProfile(image.get());
         }
         if (0 == rc && Params::instance().target_ & Params::ctIptcRaw) {
-            rc = printStructure(std::cout,Exiv2::kpsIptcErase);
+            rc = printStructure(std::cout,Exiv2::kpsIptcErase,path_);
         }
 
         if (0 == rc) {
@@ -976,19 +959,6 @@ namespace Action {
                   << ":\n" << e << "\n";
         return 1;
     } // Erase::run
-
-    int Erase::printStructure(std::ostream& out, Exiv2::PrintStructureOption option)
-    {
-        if (!Exiv2::fileExists(path_, true)) {
-            std::cerr << path_ << ": "
-                      << _("Failed to open the file\n");
-            return -1;
-        }
-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(path_);
-        assert(image.get() != 0);
-        image->printStructure(out,option);
-        return 0;
-    }
 
     int Erase::eraseThumbnail(Exiv2::Image* image) const
     {
@@ -1064,46 +1034,48 @@ namespace Action {
     }
 
     int Extract::run(const std::string& path)
-    try {
-        path_ = path;
-        int  rc = 0;
-
-        bool bStdout = Params::instance().target_ & Params::ctStdInOut?true:false;
-        if  (bStdout) { _setmode(_fileno(stdout), _O_BINARY) ; }
-
-        if (!rc && Params::instance().target_ & Params::ctThumb) {
-            rc = writeThumbnail();
-        }
-        if (!rc && Params::instance().target_ & Params::ctPreview) {
-            rc = writePreviews();
-        }
-        if (!rc && Params::instance().target_ & Params::ctXmpSidecar) {
-            std::string xmpPath = bStdout ? "-" : newFilePath(path_, ".xmp");
-            if (dontOverwrite(xmpPath)) return 0;
-            rc = metacopy(path_, xmpPath, Exiv2::ImageType::xmp, false);
-        }
-        if (!rc && Params::instance().target_ & Params::ctIccProfile) {
-            std::string    iccPath   = bStdout ? "-" : newFilePath(path_,".icc");
-            rc = writeIccProfile(iccPath);
-        }
-        if (!rc
-            && !(Params::instance().target_ & Params::ctXmpSidecar)
-            && !(Params::instance().target_ & Params::ctThumb)
-            && !(Params::instance().target_ & Params::ctPreview)
-            && !(Params::instance().target_ & Params::ctIccProfile)
-            ) {
-            std::string exvPath = bStdout ? "-" : newFilePath(path_, ".exv");
-            if (dontOverwrite(exvPath)) return 0;
-            rc = metacopy(path_, exvPath, Exiv2::ImageType::exv, false);
-        }
-        return rc;
-    }
-    catch(const Exiv2::AnyError& e)
     {
-        std::cerr << "Exiv2 exception in extract action for file " << path
-                  << ":\n" << e << "\n";
-        return 1;
-    } // Extract::run
+        try {
+            path_ = path;
+            int rc = 0;
+
+            bool bStdout = Params::instance().target_ & Params::ctStdInOut ? true : false;
+            if (bStdout) {
+                _setmode(_fileno(stdout), _O_BINARY);
+            }
+
+            if (Params::instance().target_ & Params::ctThumb) {
+                rc = writeThumbnail();
+            }
+            if (!rc && Params::instance().target_ & Params::ctPreview) {
+                rc = writePreviews();
+            }
+            if (!rc && Params::instance().target_ & Params::ctXmpSidecar) {
+                std::string xmpPath = bStdout ? "-" : newFilePath(path_, ".xmp");
+                if (dontOverwrite(xmpPath))
+                    return 0;
+                rc = metacopy(path_, xmpPath, Exiv2::ImageType::xmp, false);
+            }
+            if (!rc && Params::instance().target_ & Params::ctIccProfile) {
+                std::string iccPath = bStdout ? "-" : newFilePath(path_, ".icc");
+                rc = writeIccProfile(iccPath);
+            }
+            if (!rc
+                && !(Params::instance().target_ & Params::ctXmpSidecar)
+                && !(Params::instance().target_ & Params::ctThumb)
+                && !(Params::instance().target_ & Params::ctPreview)
+                && !(Params::instance().target_ & Params::ctIccProfile)) {
+                std::string exvPath = bStdout ? "-" : newFilePath(path_, ".exv");
+                if (dontOverwrite(exvPath))
+                    return 0;
+                rc = metacopy(path_, exvPath, Exiv2::ImageType::exv, false);
+            }
+            return rc;
+        } catch (const Exiv2::AnyError& e) {
+            std::cerr << "Exiv2 exception in extract action for file " << path << ":\n" << e << "\n";
+            return 1;
+        }
+    }
 
     int Extract::writeThumbnail() const
     {
@@ -1377,9 +1349,8 @@ namespace Action {
     {
         int rc = 0;
         // test path exists
-        if (rc==0 && !Exiv2::fileExists(path, true)) {
-            std::cerr << path
-                      << ": " << _("Failed to open the file\n");
+        if (!Exiv2::fileExists(path, true)) {
+            std::cerr << path << ": " << _("Failed to open the file\n");
             rc=-1;
         }
 
@@ -1644,8 +1615,8 @@ namespace Action {
         if (modifyCmd.metadataId_ == xmp) {
             Exiv2::XmpData::iterator pos;
             Exiv2::XmpKey xmpKey = Exiv2::XmpKey(modifyCmd.key_);
-            while((pos = xmpData.findKey(xmpKey)) != xmpData.end()) {
-                xmpData.erase(pos);
+            if((pos = xmpData.findKey(xmpKey)) != xmpData.end()) {
+                xmpData.eraseFamily(pos);
             }
         }
     }
@@ -1699,6 +1670,7 @@ namespace Action {
         }
         int rc = adjustDateTime(exifData, "Exif.Image.DateTime", path);
         rc += adjustDateTime(exifData, "Exif.Photo.DateTimeOriginal", path);
+        rc += adjustDateTime(exifData, "Exif.Image.DateTimeOriginal", path);
         rc += adjustDateTime(exifData, "Exif.Photo.DateTimeDigitized", path);
 
         if (rc == 0 ) {
@@ -2045,11 +2017,19 @@ namespace {
 #else
  /* Unix/Linux/Cygwin/MacOSX */
  #include <pthread.h>
+ /* This is the critical section object (statically allocated). */
  #if defined(__APPLE__)
-  /* This is the critical section object (statically allocated). */
-  static pthread_mutex_t cs =  PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+  #if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
+    static pthread_mutex_t cs =  PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+   #else
+    static pthread_mutex_t cs =  PTHREAD_MUTEX_INITIALIZER;
+  #endif
  #else
-  static pthread_mutex_t cs =  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+  #if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
+    static pthread_mutex_t cs =  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+   #else
+    static pthread_mutex_t cs =  PTHREAD_MUTEX_INITIALIZER;
+  #endif
  #endif
 #endif
 
@@ -2117,11 +2097,7 @@ namespace {
         Action::Modify::applyCommands(sourceImage.get());
 
         // Open or create the target file
-#ifdef EXV_UNICODE_PATH
-        std::string target = bStdout ? Exiv2::ws2s(temporaryPath()) : tgt;
-#else
-        std::string target = bStdout ?             temporaryPath()  : tgt;
-#endif
+        std::string target(bStdout ? temporaryPath() : tgt);
 
         Exiv2::Image::AutoPtr targetImage;
         if (Exiv2::fileExists(target)) {
@@ -2373,4 +2349,16 @@ namespace {
       return os << std::setw( minChCount) << str;
     }
 
+    int printStructure(std::ostream& out, Exiv2::PrintStructureOption option, const std::string &path)
+    {
+        if (!Exiv2::fileExists(path, true)) {
+            std::cerr << path << ": "
+                      << _("Failed to open the file\n");
+            return -1;
+        }
+        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(path);
+        assert(image.get() != 0);
+        image->printStructure(out,option);
+        return 0;
+    }
 }

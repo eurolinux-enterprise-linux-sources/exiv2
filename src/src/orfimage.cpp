@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,11 @@
  */
 /*
   File:      orfimage.cpp
-  Version:   $Rev: 4736 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   13-May-06, ahu: created
   Credits:   See header file
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: orfimage.cpp 4736 2017-03-15 21:30:55Z robinwmills $")
-
 // included header files
 #include "config.h"
 
@@ -57,7 +52,7 @@ namespace Exiv2 {
     OrfImage::OrfImage(BasicIo::AutoPtr io, bool create)
         : TiffImage(/*ImageType::orf, mdExif | mdIptc | mdXmp,*/ io,create)
     {
-    	setTypeSupported(ImageType::orf, mdExif | mdIptc | mdXmp);
+        setTypeSupported(ImageType::orf, mdExif | mdIptc | mdXmp);
     } // OrfImage::OrfImage
 
     std::string OrfImage::mimeType() const
@@ -86,17 +81,17 @@ namespace Exiv2 {
     void OrfImage::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "ORF"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "ORF"));
     }
 
     void OrfImage::printStructure(std::ostream& out, PrintStructureOption option, int depth) {
-        std::cout << "ORF IMAGE" << std::endl;
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        out << "ORF IMAGE" << std::endl;
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         // Ensure that this is the correct image type
         if ( imageType() == ImageType::none )
             if (!isOrfType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-                throw Error(15);
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+                throw Error(kerNotAJpeg);
         }
 
         io_->seek(0,BasicIo::beg);
@@ -110,22 +105,20 @@ namespace Exiv2 {
         std::cerr << "Reading ORF file " << io_->path() << "\n";
 #endif
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
         if (!isOrfType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "ORF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "ORF");
         }
         clearMetadata();
-        std::ofstream devnull;
-        printStructure(devnull, kpsRecursive, 0);
         ByteOrder bo = OrfParser::decode(exifData_,
                                          iptcData_,
                                          xmpData_,
                                          io_->mmap(),
-                                         io_->size());
+                                         (uint32_t) io_->size());
         setByteOrder(bo);
     } // OrfImage::readMetadata
 
@@ -142,7 +135,7 @@ namespace Exiv2 {
             // Ensure that this is the correct image type
             if (isOrfType(*io_, false)) {
                 pData = io_->mmap(true);
-                size = io_->size();
+                size = (long) io_->size();
                 OrfHeader orfHeader;
                 if (0 == orfHeader.read(pData, 8)) {
                     bo = orfHeader.byteOrder();
@@ -243,60 +236,3 @@ namespace Exiv2 {
     }
 
 }                                       // namespace Exiv2
-
-namespace Exiv2 {
-    namespace Internal {
-
-    OrfHeader::OrfHeader(ByteOrder byteOrder)
-        : TiffHeaderBase(0x4f52, 8, byteOrder, 0x00000008),
-          sig_(0x4f52)
-    {
-    }
-
-    OrfHeader::~OrfHeader()
-    {
-    }
-
-    bool OrfHeader::read(const byte* pData, uint32_t size)
-    {
-        if (size < 8) return false;
-
-        if (pData[0] == 'I' && pData[0] == pData[1]) {
-            setByteOrder(littleEndian);
-        }
-        else if (pData[0] == 'M' && pData[0] == pData[1]) {
-            setByteOrder(bigEndian);
-        }
-        else {
-            return false;
-        }
-
-        uint16_t sig = getUShort(pData + 2, byteOrder());
-        if (tag() != sig && 0x5352 != sig) return false; // #658: Added 0x5352 "SR" for SP-560UZ
-        sig_ = sig;
-        setOffset(getULong(pData + 4, byteOrder()));
-        return true;
-    } // OrfHeader::read
-
-    DataBuf OrfHeader::write() const
-    {
-        DataBuf buf(8);
-        switch (byteOrder()) {
-        case littleEndian:
-            buf.pData_[0] = 'I';
-            break;
-        case bigEndian:
-            buf.pData_[0] = 'M';
-            break;
-        case invalidByteOrder:
-            assert(false);
-            break;
-        }
-        buf.pData_[1] = buf.pData_[0];
-
-        us2Data(buf.pData_ + 2, sig_, byteOrder());
-        ul2Data(buf.pData_ + 4, 0x00000008, byteOrder());
-        return buf;
-    }
-
-}}                                      // namespace Internal, Exiv2

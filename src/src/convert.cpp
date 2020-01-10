@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,24 +19,21 @@
  */
 /*
   File:      convert.cpp
-  Version:   $Rev: 4764 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
              Vladimir Nadvornik (vn) <nadvornik@suse.cz>
   History:   17-Mar-08, ahu: created basic converter framework
              20-May-08, vn:  added actual conversion logic
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: convert.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
-
-// *****************************************************************************
 // included header files
+#include "config.h"
 #include "types.hpp"
 #include "exif.hpp"
 #include "iptc.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "futils.hpp"
 #include "convert.hpp"
+#include "unused.h"
 
 // + standard includes
 #include <utility>
@@ -63,13 +59,13 @@ EXIV2_RCSID("@(#) $Id: convert.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
 // Adobe XMP Toolkit
 #ifdef EXV_HAVE_XMP_TOOLKIT
 # define TXMP_STRING_TYPE std::string
-# include <XMPSDK.hpp>
+# ifdef EXV_ADOBE_XMPSDK
+#  include <XMP.hpp>
+# else
+#  include <XMPSDK.hpp>
+# endif
 # include <MD5.h>
 #endif // EXV_HAVE_XMP_TOOLKIT
-
-#ifndef UNUSED
-#define UNUSED(x) (void)(x)
-#endif
 
 // *****************************************************************************
 // local declarations
@@ -1066,11 +1062,10 @@ namespace Exiv2 {
         double deg = 0.0;
         double min = 0.0;
         double sec = 0.0;
-        char ref  = '\0';
+        char ref  = value[value.length() - 1];
         char sep1 = '\0';
         char sep2 = '\0';
 
-        ref = value[value.length() - 1];
         value.erase(value.length() - 1);
 
         std::istringstream in(value);
@@ -1294,7 +1289,7 @@ namespace Exiv2 {
 
     void moveExifToXmp(ExifData& exifData, XmpData& xmpData)
     {
-        Converter converter(const_cast<ExifData&>(exifData), xmpData);
+        Converter converter(exifData, xmpData);
         converter.setErase();
         converter.cnvToXmp();
     }
@@ -1307,14 +1302,14 @@ namespace Exiv2 {
 
     void moveXmpToExif(XmpData& xmpData, ExifData& exifData)
     {
-        Converter converter(exifData, const_cast<XmpData&>(xmpData));
+        Converter converter(exifData, xmpData);
         converter.setErase();
         converter.cnvFromXmp();
     }
 
     void syncExifWithXmp(ExifData& exifData, XmpData& xmpData)
     {
-        Converter converter(exifData, const_cast<XmpData&>(xmpData));
+        Converter converter(exifData, xmpData);
         converter.syncExifWithXmp();
     }
 
@@ -1331,7 +1326,7 @@ namespace Exiv2 {
     {
         if (!iptcCharset) iptcCharset = iptcData.detectCharset();
         if (!iptcCharset) iptcCharset = "ISO-8859-1";
-        Converter converter(const_cast<IptcData&>(iptcData), xmpData, iptcCharset);
+        Converter converter(iptcData, xmpData, iptcCharset);
         converter.setErase();
         converter.cnvToXmp();
     }
@@ -1344,7 +1339,7 @@ namespace Exiv2 {
 
     void moveXmpToIptc(XmpData& xmpData, IptcData& iptcData)
     {
-        Converter converter(iptcData, const_cast<XmpData&>(xmpData));
+        Converter converter(iptcData, xmpData);
         converter.setErase();
         converter.cnvFromXmp();
     }
@@ -1361,9 +1356,9 @@ namespace Exiv2 {
 # ifndef SUPPRESS_WARNINGS
         EXV_WARNING << "Charset conversion required but no character mapping functionality available.\n";
 # endif
+        UNUSED(str);
 #endif
         return ret;
-        UNUSED(str);
     }
 }                                       // namespace Exiv2
 
@@ -1493,7 +1488,7 @@ namespace {
     typedef bool (*ConvFct)(std::string& str);
 
     struct ConvFctList {
-        bool operator==(std::pair<const char*, const char*> fromTo) const
+        bool operator==(const std::pair<const char*, const char*> &fromTo) const
             { return 0 == strcmp(from_, fromTo.first) && 0 == strcmp(to_, fromTo.second); }
         const char* from_;
         const char* to_;
@@ -1554,7 +1549,7 @@ namespace {
                               &inbytesleft,
                               &outptr,
                               &outbytesleft);
-            int outbytesProduced = sizeof(outbuf) - outbytesleft;
+            const size_t outbytesProduced = sizeof(outbuf) - outbytesleft;
             if (rc == size_t(-1) && errno != E2BIG) {
 #ifndef SUPPRESS_WARNINGS
                 EXV_WARNING << "iconv: " << strError()
@@ -1585,9 +1580,9 @@ namespace {
                 value = pos->toString();
                 if (   pos->value().ok()
                     && value.length() > 5 && value.substr(0, 5) == "lang=") {
-                    std::string::size_type pos = value.find_first_of(' ');
-                    if (pos != std::string::npos) {
-                        value = value.substr(pos + 1);
+                    const std::string::size_type first_space_pos = value.find_first_of(' ');
+                    if (first_space_pos != std::string::npos) {
+                        value = value.substr(first_space_pos + 1);
                     }
                     else {
                         value.clear();

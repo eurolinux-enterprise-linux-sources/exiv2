@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,11 @@
  */
 /*
   File:      exif.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   26-Jan-04, ahu: created
              11-Feb-04, ahu: isolated as a component
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: exif.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
 #include "config.h"
 
@@ -232,7 +227,7 @@ namespace Exiv2 {
 
     const Value& Exifdatum::value() const
     {
-        if (value_.get() == 0) throw Error(8);
+        if (value_.get() == 0) throw Error(kerValueNotSet);
         return *value_;
     }
 
@@ -718,7 +713,7 @@ namespace Exiv2 {
                                                   header.get(),
                                                   0);
         if (mio1.size() <= 65527) {
-            append(blob, mio1.mmap(), mio1.size());
+            append(blob, mio1.mmap(), (uint32_t) mio1.size());
             return wm;
         }
 
@@ -794,17 +789,17 @@ namespace Exiv2 {
             }
         }
 
-        // Delete unknown tags larger than 4kB and known tags larger than 40kB.
-        for (ExifData::iterator pos = ed.begin(); pos != ed.end(); ) {
-            if (   (pos->size() > 4096 && pos->tagName().substr(0, 2) == "0x")
-                || pos->size() > 40960) {
+        // Delete unknown tags larger than 4kB and known tags larger than 20kB.
+        for (ExifData::iterator tag_iter = ed.begin(); tag_iter != ed.end(); ) {
+            if ( (tag_iter->size() > 4096 && tag_iter->tagName().substr(0, 2) == "0x") ||
+                  tag_iter->size() > 20480) {
 #ifndef SUPPRESS_WARNINGS
-                EXV_WARNING << "Exif tag " << pos->key() << " not encoded\n";
+                EXV_WARNING << "Exif tag " << tag_iter->key() << " not encoded\n";
 #endif
-                pos = ed.erase(pos);
+                tag_iter = ed.erase(tag_iter);
             }
             else {
-                ++pos;
+                ++tag_iter;
             }
         }
 
@@ -820,7 +815,7 @@ namespace Exiv2 {
                                       TiffMapping::findEncoder,
                                       header.get(),
                                       0);
-        append(blob, mio2.mmap(), mio2.size());
+        append(blob, mio2.mmap(), (uint32_t) mio2.size());
 #ifdef DEBUG
         if (wm == wmIntrusive) {
             std::cerr << "SIZE OF EXIF DATA IS " << std::dec << mio2.size() << " BYTES\n";
@@ -897,7 +892,7 @@ namespace {
         Exiv2::IptcData emptyIptc;
         Exiv2::XmpData  emptyXmp;
         Exiv2::TiffParser::encode(io, 0, 0, Exiv2::littleEndian, thumb, emptyIptc, emptyXmp);
-        return io.read(io.size());
+        return io.read((long) io.size());
     }
 
     const char* JpegThumbnail::mimeType() const

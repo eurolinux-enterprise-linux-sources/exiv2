@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,11 @@
  */
 /*
   File:      xmpsidecar.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   07-Mar-08, ahu: created
   Credits:   See header file
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: xmpsidecar.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // included header files
 #include "config.h"
 
@@ -36,7 +31,7 @@ EXIV2_RCSID("@(#) $Id: xmpsidecar.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include "image.hpp"
 #include "basicio.hpp"
 #include "error.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "futils.hpp"
 #include "convert.hpp"
 
@@ -75,7 +70,7 @@ namespace Exiv2 {
     void XmpSidecar::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "XMP"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "XMP"));
     }
 
     void XmpSidecar::readMetadata()
@@ -84,13 +79,13 @@ namespace Exiv2 {
         std::cerr << "Reading XMP file " << io_->path() << "\n";
 #endif
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
         if (!isXmpType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "XMP");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "XMP");
         }
         // Read the XMP packet from the IO stream
         std::string xmpPacket;
@@ -100,7 +95,7 @@ namespace Exiv2 {
         while ((l = io_->read(buf, len)) > 0) {
             xmpPacket.append(reinterpret_cast<char*>(buf), l);
         }
-        if (io_->error()) throw Error(14);
+        if (io_->error()) throw Error(kerFailedToReadImageData);
         clearMetadata();
         xmpPacket_ = xmpPacket;
         if (xmpPacket_.size() > 0 && XmpParser::decode(xmpData_, xmpPacket_)) {
@@ -113,8 +108,8 @@ namespace Exiv2 {
         for (Exiv2::XmpData::const_iterator it = xmpData_.begin(); it != xmpData_.end(); ++it) {
             std::string  key(it->key());
             if ( key.find("Date") != std::string::npos ) {
-            	std::string value(it->value().toString());
-            	dates_[key] = value;
+                std::string value(it->value().toString());
+                dates_[key] = value;
             }
         }
 
@@ -125,7 +120,7 @@ namespace Exiv2 {
     void XmpSidecar::writeMetadata()
     {
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
 
@@ -135,17 +130,17 @@ namespace Exiv2 {
             copyIptcToXmp(iptcData_, xmpData_);
 
             // #1112 - restore dates if they lost their TZ info
-            for ( Exiv2::Dictionary_i it = dates_.begin() ; it != dates_.end() ; it++) {
-            	std::string   sKey = it->first;
-            	Exiv2::XmpKey key(sKey);
-            	if ( xmpData_.findKey(key) != xmpData_.end() ) {
-            		std::string value_orig(it->second);
-            		std::string value_now(xmpData_[sKey].value().toString());
-	            	// std::cout << key << " -> " << value_now << " => " << value_orig << std::endl;
-					if ( value_orig.find(value_now.substr(0,10)) != std::string::npos ) {
-						xmpData_[sKey] = value_orig ;
-					}
-            	}
+            for ( Exiv2::Dictionary_i it = dates_.begin() ; it != dates_.end() ; ++it ) {
+                std::string   sKey = it->first;
+                Exiv2::XmpKey key(sKey);
+                if ( xmpData_.findKey(key) != xmpData_.end() ) {
+                    std::string value_orig(it->second);
+                    std::string value_now(xmpData_[sKey].value().toString());
+                    // std::cout << key << " -> " << value_now << " => " << value_orig << std::endl;
+                    if ( value_orig.find(value_now.substr(0,10)) != std::string::npos ) {
+                        xmpData_[sKey] = value_orig ;
+                    }
+                }
             }
 
             if (XmpParser::encode(xmpPacket_, xmpData_,
@@ -164,8 +159,8 @@ namespace Exiv2 {
             // Write XMP packet
             if (   tempIo->write(reinterpret_cast<const byte*>(xmpPacket_.data()),
                                  static_cast<long>(xmpPacket_.size()))
-                != static_cast<long>(xmpPacket_.size())) throw Error(21);
-            if (tempIo->error()) throw Error(21);
+                != static_cast<long>(xmpPacket_.size())) throw Error(kerImageWriteFailed);
+            if (tempIo->error()) throw Error(kerImageWriteFailed);
             io_->close();
             io_->transfer(*tempIo); // may throw
         }

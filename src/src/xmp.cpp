@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,17 +19,12 @@
  */
 /*
   File:      xmp.cpp
-  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   13-July-07, ahu: created
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: xmp.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
-// *****************************************************************************
 // included header files
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "types.hpp"
 #include "error.hpp"
 #include "value.hpp"
@@ -43,9 +37,13 @@ EXIV2_RCSID("@(#) $Id: xmp.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include <string>
 
 // Adobe XMP Toolkit
-#ifdef EXV_HAVE_XMP_TOOLKIT
+#ifdef   EXV_HAVE_XMP_TOOLKIT
 # define TXMP_STRING_TYPE std::string
+# ifdef  EXV_ADOBE_XMPSDK
+# include <XMP.hpp>
+# else
 # include <XMPSDK.hpp>
+# endif
 # include <XMP.incl_cpp>
 #endif // EXV_HAVE_XMP_TOOLKIT
 
@@ -176,7 +174,6 @@ namespace Exiv2 {
 
     Xmpdatum::~Xmpdatum()
     {
-        delete p_;
     }
 
     std::string Xmpdatum::key() const
@@ -266,13 +263,13 @@ namespace Exiv2 {
 
     const Value& Xmpdatum::value() const
     {
-        if (p_->value_.get() == 0) throw Error(8);
+        if (p_->value_.get() == 0) throw Error(kerValueNotSet);
         return *p_->value_;
     }
 
     long Xmpdatum::copy(byte* /*buf*/, ByteOrder /*byteOrder*/) const
     {
-        throw Error(34, "Xmpdatum::copy");
+        throw Error(kerFunctionNotSupported, "Xmpdatum::copy");
         return 0;
     }
 
@@ -385,10 +382,36 @@ namespace Exiv2 {
         return xmpMetadata_.end();
     }
 
-    XmpData::iterator XmpData::erase(XmpData::iterator pos)
-    {
+    XmpData::iterator XmpData::erase(XmpData::iterator pos) {
         return xmpMetadata_.erase(pos);
     }
+
+    void XmpData::eraseFamily(XmpData::iterator& pos)
+    {
+        // https://github.com/Exiv2/exiv2/issues/521
+        // delete 'children' of XMP composites (XmpSeq and XmpBag)
+
+        // I build a StringVector of keys to remove
+        // Then I remove them with erase(....)
+        // erase() has nasty side effects on its argument
+        // The side effects are avoided by the two-step approach
+        // https://github.com/Exiv2/exiv2/issues/560
+        std::string         key(pos->key());
+        Exiv2::StringVector keys;
+        while ( pos != xmpMetadata_.end() ) {
+            if ( pos->key().find(key)==0 ) {
+                keys.push_back(pos->key());
+                pos++;
+            } else {
+                break;
+            }
+        }
+        // now erase the family!
+        for ( Exiv2::StringVector_i it = keys.begin() ; it != keys.end() ; it++ ) {
+            erase(findKey(Exiv2::XmpKey(*it)));
+        }
+    }
+
 
     bool XmpParser::initialized_ = false;
     XmpParser::XmpLockFct XmpParser::xmpLockFct_ = 0;
@@ -401,6 +424,30 @@ namespace Exiv2 {
             xmpLockFct_ = xmpLockFct;
             pLockData_ = pLockData;
             initialized_ = SXMPMeta::Initialize();
+#ifdef EXV_ADOBE_XMPSDK
+            SXMPMeta::RegisterNamespace("http://ns.adobe.com/lightroom/1.0/", "lr",NULL);
+            SXMPMeta::RegisterNamespace("http://rs.tdwg.org/dwc/index.htm", "dwc",NULL);
+            SXMPMeta::RegisterNamespace("http://purl.org/dc/terms/", "dcterms",NULL);
+            SXMPMeta::RegisterNamespace("http://www.digikam.org/ns/1.0/", "digiKam",NULL);
+            SXMPMeta::RegisterNamespace("http://www.digikam.org/ns/kipi/1.0/", "kipi",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.0/", "MicrosoftPhoto",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.acdsee.com/iptc/1.0/", "acdsee",NULL);
+            SXMPMeta::RegisterNamespace("http://iptc.org/std/Iptc4xmpExt/2008-02-29/", "iptcExt",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.useplus.org/ldf/xmp/1.0/", "plus",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.iview-multimedia.com/mediapro/1.0/", "mediapro",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.microsoft.com/expressionmedia/1.0/", "expressionmedia",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/", "MP",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/t/RegionInfo#", "MPRI",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/t/Region#", "MPReg",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.google.com/photos/1.0/panorama/", "GPano",NULL);
+            SXMPMeta::RegisterNamespace("http://www.metadataworkinggroup.com/schemas/regions/", "mwg-rs",NULL);
+            SXMPMeta::RegisterNamespace("http://www.metadataworkinggroup.com/schemas/keywords/", "mwg-kw",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.adobe.com/xmp/sType/Area#", "stArea",NULL);
+            SXMPMeta::RegisterNamespace("http://cipa.jp/exif/1.0/", "exifEX",NULL);
+            SXMPMeta::RegisterNamespace("http://ns.adobe.com/camera-raw-saved-settings/1.0/", "crss",NULL);
+            SXMPMeta::RegisterNamespace("http://www.audio/", "audio",NULL);
+            SXMPMeta::RegisterNamespace("http://www.video/", "video",NULL);
+#else
             SXMPMeta::RegisterNamespace("http://ns.adobe.com/lightroom/1.0/", "lr");
             SXMPMeta::RegisterNamespace("http://rs.tdwg.org/dwc/index.htm", "dwc");
             SXMPMeta::RegisterNamespace("http://purl.org/dc/terms/", "dcterms");
@@ -420,16 +467,17 @@ namespace Exiv2 {
             SXMPMeta::RegisterNamespace("http://www.metadataworkinggroup.com/schemas/keywords/", "mwg-kw");
             SXMPMeta::RegisterNamespace("http://ns.adobe.com/xmp/sType/Area#", "stArea");
             SXMPMeta::RegisterNamespace("http://cipa.jp/exif/1.0/", "exifEX");
-		    SXMPMeta::RegisterNamespace("http://ns.adobe.com/camera-raw-saved-settings/1.0/", "crss");
+            SXMPMeta::RegisterNamespace("http://ns.adobe.com/camera-raw-saved-settings/1.0/", "crss");
             SXMPMeta::RegisterNamespace("http://www.audio/", "audio");
             SXMPMeta::RegisterNamespace("http://www.video/", "video");
+#endif
         }
         return initialized_;
     }
 #else
     bool XmpParser::initialize(XmpParser::XmpLockFct, void* )
     {
-    	initialized_ = true;
+        initialized_ = true;
         return initialized_;
     }
 #endif
@@ -449,17 +497,17 @@ namespace Exiv2 {
         out.erase(end_pos, out.end());
 
         bool bURI = out.find("http://") != std::string::npos   ;
-        bool bNS  = out.find(":") != std::string::npos && !bURI;
+        bool bNS  = out.find(':') != std::string::npos && !bURI;
 
         // pop trailing ':' on a namespace
         if ( bNS ) {
-	    std::size_t length = out.length();
+        std::size_t length = out.length();
             if ( out[length-1] == ':' ) out = out.substr(0,length-1);
         }
 
         if ( bURI || bNS ) {
             std::map<std::string,std::string>* p = (std::map<std::string,std::string>*) refCon;
-            std::map<std::string,std::string>& m = (std::map<std::string,std::string>&) *p    ;
+            std::map<std::string,std::string>& m = *p;
 
             std::string b("");
             if ( bNS ) {  // store the NS in dict[""]
@@ -476,13 +524,13 @@ namespace Exiv2 {
 #ifdef EXV_HAVE_XMP_TOOLKIT
     void XmpParser::registeredNamespaces(Exiv2::Dictionary& dict)
     {
-    	bool bInit = !initialized_;
+        bool bInit = !initialized_;
         try {
-        	if (bInit) initialize();
-        	SXMPMeta::DumpNamespaces(nsDumper,&dict);
-        	if (bInit) terminate();
+            if (bInit) initialize();
+            SXMPMeta::DumpNamespaces(nsDumper,&dict);
+            if (bInit) terminate();
         } catch (const XMP_Error& e) {
-            throw Error(40, e.GetID(), e.GetErrMsg());
+            throw Error(kerXMPToolkitError, e.GetID(), e.GetErrMsg());
         }
     }
 #else
@@ -508,10 +556,14 @@ namespace Exiv2 {
             initialize();
             AutoLock autoLock(xmpLockFct_, pLockData_);
             SXMPMeta::DeleteNamespace(ns.c_str());
+#ifdef EXV_ADOBE_XMPSDK
+            SXMPMeta::RegisterNamespace(ns.c_str(), prefix.c_str(),NULL);
+#else
             SXMPMeta::RegisterNamespace(ns.c_str(), prefix.c_str());
+#endif
         }
-        catch (const XMP_Error& e) {
-            throw Error(40, e.GetID(), e.GetErrMsg());
+        catch (const XMP_Error& /* e */) {
+            // throw Error(kerXMPToolkitError, e.GetID(), e.GetErrMsg());
         }
     } // XmpParser::registerNs
 #else
@@ -530,7 +582,7 @@ namespace Exiv2 {
 //          SXMPMeta::DeleteNamespace(ns.c_str());
         }
         catch (const XMP_Error& e) {
-            throw Error(40, e.GetID(), e.GetErrMsg());
+            throw Error(kerXMPToolkitError, e.GetID(), e.GetErrMsg());
         }
 #endif
     } // XmpParser::unregisterNs
@@ -557,7 +609,7 @@ namespace Exiv2 {
         while (iter.Next(&schemaNs, &propPath, &propValue, &opt)) {
             printNode(schemaNs, propPath, propValue, opt);
             if (XMP_PropIsAlias(opt)) {
-                throw Error(47, schemaNs, propPath, propValue);
+                throw Error(kerAliasesNotSupported, schemaNs, propPath, propValue);
                 continue;
             }
             if (XMP_NodeIsSchema(opt)) {
@@ -566,7 +618,7 @@ namespace Exiv2 {
                 if (XmpProperties::prefix(schemaNs).empty()) {
                     std::string prefix;
                     bool ret = meta.GetNamespacePrefix(schemaNs.c_str(), &prefix);
-                    if (!ret) throw Error(45, schemaNs);
+                    if (!ret) throw Error(kerSchemaNamespaceNotRegistered, schemaNs);
                     prefix = prefix.substr(0, prefix.size() - 1);
                     XmpProperties::registerNs(schemaNs, prefix);
                 }
@@ -584,7 +636,7 @@ namespace Exiv2 {
                     if (   !haveNext
                         || !XMP_PropIsSimple(opt)
                         || !XMP_PropHasLang(opt)) {
-                        throw Error(41, propPath, opt);
+                        throw Error(kerDecodeLangAltPropertyFailed, propPath, opt);
                     }
                     const std::string text = propValue;
                     // Get the language qualifier
@@ -594,7 +646,7 @@ namespace Exiv2 {
                         || !XMP_PropIsSimple(opt)
                         || !XMP_PropIsQualifier(opt)
                         || propPath.substr(propPath.size() - 8, 8) != "xml:lang") {
-                        throw Error(42, propPath, opt);
+                        throw Error(kerDecodeLangAltQualifierFailed, propPath, opt);
                     }
                     val->value_[propValue] = text;
                 }
@@ -649,14 +701,14 @@ namespace Exiv2 {
                 continue;
             }
             // Don't let any node go by unnoticed
-            throw Error(39, key->key(), opt);
+            throw Error(kerUnhandledXmpNode, key->key(), opt);
         } // iterate through all XMP nodes
 
         return 0;
     }
 #ifndef SUPPRESS_WARNINGS
     catch (const XMP_Error& e) {
-        EXV_ERROR << Error(40, e.GetID(), e.GetErrMsg()) << "\n";
+        EXV_ERROR << Error(kerXMPToolkitError, e.GetID(), e.GetErrMsg()) << "\n";
         xmpData.clear();
         return 3;
     }
@@ -715,7 +767,7 @@ namespace Exiv2 {
 
                 // Encode Lang Alt property
                 const LangAltValue* la = dynamic_cast<const LangAltValue*>(&i->value());
-                if (la == 0) throw Error(43, i->key());
+                if (la == 0) throw Error(kerEncodeLangAltPropertyFailed, i->key());
 
                 int idx = 1;
                 for ( LangAltValue::ValueType::const_iterator k = la->value_.begin()
@@ -734,7 +786,7 @@ namespace Exiv2 {
 
             // Todo: Xmpdatum should have an XmpValue, not a Value
             const XmpValue* val = dynamic_cast<const XmpValue*>(&i->value());
-            if (val == 0) throw Error(52, i->key(), i->typeName());
+            if (val == 0) throw Error(kerInvalidKeyXmpValue, i->key(), i->typeName());
             options =   xmpArrayOptionBits(val->xmpArrayType())
                       | xmpArrayOptionBits(val->xmpStruct());
             if (   i->typeId() == xmpBag
@@ -761,7 +813,7 @@ namespace Exiv2 {
                 continue;
             }
             // Don't let any Xmpdatum go by unnoticed
-            throw Error(38, i->tagName(), i->typeName());
+            throw Error(kerUnhandledXmpdatum, i->tagName(), i->typeName());
         }
         std::string tmpPacket;
         meta.SerializeToBuffer(&tmpPacket, xmpFormatOptionBits(static_cast<XmpFormatFlags>(formatFlags)), padding); // throws
@@ -771,7 +823,7 @@ namespace Exiv2 {
     }
 #ifndef SUPPRESS_WARNINGS
     catch (const XMP_Error& e) {
-        EXV_ERROR << Error(40, e.GetID(), e.GetErrMsg()) << "\n";
+        EXV_ERROR << Error(kerXMPToolkitError, e.GetID(), e.GetErrMsg()) << "\n";
         return 3;
     }
 #else
@@ -861,6 +913,10 @@ namespace {
         return var;
     }
 
+#ifdef  EXV_ADOBE_XMPSDK
+#define kXMP_WriteAliasComments  0x0400UL
+#endif
+
     XMP_OptionBits xmpFormatOptionBits(Exiv2::XmpParser::XmpFormatFlags flags)
     {
         XMP_OptionBits var(0);
@@ -925,13 +981,13 @@ namespace {
         std::string property;
         std::string::size_type idx = propPath.find(':');
         if (idx == std::string::npos) {
-            throw Exiv2::Error(44, propPath, schemaNs);
+            throw Exiv2::Error(Exiv2::kerPropertyNameIdentificationFailed, propPath, schemaNs);
         }
         // Don't worry about out_of_range, XMP parser takes care of this
         property = propPath.substr(idx + 1);
         std::string prefix = Exiv2::XmpProperties::prefix(schemaNs);
         if (prefix.empty()) {
-            throw Exiv2::Error(36, propPath, schemaNs);
+            throw Exiv2::Error(Exiv2::kerNoPrefixForNamespace, propPath, schemaNs);
         }
         return Exiv2::XmpKey::AutoPtr(new Exiv2::XmpKey(prefix, property));
     } // makeXmpKey

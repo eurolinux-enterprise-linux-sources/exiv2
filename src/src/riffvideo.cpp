@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,10 @@
  */
 /*
   File:      riffvideo.cpp
-  Version:   $Rev: 4736 $
   Author(s): Abhinav Badola for GSoC 2012 (AB) <mail.abu.to@gmail.com>
   History:   18-Jun-12, AB: created
   Credits:   See header file
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: riffvideo.cpp 4736 2017-03-15 21:30:55Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "config.h"
@@ -538,12 +532,12 @@ namespace Exiv2 {
 
     void RiffVideo::printStructure(std::ostream& out, PrintStructureOption option, int depth) {
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         // Ensure this is the correct image type
         if (!isRiffType(*io_, true)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "RIFF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "RIFF");
         }
 
         bool bPrint  = option==kpsBasic || option==kpsRecursive;
@@ -577,7 +571,7 @@ namespace Exiv2 {
                 if ( bPrint ) {
                     out << Internal::indent(depth)
                         << Internal::stringFormat("  %s | %12u | %12u | ", (const char*)chunkId.pData_,size,(uint32_t)offset)
-                        << Internal::binaryToString(payload,payload.size_>32?32:payload.size_)
+                        << Internal::binaryToString(makeSlice(payload, 0, payload.size_ > 32 ? 32 : payload.size_))
                         << std::endl;
                 }
 
@@ -605,12 +599,12 @@ namespace Exiv2 {
 
     void RiffVideo::readMetadata()
     {
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
 
         // Ensure that this is the correct image type
         if (!isRiffType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "RIFF");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "RIFF");
         }
 
         IoCloser closer(*io_);
@@ -838,7 +832,7 @@ namespace Exiv2 {
         double denominator = 1;
         io_->read(buf.pData_, 4); tempSize -= 4;
 
-        while((long)tempSize > 0) {
+        while(tempSize > 0) {
             std::memset(buf.pData_, 0x0, buf.size_);
             io_->read(buf.pData_, 4);
             io_->read(buf2.pData_, 4);
@@ -1304,7 +1298,7 @@ namespace Exiv2 {
         if(frame_rate == 0)
             return;
 
-        uint64_t duration = static_cast<uint64_t>((double)frame_count * (double)1000 / (double)frame_rate);
+        uint64_t duration = static_cast<uint64_t>((double)frame_count * 1000. / frame_rate);
         xmpData_["Xmp.video.FileDataRate"] = (double)io_->size()/(double)(1048576*duration);
         xmpData_["Xmp.video.Duration"] = duration; //Duration in number of seconds
     } // RiffVideo::fillDuration

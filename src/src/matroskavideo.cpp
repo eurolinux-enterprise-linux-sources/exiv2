@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,15 +19,10 @@
  */
 /*
   File:      matroskavideo.cpp
-  Version:   $Rev: 4719 $
   Author(s): Abhinav Badola for GSoC 2012 (AB) <mail.abu.to@gmail.com>
   History:   18-Jun-12, AB: created
   Credits:   See header file
  */
-// *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: matroskavideo.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
-
 // *****************************************************************************
 // included header files
 #include "config.h"
@@ -498,12 +492,12 @@ namespace Exiv2 {
 
     void MatroskaVideo::readMetadata()
     {
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
 
         // Ensure that this is the correct image type
         if (!isMkvType(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "Matroska");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "Matroska");
         }
 
         IoCloser closer(*io_);
@@ -660,7 +654,7 @@ namespace Exiv2 {
             switch (mt->val_) {
             case 0x0489:
                 if(size <= 4) {
-                    duration_in_ms = static_cast<int64_t>(getFloat(buf, bigEndian) * time_code_scale * 1000);
+                    duration_in_ms = static_cast<int64_t>(getFloat(buf, bigEndian) * static_cast<float>(time_code_scale) * 1000.0f);
                 }
                 else {
                     duration_in_ms = static_cast<int64_t>(getDouble(buf, bigEndian) * time_code_scale * 1000);

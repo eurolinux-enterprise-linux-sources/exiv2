@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,18 +19,14 @@
  */
 /*
   File:      cr2image.cpp
-  Version:   $Rev: 4736 $
  */
 // *****************************************************************************
-#include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: cr2image.cpp 4736 2017-03-15 21:30:55Z robinwmills $")
-
 // included header files
 #include "config.h"
 
 #include "cr2image.hpp"
 #include "tiffimage.hpp"
-#include "cr2image_int.hpp"
+#include "cr2header_int.hpp"
 #include "tiffcomposite_int.hpp"
 #include "tiffimage_int.hpp"
 #include "image.hpp"
@@ -81,7 +76,7 @@ namespace Exiv2 {
 
     void Cr2Image::printStructure(std::ostream& out, Exiv2::PrintStructureOption option,int depth)
     {
-        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        if (io_->open() != 0) throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         io_->seek(0,BasicIo::beg);
         printTiffStructure(io(),out,option,depth-1);
     }
@@ -89,7 +84,7 @@ namespace Exiv2 {
     void Cr2Image::setComment(const std::string& /*comment*/)
     {
         // not supported
-        throw(Error(32, "Image comment", "CR2"));
+        throw(Error(kerInvalidSettingForImage, "Image comment", "CR2"));
     }
 
     void Cr2Image::readMetadata()
@@ -98,22 +93,20 @@ namespace Exiv2 {
         std::cerr << "Reading CR2 file " << io_->path() << "\n";
 #endif
         if (io_->open() != 0) {
-            throw Error(9, io_->path(), strError());
+            throw Error(kerDataSourceOpenFailed, io_->path(), strError());
         }
         IoCloser closer(*io_);
         // Ensure that this is the correct image type
         if (!isCr2Type(*io_, false)) {
-            if (io_->error() || io_->eof()) throw Error(14);
-            throw Error(3, "CR2");
+            if (io_->error() || io_->eof()) throw Error(kerFailedToReadImageData);
+            throw Error(kerNotAnImage, "CR2");
         }
         clearMetadata();
-        std::ofstream devnull;
-        printStructure(devnull, kpsRecursive, 0);
         ByteOrder bo = Cr2Parser::decode(exifData_,
                                          iptcData_,
                                          xmpData_,
                                          io_->mmap(),
-                                         io_->size());
+                                         (uint32_t) io_->size());
         setByteOrder(bo);
     } // Cr2Image::readMetadata
 
@@ -130,7 +123,7 @@ namespace Exiv2 {
             // Ensure that this is the correct image type
             if (isCr2Type(*io_, false)) {
                 pData = io_->mmap(true);
-                size = io_->size();
+                size = (long) io_->size();
                 Cr2Header cr2Header;
                 if (0 == cr2Header.read(pData, 16)) {
                     bo = cr2Header.byteOrder();
@@ -233,73 +226,3 @@ namespace Exiv2 {
     }
 
 }                                       // namespace Exiv2
-
-namespace Exiv2 {
-    namespace Internal {
-
-    const char* Cr2Header::cr2sig_ = "CR\2\0";
-
-    Cr2Header::Cr2Header(ByteOrder byteOrder)
-        : TiffHeaderBase(42, 16, byteOrder, 0x00000010),
-          offset2_(0x00000000)
-    {
-    }
-
-    Cr2Header::~Cr2Header()
-    {
-    }
-
-    bool Cr2Header::read(const byte* pData, uint32_t size)
-    {
-        if (size < 16) return false;
-
-        if (pData[0] == 'I' && pData[0] == pData[1]) {
-            setByteOrder(littleEndian);
-        }
-        else if (pData[0] == 'M' && pData[0] == pData[1]) {
-            setByteOrder(bigEndian);
-        }
-        else {
-            return false;
-        }
-        if (tag() != getUShort(pData + 2, byteOrder())) return false;
-        setOffset(getULong(pData + 4, byteOrder()));
-        if (0 != memcmp(pData + 8, cr2sig_, 4)) return false;
-        offset2_ = getULong(pData + 12, byteOrder());
-
-        return true;
-    } // Cr2Header::read
-
-    DataBuf Cr2Header::write() const
-    {
-        DataBuf buf(16);
-        switch (byteOrder()) {
-        case littleEndian:
-            buf.pData_[0] = 'I';
-            break;
-        case bigEndian:
-            buf.pData_[0] = 'M';
-            break;
-        case invalidByteOrder:
-            assert(false);
-            break;
-        }
-        buf.pData_[1] = buf.pData_[0];
-
-        us2Data(buf.pData_ + 2, tag(), byteOrder());
-        ul2Data(buf.pData_ + 4, 0x00000010, byteOrder());
-        memcpy(buf.pData_ + 8, cr2sig_, 4);
-        // Write a dummy value for the RAW IFD offset. The offset-writer is used to set this offset in a second pass.
-        ul2Data(buf.pData_ + 12, 0x00000000, byteOrder());
-        return buf;
-    } // Cr2Header::write
-
-    bool Cr2Header::isImageTag(uint16_t tag, IfdId group, const PrimaryGroups* /*pPrimaryGroups*/) const
-    {
-        // CR2 image tags are all IFD2 and IFD3 tags
-        if (group == ifd2Id || group == ifd3Id) return true;
-        // ...and any (IFD0) tag that is in the TIFF image tags list
-        return isTiffImageTag(tag, group);
-    }
-
-}}                                      // namespace Internal, Exiv2

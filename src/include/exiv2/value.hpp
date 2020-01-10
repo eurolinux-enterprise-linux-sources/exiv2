@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    value.hpp
   @brief   Value interface and concrete subclasses
-  @version $Rev: 3090 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    09-Jan-04, ahu: created
@@ -44,6 +42,7 @@
 #include <sstream>
 #include <memory>
 #include <cstring>
+#include <climits>
 
 // *****************************************************************************
 // namespace extensions
@@ -267,17 +266,13 @@ namespace Exiv2 {
         //! Shortcut for a %DataValue auto pointer.
         typedef std::auto_ptr<DataValue> AutoPtr;
 
-        //! @name Creators
-        //@{
-        //! Default constructor.
         explicit DataValue(TypeId typeId =undefined);
-        //! Constructor
+
         DataValue(const byte* buf,
                   long len, ByteOrder byteOrder =invalidByteOrder,
                   TypeId typeId =undefined);
-        //! Virtual destructor.
+
         virtual ~DataValue();
-        //@}
 
         //! @name Manipulators
         //@{
@@ -333,9 +328,8 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual DataValue* clone_() const;
+        virtual DataValue* clone_() const;
 
-    public:
         //! Type used to store the data.
         typedef std::vector<byte> ValueType;
         // DATA
@@ -453,7 +447,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual StringValue* clone_() const;
+        virtual StringValue* clone_() const;
 
     }; // class StringValue
 
@@ -502,7 +496,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual AsciiValue* clone_() const;
+        virtual AsciiValue* clone_() const;
 
     }; // class AsciiValue
 
@@ -529,6 +523,7 @@ namespace Exiv2 {
             const char* name_;                      //!< Name of the charset
             const char* code_;                      //!< Code of the charset
         }; // struct CharsetTable
+
         //! Charset information lookup functions. Implemented as a static class.
         class EXIV2API CharsetInfo {
             //! Prevent construction: not implemented.
@@ -626,7 +621,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual CommentValue* clone_() const;
+        virtual CommentValue* clone_() const;
 
     public:
         // DATA
@@ -793,7 +788,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual XmpTextValue* clone_() const;
+        virtual XmpTextValue* clone_() const;
 
     public:
         // DATA
@@ -861,12 +856,8 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual XmpArrayValue* clone_() const;
+        virtual XmpArrayValue* clone_() const;
 
-    public:
-        //! Type used to store XMP array elements.
-        typedef std::vector<std::string> ValueType;
-        // DATA
         std::vector<std::string> value_;        //!< Stores the string values.
 
     }; // class XmpArrayValue
@@ -875,31 +866,31 @@ namespace Exiv2 {
       @brief %LangAltValueComparator
 
       #1058
-	  https://www.adobe.com/content/dam/Adobe/en/devnet/xmp/pdfs/XMPSpecificationPart1.pdf
-	  XMP spec chapter B.4 (page 42) the xml:lang qualifier is to be compared case insensitive.
+      https://www.adobe.com/content/dam/Adobe/en/devnet/xmp/pdfs/XMPSpecificationPart1.pdf
+      XMP spec chapter B.4 (page 42) the xml:lang qualifier is to be compared case insensitive.
       */
-	struct LangAltValueComparator {
-		//! LangAltValueComparator comparison case insensitive function
-		bool operator() (const std::string& str1, const std::string& str2) const
-		{
-    		int result = str1.size() < str2.size() ?  1
-    		           : str1.size() > str2.size() ? -1
-    		           : 0
-    		           ;
-    		std::string::const_iterator c1 = str1.begin();
-    		std::string::const_iterator c2 = str2.begin();
-    		if (  result==0 ) for (
-    		    ; result==0 && c1 != str1.end()
-    		    ; ++c1, ++c2
-    		    ) {
-        		result = tolower(*c1) < tolower(*c2) ?  1
-        		       : tolower(*c1) > tolower(*c2) ? -1
-        		       : 0
-        		       ;
-    		}
-    		return result < 0 ;
-    	}
-	};
+    struct LangAltValueComparator {
+        //! LangAltValueComparator comparison case insensitive function
+        bool operator() (const std::string& str1, const std::string& str2) const
+        {
+            int result = str1.size() < str2.size() ?  1
+                       : str1.size() > str2.size() ? -1
+                       : 0
+                       ;
+            std::string::const_iterator c1 = str1.begin();
+            std::string::const_iterator c2 = str2.begin();
+            if (  result==0 ) for (
+                ; result==0 && c1 != str1.end()
+                ; ++c1, ++c2
+                ) {
+                result = tolower(*c1) < tolower(*c2) ?  1
+                       : tolower(*c1) > tolower(*c2) ? -1
+                       : 0
+                       ;
+            }
+            return result < 0 ;
+        }
+    };
 
     /*!
       @brief %Value type for XMP language alternative properties.
@@ -975,7 +966,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual LangAltValue* clone_() const;
+        virtual LangAltValue* clone_() const;
 
     public:
         //! Type used to store language alternative arrays.
@@ -1081,7 +1072,7 @@ namespace Exiv2 {
 
     private:
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual DateValue* clone_() const;
+        virtual DateValue* clone_() const;
 
         // DATA
         Date date_;
@@ -1199,7 +1190,7 @@ namespace Exiv2 {
           @param format Format string for sscanf().
           @return 0 if successful, else 1.
          */
-        EXV_DLLLOCAL int scanTime3(const char* buf, const char* format);
+        int scanTime3(const char* buf, const char* format);
         /*!
           @brief Set time from \em buf if it conforms to \em format
                  (6 input items).
@@ -1210,13 +1201,13 @@ namespace Exiv2 {
           @param format Format string for sscanf().
           @return 0 if successful, else 1.
          */
-        EXV_DLLLOCAL int scanTime6(const char* buf, const char* format);
+        int scanTime6(const char* buf, const char* format);
         //@}
 
         //! @name Accessors
         //@{
         //! Internal virtual copy constructor.
-        EXV_DLLLOCAL virtual TimeValue* clone_() const;
+        virtual TimeValue* clone_() const;
         //@}
 
         // DATA
@@ -1658,11 +1649,13 @@ namespace Exiv2 {
         ok_ = true;
         return static_cast<long>(value_[n]);
     }
+// #55 crash when value_[n].first == LONG_MIN
+#define LARGE_INT 1000000
     // Specialization for rational
     template<>
     inline long ValueType<Rational>::toLong(long n) const
     {
-        ok_ = (value_[n].second != 0);
+        ok_ = (value_[n].second != 0 && INT_MIN < value_[n].first && value_[n].first < INT_MAX );
         if (!ok_) return 0;
         return value_[n].first / value_[n].second;
     }
@@ -1670,7 +1663,7 @@ namespace Exiv2 {
     template<>
     inline long ValueType<URational>::toLong(long n) const
     {
-        ok_ = (value_[n].second != 0);
+        ok_ = (value_[n].second != 0 && value_[n].first < LARGE_INT);
         if (!ok_) return 0;
         return value_[n].first / value_[n].second;
     }

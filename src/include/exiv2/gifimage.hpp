@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +21,6 @@
   @file    gifimage.hpp
   @brief   GIF image, implemented using the following references:
            <a href="http://www.w3.org/Graphics/GIF/spec-gif89a.txt">GIF89 specification</a> by W3C<br>
-  @version $Rev: 3091 $
   @author  Marco Piovanelli, Ovolab (marco)
            <a href="mailto:marco.piovanelli@pobox.com">marco.piovanelli@pobox.com</a>
   @date    26-Feb-2007, marco: created
@@ -80,7 +78,7 @@ namespace Exiv2 {
               instance after it is passed to this method.  Use the Image::io()
               method to get a temporary reference.
          */
-        GifImage(BasicIo::AutoPtr io);
+        explicit GifImage(BasicIo::AutoPtr io);
         //@}
 
         //! @name Manipulators
@@ -88,22 +86,22 @@ namespace Exiv2 {
         void readMetadata();
         /*!
           @brief Todo: Write metadata back to the image. This method is not
-              yet(?) implemented. Calling it will throw an Error(31).
+              yet(?) implemented. Calling it will throw an Error(kerWritingImageFormatUnsupported).
          */
         void writeMetadata();
         /*!
           @brief Todo: Not supported yet(?). Calling this function will throw
-              an instance of Error(32).
+              an instance of Error(kerInvalidSettingForImage).
          */
         void setExifData(const ExifData& exifData);
         /*!
           @brief Todo: Not supported yet(?). Calling this function will throw
-              an instance of Error(32).
+              an instance of Error(kerInvalidSettingForImage).
          */
         void setIptcData(const IptcData& iptcData);
         /*!
           @brief Not supported. Calling this function will throw an instance
-              of Error(32).
+              of Error(kerInvalidSettingForImage).
          */
         void setComment(const std::string& comment);
         //@}

@@ -1,7 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
- *
+ * Copyright (C) 2004-2018 Exiv2 authors
  * This program is part of the Exiv2 distribution.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,7 +20,6 @@
 /*!
   @file    exiv2app.hpp
   @brief   Defines class Params, used for the command line handling of exiv2
-  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    08-Dec-03, ahu: created
@@ -35,6 +33,7 @@
 
 #include "utils.hpp"
 #include "types.hpp"
+#include "getopt.hpp"
 
 // + standard includes
 #include <string>
@@ -42,17 +41,13 @@
 #include <set>
 #include <iostream>
 
-#ifdef EXV_HAVE_REGEX
-#include <regex.h>
-#endif
-
-#ifdef EXV_HAVE_STDINT_H
+#ifdef EXV_HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
 // stdin handler includes
 #ifndef  _MSC_VER
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdio.h>
 #include <string.h>
 #if defined(__CYGWIN__) || defined(__MINGW__)
@@ -301,6 +296,9 @@ private:
     //! Prevent copy-construction: not implemented.
     Params(const Params& rhs);
 
+    //! Destructor, frees any allocated regexes in greps_
+    ~Params();
+
     //! @name Helpers
     //@{
     int setLogLevel(const std::string& optarg);
@@ -346,7 +344,7 @@ public:
     void version(bool verbose =false, std::ostream& os =std::cout) const;
 
     //! Print target_
-    static std::string printTarget(std::string before,int target,bool bPrint=false,std::ostream& os=std::cout);
+    static std::string printTarget(const std::string& before,int target,bool bPrint=false,std::ostream& os=std::cout);
 
     //! getStdin binary data read from stdin to DataBuf
     /*
