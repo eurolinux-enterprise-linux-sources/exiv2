@@ -2,7 +2,7 @@
 Summary: Exif and Iptc metadata manipulation library
 Name:	 exiv2
 Version: 0.23
-Release: 4%{?dist}
+Release: 6%{?dist}
 
 License: GPLv2+
 Group:	 Applications/Multimedia
@@ -115,6 +115,12 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 0.23-6
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 0.23-5
+- Mass rebuild 2013-12-27
+
 * Wed Feb 13 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.23-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
 
