@@ -1,6 +1,6 @@
 # ************************************************************* -*- Makefile -*-
 #
-# Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+# Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
 #
 # This Makefile is part of the Exiv2 distribution.
 #
@@ -31,13 +31,13 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # File:      Makefile
-# Version:   $Rev: 2714 $
+# Version:   $Rev: 4742 $
 # Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
 # History:   28-May-05, ahu: created
 #
 # Description:
 #  Simple Makefile to create html documentation from templates. Requires
-#  some special tools (awk, python, xsltproc) but really only needs to 
+#  some special tools (awk, python, xsltproc) but really only needs to
 #  be used to update the documentation after changing Exiv2 tags in the
 #  source code.
 #
@@ -54,6 +54,8 @@ TABLES = Exif \
          CanonFi \
          CanonPa \
          CanonPr \
+         Casio \
+         Casio2 \
          Fujifilm \
          Minolta \
          MinoltaCsNew \
@@ -112,6 +114,8 @@ TABLES = Exif \
          Sony1MltCsA100
 
 SCHEMA = xmp_dc \
+         xmp_dwc \
+         xmp_dcterms \
          xmp_xmp \
          xmp_xmpRights \
          xmp_xmpMM \
@@ -120,24 +124,30 @@ SCHEMA = xmp_dc \
          xmp_xmpDM \
          xmp_pdf \
          xmp_photoshop \
+         xmp_lr \
          xmp_crs \
+         xmp_crss \
          xmp_tiff \
          xmp_exif \
+         xmp_exifEX \
          xmp_aux \
          xmp_iptc \
          xmp_MicrosoftPhoto \
+         xmp_acdsee \
          xmp_digiKam \
          xmp_kipi \
          xmp_iptcExt \
          xmp_plus \
          xmp_mediapro \
          xmp_expressionmedia \
+         xmp_GPano \
          xmp_MP \
          xmp_MPRI \
          xmp_MPReg \
-         xmp_mwg-rs
+         xmp_mwg-rs \
+         xmp_mwg-kw
 
-TAGLIST = ../../src/taglist
+TAGLIST = ../../bin/taglist
 
 # **********************************************************************
 # ======================================================================
@@ -156,7 +166,7 @@ all: tags
 tags: $(TABLES) Iptc $(SCHEMA)
 	@./gen.py *.html.in
 
-$(TABLES): $(TAGLIST)
+$(TABLES):
 	@echo Generating $@ table...
 	@$(TAGLIST) $@ | sed -e"s/</\&lt;/g" -e"s/>/\&gt;/g" | awk -f tags.awk > $@.xml
 	@xsltproc tags.xsl $@.xml > $@.tmp
@@ -164,16 +174,16 @@ $(TABLES): $(TAGLIST)
 	@touch $@
 	@rm -f $@.tmp
 
-Iptc: $(TAGLIST)
+Iptc:
 	@echo Generating $@ table...
-	@$(TAGLIST) $@ | sed -e"s/</\&lt;/g" -e"s/>/\&gt;/g" -e"s/±/\&#177;/g" \
+	@$(TAGLIST) $@ | sed -e"s/</\&lt;/g" -e"s/>/\&gt;/g" -e"s/ï¿½/\&#177;/g" \
 	               | awk -f iptc.awk > $@.xml
 	@xsltproc iptc.xsl $@.xml > $@.tmp
 	@sed "s/report1/$@/g" $@.tmp > __$@__
 	@touch $@
 	@rm -f $@.tmp
 
-$(SCHEMA): $(TAGLIST)
+$(SCHEMA):
 	@echo Generating $@ table...
 	@echo $@ | sed "s/xmp_//" | xargs $(TAGLIST) | sed -e"s/</\&lt;/g" -e"s/>/\&gt;/g" | awk -f xmp.awk > $@.xml
 	@xsltproc xmp.xsl $@.xml > $@.tmp
@@ -181,7 +191,7 @@ $(SCHEMA): $(TAGLIST)
 	@touch $@
 	@rm -f $@.tmp
 
-$(TAGLIST): 
+$(TAGLIST):
 	$(error File $(TAGLIST) does not exist. Did you build the library and programs in the src/ directory?)
 
 mostlyclean:

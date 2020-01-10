@@ -6,12 +6,12 @@
 
   RCS information
    $Name:  $
-   $Revision: 2286 $
+   $Revision: 4544 $
  */
 
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: utiltest.cpp 2286 2010-06-27 10:04:39Z ahuggel $");
+EXIV2_RCSID("@(#) $Id: utiltest.cpp 4544 2016-09-22 22:56:31Z robinwmills $");
 
 // *****************************************************************************
 // included header files

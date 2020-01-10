@@ -1,6 +1,6 @@
 # ************************************************************* -*- Makefile -*-
 #
-# Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+# Copyright (C) 2004-2015 Andreas Huggel <ahuggel@gmx.net>
 #
 # This Makefile is part of the Exiv2 distribution.
 #
@@ -31,7 +31,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # File:      Makefile
-# Version:   $Rev: 2681 $
+# Version:   $Rev: 4544 $
 # Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
 # History:   10-Dec-03, ahu: created
 #
@@ -59,15 +59,17 @@ include $(top_srcdir)/config/config.mk
 # Source files
 
 # Add standalone C++ header files to this list
-CCHDR =  exiv2.hpp             \
-         exv_conf.h            \
-         exv_msvc.h            \
+CCHDR =  exiv2.hpp         \
+         config.h          \
+         exv_conf.h        \
+         exv_msvc.h        \
          version.hpp
 
 # Add library C++ source files to this list
 CCSRC =  basicio.cpp           \
 	 bmpimage.cpp          \
 	 canonmn.cpp           \
+	 casiomn.cpp           \
 	 convert.cpp           \
 	 cr2image.cpp          \
 	 crwimage.cpp          \
@@ -79,7 +81,9 @@ CCSRC =  basicio.cpp           \
 	 futils.cpp            \
 	 fujimn.cpp            \
 	 gifimage.cpp          \
+	 http.cpp              \
 	 image.cpp             \
+	 ini.cpp               \
 	 iptc.cpp              \
 	 jp2image.cpp          \
 	 jpgimage.cpp          \
@@ -91,19 +95,22 @@ CCSRC =  basicio.cpp           \
 	 olympusmn.cpp         \
 	 orfimage.cpp          \
 	 panasonicmn.cpp       \
+	 pentaxmn.cpp          \
 	 pgfimage.cpp
 ifdef HAVE_LIBZ
-CCSRC += pngimage.cpp          \
+CCSRC += pngimage.cpp      \
 	 pngchunk.cpp
 endif
-CCSRC += preview.cpp           \
+CCSRC += preview.cpp       \
 	 properties.cpp        \
 	 psdimage.cpp          \
 	 rafimage.cpp          \
 	 rw2image.cpp          \
-	 samsungmn.cpp         \
-	 sigmamn.cpp           \
-	 pentaxmn.cpp          \
+	 samsungmn.cpp
+ifdef USE_SSH
+CCSRC += ssh.cpp
+endif
+CCSRC += sigmamn.cpp       \
 	 sonymn.cpp            \
 	 tags.cpp              \
 	 tgaimage.cpp          \
@@ -113,30 +120,30 @@ CCSRC += preview.cpp           \
 	 types.cpp             \
 	 value.cpp             \
 	 version.cpp           \
+	 webpimage.cpp         \
 	 xmp.cpp               \
 	 xmpsidecar.cpp
+ifdef ENABLE_VIDEO
+CCSRC += asfvideo.cpp      \
+	 matroskavideo.cpp     \
+	 quicktimevideo.cpp    \
+	 riffvideo.cpp         \
+	 utilsvideo.cpp
+endif
 
 # Add library C source files to this list
+EXIVCSRC  =
 ifndef HAVE_TIMEGM
 CSRC =   localtime.c
 endif
 
-# Add source files of simple applications to this list
-# Todo: How can we still support crwedit.cpp, crwparse.cpp
-BINSRC = taglist.cpp
-
 # Source files for the Exiv2 application
 EXIV2MAIN = exiv2.cpp
-EXIV2SRC  = actions.cpp       \
-	    utils.cpp
-# C source files for the Exiv2 application
-ifndef HAVE_TIMEGM
-EXIVCSRC  = localtime.c
-endif
+EXIV2SRC  = actions.cpp \
+            utils.cpp
 
-# Source files for the metacopy sample application
-MCMAIN = metacopy.cpp
-MCSRC  = utils.cpp
+# C source files for the Exiv2 application
+EXIVCSRC  =
 
 # ******************************************************************************
 # Library
@@ -144,49 +151,41 @@ LIBRARY = libexiv2.la
 
 # ******************************************************************************
 # Initialisations
-SHELL = /bin/sh
+SHELL = /bin/bash
 
 .SUFFIXES:
 .SUFFIXES: .c .cpp .o .so
 
 .PRECIOUS: %.cpp
 
-CPPFLAGS += $(XMPSDK_CPPFLAGS)
-LDFLAGS += $(EXPAT_LDFLAGS) $(XMPSDK_LDFLAGS)
-LIBS += $(EXPAT_LIBS) $(XMPSDK_LIBS)
+CPPFLAGS += $(SSH_CPPFLAGS) $(CURL_CPPFLAGS) $(XMPSDK_CPPFLAGS)
+LDFLAGS  += $(SSH_LDFLAGS) $(CURL_LDFLAGS) $(EXPAT_LDFLAGS) $(XMPSDK_LDFLAGS)
+LIBS     += $(SSH_LIBS) $(CURL_LIBS) $(EXPAT_LIBS) $(XMPSDK_LIBS)
 
 # Generic variables
 CCHDR := $(CCHDR) $(CCSRC:.cpp=.hpp)
-CCOBJ = $(CCSRC:.cpp=.o)
+CCOBJ  = $(CCSRC:.cpp=.o)
 CCLOBJ = $(CCSRC:.cpp=.lo)
 
-COBJ = $(CSRC:.c=.o)
-CLOBJ = $(CSRC:.c=.lo)
+COBJ   = $(CSRC:.c=.o)
+CLOBJ  = $(CSRC:.c=.lo)
 
-SRC = $(CCSRC) $(CSRC)
-HDR = $(CCHDR)
-OBJ = $(CCOBJ) $(COBJ)
-LOBJ = $(CCLOBJ) $(CLOBJ)
+SRC    = $(CCSRC) $(CSRC)
+HDR    = $(CCHDR) rwlock.hpp
+OBJ    = $(CCOBJ) $(COBJ)
+LOBJ   = $(CCLOBJ) $(CLOBJ)
 
-BINOBJ = $(BINSRC:.cpp=.o)
-BINARY = $(BINSRC:.cpp=)
-EXECUTABLE = $(BINSRC:.cpp=$(EXEEXT))
-
-EXIV2OBJ = $(EXIV2MAIN:.cpp=.o) $(EXIV2SRC:.cpp=.o)
+EXIV2OBJ  = $(EXIV2MAIN:.cpp=.o) $(EXIV2SRC:.cpp=.o)
 EXIV2COBJ = $(EXIVCSRC:.c=.o)
-EXIV2BIN = $(EXIV2MAIN:.cpp=)
-EXIV2EXE = $(EXIV2MAIN:.cpp=$(EXEEXT))
-
-MCOBJ = $(MCMAIN:.cpp=.o) $(MCSRC:.cpp=.o)
-MCBIN = $(MCMAIN:.cpp=)
-MCEXE = $(MCMAIN:.cpp=$(EXEEXT))
+EXIV2EXE  = $(EXIV2MAIN:.cpp=$(EXEEXT))
 
 ifdef DEP_TRACKING
-DEP = $(CCSRC:%.cpp=$(DEPDIR)/%.d) $(CSRC:%.c=$(DEPDIR)/%.d) \
-      $(BINSRC:%.cpp=$(DEPDIR)/%.d) \
-      $(EXIV2MAIN:%.cpp=$(DEPDIR)/%.d) $(EXIV2SRC:%.cpp=$(DEPDIR)/%.d) \
-      $(EXIVCSRC:%.c=$(DEPDIR)/%.d) $(MCMAIN:%.cpp=$(DEPDIR)/%.d) \
-      $(MCSRC:%.cpp=$(DEPDIR)/%.d) $(DEPDIR)/path-test.d
+DEP = $(CCSRC:%.cpp=$(DEPDIR)/%.d)      \
+      $(CSRC:%.c=$(DEPDIR)/%.d)         \
+      $(BINSRC:%.cpp=$(DEPDIR)/%.d)     \
+      $(EXIV2MAIN:%.cpp=$(DEPDIR)/%.d)  \
+      $(EXIV2SRC:%.cpp=$(DEPDIR)/%.d)   \
+      $(EXIVCSRC:%.c=$(DEPDIR)/%.d)
 
 endif
 
@@ -202,7 +201,7 @@ $(COBJ): %.o: %.c
 	@$(MAKEDEPEND)
 	@$(POSTDEPEND)
 
-$(sort $(BINOBJ) $(EXIV2OBJ) $(MCOBJ) path-test.o): %.o: %.cpp
+$(EXIV2OBJ): %.o: %.cpp
 	$(COMPILE.cc) -o $@ $<
 	@$(MAKEDEPEND)
 	@$(POSTDEPEND)
@@ -214,7 +213,7 @@ $(sort $(BINOBJ) $(EXIV2OBJ) $(MCOBJ) path-test.o): %.o: %.cpp
 
 %.ii: %.cpp
 	set -e; \
-	$(CXXCPP) $(CPPFLAGS) -DEXV_BUILDING_LIB=1 $< | sed '/^[ 	]*$$/d' > $@
+	$(CXXCPP) $(CPPFLAGS) -DEXV_BUILDING_LIB=1 $< | LC_ALL=C sed '/^[ 	]*$$/d' > $@
 
 # ******************************************************************************
 # Targets
@@ -228,40 +227,46 @@ ifdef DEP_TRACKING
 -include $(DEP)
 endif
 
-actions.cpp basicio.cpp exif.cpp exiv2.cpp futils.cpp image.cpp jpgimage.cpp utils.cpp: exv_conf.h
+# Be sure to rewrite exv_conf.h and svn_version.h before compiling anything
+$(SRC): ../include/exiv2/exv_conf.h svn_version.h
 
-exv_conf.h: $(top_srcdir)/config/config.h
-	sed 's/#define \([A-Z]\)/#define EXV_\1/; s/#undef \([A-Z]\)/#undef EXV_\1/' < $< > $@
+../include/exiv2/exv_conf.h: $(top_srcdir)/config/config.h
+	LC_ALL=C sed 's/#define \([A-Z]\)/#define EXV_\1/; s/#undef \([A-Z]\)/#undef EXV_\1/' < $< > $@
+
+# svn_version.h is only rewritten when the svn info | grep Revision has changed
+svn_version.h:
+	./svn_version.sh
+
+version.hpp : svn_version.h
 
 $(LIBTOOL): $(LIBTOOL_DEPS)
 	$(SHELL) $(top_srcdir)/config.status --recheck
 
-bin: lib $(BINARY) $(EXIV2BIN) $(MCBIN) path-test
+bin: lib $(EXIV2EXE)
 
 lib: $(OBJ)
 	$(LIBTOOL) --mode=link $(LINK.cc) -o $(LIBRARY) $(LOBJ) -rpath $(libdir) -version-info $(EXIV2_LTVERSION) $(LIBS)
 	@touch lib
 
-path-test: path-test.o utils.o
-	$(CXX) $(CXXFLAGS) path-test.o utils.o -o $@
-
 $(BINARY): %: %.o lib
 	@$(LIBTOOL) --mode=link $(LINK.cc) -o $@ $(LIBRARY) $@.o -rpath $(libdir)
 
-$(EXIV2BIN): lib $(EXIV2OBJ) $(EXIV2COBJ)
-	@$(LIBTOOL) --mode=link $(LINK.cc) -o $@ $(LIBRARY) $(EXIV2OBJ) $(EXIV2COBJ) -rpath $(libdir)
-
-$(MCBIN): lib $(MCOBJ)
-	@$(LIBTOOL) --mode=link $(LINK.cc) -o $@ $(LIBRARY) $(MCOBJ) -rpath $(libdir)
+$(EXIV2EXE): lib $(EXIV2OBJ) $(EXIV2COBJ)
+	mkdir -pv ../bin 2>&1 > /dev/null
+	@$(LIBTOOL) --mode=link $(LINK.cc) -o ../bin/$@ $(LIBRARY) $(EXIV2OBJ) $(EXIV2COBJ) -rpath $(libdir)
 
 install-header:
 	$(INSTALL_DIRS) $(DESTDIR)$(incdir)
 	@list='$(HDR)'; for p in $$list; do \
-	    if test -f $$p; then \
-	        echo "$(INSTALL_DATA) $$p $(DESTDIR)$(incdir)/$$p"; \
-	        $(INSTALL_DATA) $$p $(DESTDIR)$(incdir)/$$p; \
+	    if test -f ../include/exiv2/$$p; then \
+	        echo "$(INSTALL_DATA) ../include/exiv2/$$p $(DESTDIR)$(incdir)/$$p"; \
+	              $(INSTALL_DATA) ../include/exiv2/$$p $(DESTDIR)$(incdir)/$$p; \
 	    else :; fi; \
-	done
+	done ; \
+	if test -e svn_version.h; then \
+	    echo "$(INSTALL_DATA) svn_version.h $(DESTDIR)$(incdir)/svn_version.h"; \
+	          $(INSTALL_DATA) svn_version.h $(DESTDIR)$(incdir)/svn_version.h; \
+    fi
 
 install-lib: lib install-header
 	$(INSTALL_DIRS) $(DESTDIR)$(libdir)
@@ -270,18 +275,20 @@ install-lib: lib install-header
 	$(INSTALL_DIRS) $(DESTDIR)$(libdir)/pkgconfig
 	$(INSTALL_DATA) $(top_srcdir)/config/exiv2.pc $(DESTDIR)$(libdir)/pkgconfig/exiv2.pc
 
-install: $(EXIV2BIN) install-lib
+install: $(EXIV2EXE) install-lib
 	$(INSTALL_DIRS) $(DESTDIR)$(bindir)
-	@$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) $(EXIV2EXE) $(DESTDIR)$(bindir)/$(EXIV2EXE)
+	@$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) ../bin/$(EXIV2EXE) $(DESTDIR)$(bindir)/$(EXIV2EXE)
 	$(INSTALL_DIRS) $(DESTDIR)$(mandir)
 	$(INSTALL_DIRS) $(DESTDIR)$(man1dir)
 	$(INSTALL_DATA) exiv2.1 $(DESTDIR)$(man1dir)/exiv2.1
+	$(INSTALL_DATA) $(top_srcdir)/samples/exiv2samples.1 $(DESTDIR)$(man1dir)/exiv2samples.1
 
 uninstall-header:
 	@list='$(HDR)'; for p in $$list; do \
 	    echo "$(RM) $(DESTDIR)$(incdir)/$$p"; \
 	    $(RM) $(DESTDIR)$(incdir)/$$p; \
 	done
+	$(RM) $(DESTDIR)$(incdir)/svn_version.h
 	-rmdir $(DESTDIR)$(incdir)
 
 uninstall-lib: uninstall-header
@@ -291,7 +298,7 @@ uninstall-lib: uninstall-header
 	-rmdir $(DESTDIR)$(libdir)
 
 uninstall: uninstall-lib
-	$(RM) $(DESTDIR)$(man1dir)/exiv2.1
+	$(RM) $(DESTDIR)$(man1dir)/exiv2.1 $(DESTDIR)$(man1dir)/exiv2samples.1
 	-rmdir $(DESTDIR)$(man1dir)
 	-rmdir $(DESTDIR)$(mandir)
 	@$(LIBTOOL) --mode=uninstall $(RM) $(DESTDIR)$(bindir)/$(EXIV2EXE)
@@ -303,25 +310,23 @@ ctags:
 #	ctags-exuberant --extra=+q *
 
 check:
-	@echo "No checks available for this library."
+	@echo "No checks available for this library - or $ make tests"
 
 mostlyclean:
 	$(RM) core
 	$(RM) $(CCSRC:.cpp=.ii)
 	$(RM) lib
-	$(RM) path-test.o
-	$(RM) $(CCSRC:%.cpp=.libs/%.d) $(CSRC:%.c=.libs/%.d)
-	@$(LIBTOOL) --mode=clean $(RM) $(LOBJ) $(sort $(BINOBJ) $(EXIV2OBJ) $(EXIV2COBJ) $(MCOBJ))
+	$(RM) -rf $(CCSRC:%.cpp=.libs/%.d) $(CSRC:%.c=.libs/%.d) .libs/*.dSYM
+	@$(LIBTOOL) --mode=clean $(RM) $(LOBJ) $(sort $(EXIV2OBJ) $(EXIV2COBJ))
 
 clean: mostlyclean
 	@$(LIBTOOL) --mode=clean $(RM) $(LIBRARY)
-	@$(LIBTOOL) --mode=clean $(RM) $(EXECUTABLE) $(EXIV2EXE) $(MCEXE)
-	@$(LIBTOOL) --mode=clean $(RM) path-test$(EXEEXT)
+	@$(LIBTOOL) --mode=clean $(RM) $(EXECUTABLE) $(EXIV2EXE)
 
 # Run `make distclean' from the top source directory to also remove
 # files created by configuring the program.
 distclean: clean
-	$(RM) exv_conf.h doxygen.hpp
+	$(RM) doxygen.hpp
 ifdef DEP_TRACKING
 	$(RM) $(DEP)
 	-rmdir $(DEPDIR)
@@ -334,3 +339,6 @@ endif
 maintainer-clean: uninstall distclean
 	-$(RM) -r .deps
 	-$(RM) -r .libs
+
+# That's all Folks!
+##

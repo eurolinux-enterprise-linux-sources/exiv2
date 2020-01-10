@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,18 +20,19 @@
  */
 /*
   File:      canonmn.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4738 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
              David Cannings (dc) <david@edeca.net>
              Andi Clemens (ac) <andi.clemens@gmx.net>
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: canonmn.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: canonmn.cpp 4738 2017-03-16 18:13:12Z robinwmills $")
 
 // *****************************************************************************
 // included header files
 #include "types.hpp"
+#include "makernote_int.hpp"
 #include "canonmn_int.hpp"
 #include "tags_int.hpp"
 #include "value.hpp"
@@ -60,125 +61,341 @@ namespace Exiv2 {
     };
 
     //! Special treatment pretty-print function for non-unique lens ids.
+    std::ostream& printCsLensByFocalLengthAndMaxAperture(std::ostream& os,
+                                           const Value& value,
+                                           const ExifData* metadata);
+    //! Special treatment pretty-print function for non-unique lens ids.
     std::ostream& printCsLensByFocalLength(std::ostream& os,
                                            const Value& value,
                                            const ExifData* metadata);
+    //! Special treatment pretty-print function for non-unique lens ids.
+    std::ostream& printCsLensByFocalLengthTC(std::ostream& os,
+                                           const Value& value,
+                                           const ExifData* metadata);
+    //! Special treatment pretty-print function for non-unique lens ids.
+    std::ostream& printCsLensFFFF(std::ostream& os,
+                                  const Value& value,
+                                  const ExifData* metadata);
 
     //! ModelId, tag 0x0010
     extern const TagDetails canonModelId[] = {
-        { 0x1010000, N_("PowerShot A30") },
-        { 0x1040000, N_("PowerShot S300 / Digital IXUS 300 / IXY Digital 300") },
-        { 0x1060000, N_("PowerShot A20") },
-        { 0x1080000, N_("PowerShot A10") },
-        { 0x1090000, N_("PowerShot S110 / Digital IXUS v / IXY Digital 200") },
-        { 0x1100000, N_("PowerShot G2") },
-        { 0x1110000, N_("PowerShot S40") },
-        { 0x1120000, N_("PowerShot S30") },
-        { 0x1130000, N_("PowerShot A40") },
-        { 0x1140000, N_("EOS D30") },
-        { 0x1150000, N_("PowerShot A100") },
-        { 0x1160000, N_("PowerShot S200 / Digital IXUS v2 / IXY Digital 200a") },
-        { 0x1170000, N_("PowerShot A200") },
-        { 0x1180000, N_("PowerShot S330 / Digital IXUS 330 / IXY Digital 300a") },
-        { 0x1190000, N_("PowerShot G3") },
-        { 0x1210000, N_("PowerShot S45") },
-        { 0x1230000, N_("PowerShot SD100 / Digital IXUS II / IXY Digital 30") },
-        { 0x1240000, N_("PowerShot S230 / Digital IXUS v3 / IXY Digital 320") },
-        { 0x1250000, N_("PowerShot A70") },
-        { 0x1260000, N_("PowerShot A60") },
-        { 0x1270000, N_("PowerShot S400 / Digital IXUS 400 / IXY Digital 400") },
-        { 0x1290000, N_("PowerShot G5") },
-        { 0x1300000, N_("PowerShot A300") },
-        { 0x1310000, N_("PowerShot S50") },
-        { 0x1340000, N_("PowerShot A80") },
-        { 0x1350000, N_("PowerShot SD10 / Digital IXUS i / IXY Digital L") },
-        { 0x1360000, N_("PowerShot S1 IS") },
-        { 0x1370000, N_("PowerShot Pro1") },
-        { 0x1380000, N_("PowerShot S70") },
-        { 0x1390000, N_("PowerShot S60") },
-        { 0x1400000, N_("PowerShot G6") },
-        { 0x1410000, N_("PowerShot S500 / Digital IXUS 500 / IXY Digital 500") },
-        { 0x1420000, N_("PowerShot A75") },
-        { 0x1440000, N_("PowerShot SD110 / Digital IXUS IIs / IXY Digital 30a") },
-        { 0x1450000, N_("PowerShot A400") },
-        { 0x1470000, N_("PowerShot A310") },
-        { 0x1490000, N_("PowerShot A85") },
-        { 0x1520000, N_("PowerShot S410 / Digital IXUS 430 / IXY Digital 450") },
-        { 0x1530000, N_("PowerShot A95") },
-        { 0x1540000, N_("PowerShot SD300 / Digital IXUS 40 / IXY Digital 50") },
-        { 0x1550000, N_("PowerShot SD200 / Digital IXUS 30 / IXY Digital 40") },
-        { 0x1560000, N_("PowerShot A520") },
-        { 0x1570000, N_("PowerShot A510") },
-        { 0x1590000, N_("PowerShot SD20 / Digital IXUS i5 / IXY Digital L2") },
-        { 0x1640000, N_("PowerShot S2 IS") },
-        { 0x1650000, N_("PowerShot SD430 / IXUS Wireless / IXY Wireless") },
-        { 0x1660000, N_("PowerShot SD500 / Digital IXUS 700 / IXY Digital 600") },
-        { 0x1668000, N_("EOS D60") },
-        { 0x1700000, N_("PowerShot SD30 / Digital IXUS i zoom / IXY Digital L3") },
-        { 0x1740000, N_("PowerShot A430") },
-        { 0x1750000, N_("PowerShot A410") },
-        { 0x1760000, N_("PowerShot S80") },
-        { 0x1780000, N_("PowerShot A620") },
-        { 0x1790000, N_("PowerShot A610") },
-        { 0x1800000, N_("PowerShot SD630 / Digital IXUS 65 / IXY Digital 80") },
-        { 0x1810000, N_("PowerShot SD450 / Digital IXUS 55 / IXY Digital 60") },
-        { 0x1820000, N_("PowerShot TX1") },
-        { 0x1870000, N_("PowerShot SD400 / Digital IXUS 50 / IXY Digital 55") },
-        { 0x1880000, N_("PowerShot A420") },
-        { 0x1890000, N_("PowerShot SD900 / Digital IXUS 900 Ti / IXY Digital 1000") },
-        { 0x1900000, N_("PowerShot SD550 / Digital IXUS 750 / IXY Digital 700") },
-        { 0x1920000, N_("PowerShot A700") },
-        { 0x1940000, N_("PowerShot SD700 IS / Digital IXUS 800 IS / IXY Digital 800 IS") },
-        { 0x1950000, N_("PowerShot S3 IS") },
-        { 0x1960000, N_("PowerShot A540") },
-        { 0x1970000, N_("PowerShot SD600 / Digital IXUS 60 / IXY Digital 70") },
-        { 0x1980000, N_("PowerShot G7") },
-        { 0x1990000, N_("PowerShot A530") },
-        { 0x2000000, N_("PowerShot SD800 IS / Digital IXUS 850 IS / IXY Digital 900 IS") },
-        { 0x2010000, N_("PowerShot SD40 / Digital IXUS i7 / IXY Digital L4") },
-        { 0x2020000, N_("PowerShot A710 IS") },
-        { 0x2030000, N_("PowerShot A640") },
-        { 0x2040000, N_("PowerShot A630") },
-        { 0x2090000, N_("PowerShot S5 IS") },
-        { 0x2100000, N_("PowerShot A460") },
-        { 0x2120000, N_("PowerShot SD850 IS / Digital IXUS 950 IS") },
-        { 0x2130000, N_("PowerShot A570 IS") },
-        { 0x2140000, N_("PowerShot A560") },
-        { 0x2150000, N_("PowerShot SD750 / Digital IXUS 75 / IXY Digital 90") },
-        { 0x2160000, N_("PowerShot SD1000 / Digital IXUS 70 / IXY Digital 10") },
-        { 0x2180000, N_("PowerShot A550") },
-        { 0x2190000, N_("PowerShot A450") },
-        { 0x3010000, N_("PowerShot Pro90 IS") },
-        { 0x4040000, N_("PowerShot G1") },
-        { 0x6040000, N_("PowerShot S100 / Digital IXUS / IXY Digital") },
-        { 0x4007d675, N_("HV10") },
-        { 0x4007d777, N_("iVIS DC50") },
-        { 0x4007d778, N_("iVIS HV20") },
-        { 0x80000001, N_("EOS-1D") },
-        { 0x80000167, N_("EOS-1DS") },
-        { 0x80000168, N_("EOS 10D") },
-        { 0x80000169, N_("EOS-1D Mark III") },
-        { 0x80000170, N_("EOS Digital Rebel / 300D / Kiss Digital") },
-        { 0x80000174, N_("EOS-1D Mark II") },
-        { 0x80000175, N_("EOS 20D") },
-        { 0x80000188, N_("EOS-1Ds Mark II") },
-        { 0x80000189, N_("EOS Digital Rebel XT / 350D / Kiss Digital N") },
-        { 0x80000213, N_("EOS 5D") },
-        { 0x80000232, N_("EOS-1D Mark II N") },
-        { 0x80000234, N_("EOS 30D") },
-        { 0x80000236, N_("EOS Digital Rebel XTi / 400D / Kiss Digital X") },
-        { 0x80000250, N_("EOS 7D") },
-        { 0x80000252, N_("EOS Rebel T1i / 500D / Kiss X3") },
-        { 0x80000254, N_("EOS Rebel XS / 1000D / Kiss F") },
-        { 0x80000261, N_("EOS 50D") },
-        { 0x80000270, N_("EOS Rebel T2i / 550D / Kiss X4") },
-        { 0x80000281, N_("EOS-1D Mark IV") },
+        { (long int)0x1010000, "PowerShot A30" },
+        { (long int)0x1040000, "PowerShot S300 / Digital IXUS 300 / IXY Digital 300" },
+        { (long int)0x1060000, "PowerShot A20" },
+        { (long int)0x1080000, "PowerShot A10" },
+        { (long int)0x1090000, "PowerShot S110 / Digital IXUS v / IXY Digital 200" },
+        { (long int)0x1100000, "PowerShot G2" },
+        { (long int)0x1110000, "PowerShot S40" },
+        { (long int)0x1120000, "PowerShot S30" },
+        { (long int)0x1130000, "PowerShot A40" },
+        { (long int)0x1140000, "EOS D30" },
+        { (long int)0x1150000, "PowerShot A100" },
+        { (long int)0x1160000, "PowerShot S200 / Digital IXUS v2 / IXY Digital 200a" },
+        { (long int)0x1170000, "PowerShot A200" },
+        { (long int)0x1180000, "PowerShot S330 / Digital IXUS 330 / IXY Digital 300a" },
+        { (long int)0x1190000, "PowerShot G3" },
+        { (long int)0x1210000, "PowerShot S45" },
+        { (long int)0x1230000, "PowerShot SD100 / Digital IXUS II / IXY Digital 30" },
+        { (long int)0x1240000, "PowerShot S230 / Digital IXUS v3 / IXY Digital 320" },
+        { (long int)0x1250000, "PowerShot A70" },
+        { (long int)0x1260000, "PowerShot A60" },
+        { (long int)0x1270000, "PowerShot S400 / Digital IXUS 400 / IXY Digital 400" },
+        { (long int)0x1290000, "PowerShot G5" },
+        { (long int)0x1300000, "PowerShot A300" },
+        { (long int)0x1310000, "PowerShot S50" },
+        { (long int)0x1340000, "PowerShot A80" },
+        { (long int)0x1350000, "PowerShot SD10 / Digital IXUS i / IXY Digital L" },
+        { (long int)0x1360000, "PowerShot S1 IS" },
+        { (long int)0x1370000, "PowerShot Pro1" },
+        { (long int)0x1380000, "PowerShot S70" },
+        { (long int)0x1390000, "PowerShot S60" },
+        { (long int)0x1400000, "PowerShot G6" },
+        { (long int)0x1410000, "PowerShot S500 / Digital IXUS 500 / IXY Digital 500" },
+        { (long int)0x1420000, "PowerShot A75" },
+        { (long int)0x1440000, "PowerShot SD110 / Digital IXUS IIs / IXY Digital 30a" },
+        { (long int)0x1450000, "PowerShot A400" },
+        { (long int)0x1470000, "PowerShot A310" },
+        { (long int)0x1490000, "PowerShot A85" },
+        { (long int)0x1520000, "PowerShot S410 / Digital IXUS 430 / IXY Digital 450" },
+        { (long int)0x1530000, "PowerShot A95" },
+        { (long int)0x1540000, "PowerShot SD300 / Digital IXUS 40 / IXY Digital 50" },
+        { (long int)0x1550000, "PowerShot SD200 / Digital IXUS 30 / IXY Digital 40" },
+        { (long int)0x1560000, "PowerShot A520" },
+        { (long int)0x1570000, "PowerShot A510" },
+        { (long int)0x1590000, "PowerShot SD20 / Digital IXUS i5 / IXY Digital L2" },
+        { (long int)0x1640000, "PowerShot S2 IS" },
+        { (long int)0x1650000, "PowerShot SD430 / IXUS Wireless / IXY Wireless" },
+        { (long int)0x1660000, "PowerShot SD500 / Digital IXUS 700 / IXY Digital 600" },
+        { (long int)0x1668000, "EOS D60" },
+        { (long int)0x1700000, "PowerShot SD30 / Digital IXUS i zoom / IXY Digital L3" },
+        { (long int)0x1740000, "PowerShot A430" },
+        { (long int)0x1750000, "PowerShot A410" },
+        { (long int)0x1760000, "PowerShot S80" },
+        { (long int)0x1780000, "PowerShot A620" },
+        { (long int)0x1790000, "PowerShot A610" },
+        { (long int)0x1800000, "PowerShot SD630 / Digital IXUS 65 / IXY Digital 80" },
+        { (long int)0x1810000, "PowerShot SD450 / Digital IXUS 55 / IXY Digital 60" },
+        { (long int)0x1820000, "PowerShot TX1" },
+        { (long int)0x1870000, "PowerShot SD400 / Digital IXUS 50 / IXY Digital 55" },
+        { (long int)0x1880000, "PowerShot A420" },
+        { (long int)0x1890000, "PowerShot SD900 / Digital IXUS 900 Ti / IXY Digital 1000" },
+        { (long int)0x1900000, "PowerShot SD550 / Digital IXUS 750 / IXY Digital 700" },
+        { (long int)0x1920000, "PowerShot A700" },
+        { (long int)0x1940000, "PowerShot SD700 IS / Digital IXUS 800 IS / IXY Digital 800 IS" },
+        { (long int)0x1950000, "PowerShot S3 IS" },
+        { (long int)0x1960000, "PowerShot A540" },
+        { (long int)0x1970000, "PowerShot SD600 / Digital IXUS 60 / IXY Digital 70" },
+        { (long int)0x1980000, "PowerShot G7" },
+        { (long int)0x1990000, "PowerShot A530" },
+        { (long int)0x2000000, "PowerShot SD800 IS / Digital IXUS 850 IS / IXY Digital 900 IS" },
+        { (long int)0x2010000, "PowerShot SD40 / Digital IXUS i7 / IXY Digital L4" },
+        { (long int)0x2020000, "PowerShot A710 IS" },
+        { (long int)0x2030000, "PowerShot A640" },
+        { (long int)0x2040000, "PowerShot A630" },
+        { (long int)0x2090000, "PowerShot S5 IS" },
+        { (long int)0x2100000, "PowerShot A460" },
+        { (long int)0x2120000, "PowerShot SD850 IS / Digital IXUS 950 IS" },
+        { (long int)0x2130000, "PowerShot A570 IS" },
+        { (long int)0x2140000, "PowerShot A560" },
+        { (long int)0x2150000, "PowerShot SD750 / Digital IXUS 75 / IXY Digital 90" },
+        { (long int)0x2160000, "PowerShot SD1000 / Digital IXUS 70 / IXY Digital 10" },
+        { (long int)0x2180000, "PowerShot A550" },
+        { (long int)0x2190000, "PowerShot A450" },
+        { (long int)0x2230000, "PowerShot G9" },
+        { (long int)0x2240000, "PowerShot A650 IS" },
+        { (long int)0x2260000, "PowerShot A720 IS" },
+        { (long int)0x2290000, "PowerShot SX100 IS" },
+        { (long int)0x2300000, "PowerShot SD950 IS / Digital IXUS 960 IS / IXY Digital 2000 IS" },
+        { (long int)0x2310000, "PowerShot SD870 IS / Digital IXUS 860 IS / IXY Digital 910 IS" },
+        { (long int)0x2320000, "PowerShot SD890 IS / Digital IXUS 970 IS / IXY Digital 820 IS" },
+        { (long int)0x2360000, "PowerShot SD790 IS / Digital IXUS 90 IS / IXY Digital 95 IS" },
+        { (long int)0x2370000, "PowerShot SD770 IS / Digital IXUS 85 IS / IXY Digital 25 IS" },
+        { (long int)0x2380000, "PowerShot A590 IS" },
+        { (long int)0x2390000, "PowerShot A580" },
+        { (long int)0x2420000, "PowerShot A470" },
+        { (long int)0x2430000, "PowerShot SD1100 IS / Digital IXUS 80 IS / IXY Digital 20 IS" },
+        { (long int)0x2460000, "PowerShot SX1 IS" },
+        { (long int)0x2470000, "PowerShot SX10 IS" },
+        { (long int)0x2480000, "PowerShot A1000 IS" },
+        { (long int)0x2490000, "PowerShot G10" },
+        { (long int)0x2510000, "PowerShot A2000 IS" },
+        { (long int)0x2520000, "PowerShot SX110 IS" },
+        { (long int)0x2530000, "PowerShot SD990 IS / Digital IXUS 980 IS / IXY Digital 3000 IS" },
+        { (long int)0x2540000, "PowerShot SD880 IS / Digital IXUS 870 IS / IXY Digital 920 IS" },
+        { (long int)0x2550000, "PowerShot E1" },
+        { (long int)0x2560000, "PowerShot D10" },
+        { (long int)0x2570000, "PowerShot SD960 IS / Digital IXUS 110 IS / IXY Digital 510 IS" },
+        { (long int)0x2580000, "PowerShot A2100 IS" },
+        { (long int)0x2590000, "PowerShot A480" },
+        { (long int)0x2600000, "PowerShot SX200 IS" },
+        { (long int)0x2610000, "PowerShot SD970 IS / Digital IXUS 990 IS / IXY Digital 830 IS" },
+        { (long int)0x2620000, "PowerShot SD780 IS / Digital IXUS 100 IS / IXY Digital 210 IS" },
+        { (long int)0x2630000, "PowerShot A1100 IS" },
+        { (long int)0x2640000, "PowerShot SD1200 IS / Digital IXUS 95 IS / IXY Digital 110 IS" },
+        { (long int)0x2700000, "PowerShot G11" },
+        { (long int)0x2710000, "PowerShot SX120 IS" },
+        { (long int)0x2720000, "PowerShot S90" },
+        { (long int)0x2750000, "PowerShot SX20 IS" },
+        { (long int)0x2760000, "PowerShot SD980 IS / Digital IXUS 200 IS / IXY Digital 930 IS" },
+        { (long int)0x2770000, "PowerShot SD940 IS / Digital IXUS 120 IS / IXY Digital 220 IS" },
+        { (long int)0x2800000, "PowerShot A495" },
+        { (long int)0x2810000, "PowerShot A490" },
+        { (long int)0x2820000, "PowerShot A3100 IS / A3150 IS" },
+        { (long int)0x2830000, "PowerShot A3000 IS" },
+        { (long int)0x2840000, "PowerShot SD1400 IS / IXUS 130 / IXY 400F" },
+        { (long int)0x2850000, "PowerShot SD1300 IS / IXUS 105 / IXY 200F" },
+        { (long int)0x2860000, "PowerShot SD3500 IS / IXUS 210 / IXY 10S" },
+        { (long int)0x2870000, "PowerShot SX210 IS" },
+        { (long int)0x2880000, "PowerShot SD4000 IS / IXUS 300 HS / IXY 30S" },
+        { (long int)0x2890000, "PowerShot SD4500 IS / IXUS 1000 HS / IXY 50S" },
+        { (long int)0x2920000, "PowerShot G12" },
+        { (long int)0x2930000, "PowerShot SX30 IS" },
+        { (long int)0x2940000, "PowerShot SX130 IS" },
+        { (long int)0x2950000, "PowerShot S95" },
+        { (long int)0x2980000, "PowerShot A3300 IS" },
+        { (long int)0x2990000, "PowerShot A3200 IS" },
+        { (long int)0x3000000, "PowerShot ELPH 500 HS / IXUS 310 HS / IXY 31S" },
+        { (long int)0x3010000, "PowerShot Pro90 IS" },
+        { (long int)0x3010001, "PowerShot A800" },
+        { (long int)0x3020000, "PowerShot ELPH 100 HS / IXUS 115 HS / IXY 210F" },
+        { (long int)0x3030000, "PowerShot SX230 HS" },
+        { (long int)0x3040000, "PowerShot ELPH 300 HS / IXUS 220 HS / IXY 410F" },
+        { (long int)0x3050000, "PowerShot A2200" },
+        { (long int)0x3060000, "PowerShot A1200" },
+        { (long int)0x3070000, "PowerShot SX220 HS" },
+        { (long int)0x3080000, "PowerShot G1 X" },
+        { (long int)0x3090000, "PowerShot SX150 IS" },
+        { (long int)0x3100000, "PowerShot ELPH 510 HS / IXUS 1100 HS / IXY 51S" },
+        { (long int)0x3110000, "PowerShot S100 (new)" },
+        { (long int)0x3130000, "PowerShot SX40 HS" },
+        { (long int)0x3120000, "PowerShot ELPH 310 HS / IXUS 230 HS / IXY 600F" },
+        { (long int)0x3140000, "IXY 32S" },
+        { (long int)0x3160000, "PowerShot A1300" },
+        { (long int)0x3170000, "PowerShot A810" },
+        { (long int)0x3180000, "PowerShot ELPH 320 HS / IXUS 240 HS / IXY 420F" },
+        { (long int)0x3190000, "PowerShot ELPH 110 HS / IXUS 125 HS / IXY 220F" },
+        { (long int)0x3200000, "PowerShot D20" },
+        { (long int)0x3210000, "PowerShot A4000 IS" },
+        { (long int)0x3220000, "PowerShot SX260 HS" },
+        { (long int)0x3230000, "PowerShot SX240 HS" },
+        { (long int)0x3240000, "PowerShot ELPH 530 HS / IXUS 510 HS / IXY 1" },
+        { (long int)0x3250000, "PowerShot ELPH 520 HS / IXUS 500 HS / IXY 3" },
+        { (long int)0x3260000, "PowerShot A3400 IS" },
+        { (long int)0x3270000, "PowerShot A2400 IS" },
+        { (long int)0x3280000, "PowerShot A2300" },
+        { (long int)0x3330000, "PowerShot G15" },
+        { (long int)0x3340000, "PowerShot SX50" },
+        { (long int)0x3350000, "PowerShot SX160 IS" },
+        { (long int)0x3360000, "PowerShot S110 (new)" },
+        { (long int)0x3370000, "PowerShot SX500 IS" },
+        { (long int)0x3380000, "PowerShot N" },
+        { (long int)0x3390000, "IXUS 245 HS / IXY 430F" },
+        { (long int)0x3400000, "PowerShot SX280 HS" },
+        { (long int)0x3410000, "PowerShot SX270 HS" },
+        { (long int)0x3420000, "PowerShot A3500 IS" },
+        { (long int)0x3430000, "PowerShot A2600" },
+        { (long int)0x3450000, "PowerShot A1400" },
+        { (long int)0x3460000, "PowerShot ELPH 130 IS / IXUS 140 / IXY 110F" },
+        { (long int)0x3470000, "PowerShot ELPH 115/120 IS / IXUS 132/135 / IXY 90F/100F" },
+        { (long int)0x3490000, "PowerShot ELPH 330 HS / IXUS 255 HS / IXY 610F" },
+        { (long int)0x3510000, "PowerShot A2500" },
+        { (long int)0x3540000, "PowerShot G16" },
+        { (long int)0x3550000, "PowerShot S120" },
+        { (long int)0x3560000, "PowerShot SX170 IS" },
+        { (long int)0x3580000, "PowerShot SX510 HS" },
+        { (long int)0x3590000, "PowerShot S200 (new)" },
+        { (long int)0x3600000, "IXY 620F" },
+        { (long int)0x3610000, "PowerShot N100" },
+        { (long int)0x3640000, "PowerShot G1 X Mark II" },
+        { (long int)0x3650000, "PowerShot D30" },
+        { (long int)0x3660000, "PowerShot SX700 HS" },
+        { (long int)0x3670000, "PowerShot SX600 HS" },
+        { (long int)0x3680000, "PowerShot ELPH 140 IS / IXUS 150 / IXY 130" },
+        { (long int)0x3690000, "PowerShot ELPH 135 / IXUS 145 / IXY 120" },
+        { (long int)0x3700000, "PowerShot ELPH 340 HS / IXUS 265 HS / IXY 630" },
+        { (long int)0x3710000, "PowerShot ELPH 150 IS / IXUS 155 / IXY 140" },
+        { (long int)0x3740000, "EOS M3" },
+        { (long int)0x3750000, "PowerShot SX60 HS" },
+        { (long int)0x3760000, "PowerShot SX520 HS" },
+        { (long int)0x3770000, "PowerShot SX400 IS" },
+        { (long int)0x3780000, "PowerShot G7 X" },
+        { (long int)0x3790000, "PowerShot N2" },
+        { (long int)0x3800000, "PowerShot SX530 HS" },
+        { (long int)0x3820000, "PowerShot SX710 HS" },
+        { (long int)0x3830000, "PowerShot SX610 HS" },
+        { (long int)0x3840000, "EOS M10" },
+        { (long int)0x3850000, "PowerShot G3 X" },
+        { (long int)0x3860000, "PowerShot ELPH 165 HS / IXUS 165 / IXY 160" },
+        { (long int)0x3870000, "PowerShot ELPH 160 / IXUS 160" },
+        { (long int)0x3880000, "PowerShot ELPH 350 HS / IXUS 275 HS / IXY 640" },
+        { (long int)0x3890000, "PowerShot ELPH 170 IS / IXUS 170" },
+        { (long int)0x3910000, "PowerShot SX410 HS" },
+        { (long int)0x3930000, "PowerShot G9 X" },
+        { (long int)0x3940000, "EOS M5" },
+        { (long int)0x3950000, "PowerShot G5 X" },
+        { (long int)0x3970000, "PowerShot G7 X Mark II" },
+        { (long int)0x3990000, "PowerShot ELPH 360 HS / IXUS 285 HS / IXY 650" },
+        { (long int)0x4010000, "PowerShot SX540 HS" },
+        { (long int)0x4020000, "PowerShot SX420 IS" },
+        { (long int)0x4030000, "PowerShot ELPH 190 IS / IXUS 180 / IXY 190" },
+        { (long int)0x4040000, "PowerShot G1" },
+        { (long int)0x4040001, "IXY 180" },
+        { (long int)0x4050000, "PowerShot SX720 HS" },
+        { (long int)0x4060000, "PowerShot SX620 HS" },
+        { (long int)0x4070000, "EOS M6" },
+        { (long int)0x4100000, "PowerShot G9 X Mark II" },
+        { (long int)0x6040000, "PowerShot S100 / Digital IXUS / IXY Digital" },
+        { (long int)0x4007d673, "DC19/DC21/DC22" },
+        { (long int)0x4007d674, "XH A1" },
+        { (long int)0x4007d675, "HV10" },
+        { (long int)0x4007d676, "MD130/MD140/MD150/MD160/ZR850" },
+        { (long int)0x4007d777, "DC50" },
+        { (long int)0x4007d778, "HV20" },
+        { (long int)0x4007d779, "DC211" },
+        { (long int)0x4007d77a,"HG10" },
+        { (long int)0x4007d77b, "HR10" },
+        { (long int)0x4007d77c, "MD255/ZR950" },
+        { (long int)0x4007d81c, "HF11" },
+        { (long int)0x4007d878, "HV30" },
+        { (long int)0x4007d87c, "XH A1S" },
+        { (long int)0x4007d87e, "DC301/DC310/DC311/DC320/DC330" },
+        { (long int)0x4007d87f, "FS100" },
+        { (long int)0x4007d880, "HF10" },
+        { (long int)0x4007d882, "HG20/HG21" },
+        { (long int)0x4007d925, "HF21" },
+        { (long int)0x4007d926, "HF S11" },
+        { (long int)0x4007d978, "HV40" },
+        { (long int)0x4007d987, "DC410/DC411/DC420" },
+        { (long int)0x4007d988, "FS19/FS20/FS21/FS22/FS200" },
+        { (long int)0x4007d989, "HF20/HF200" },
+        { (long int)0x4007d98a, "HF S10/S100" },
+        { (long int)0x4007da8e, "HF R10/R16/R17/R18/R100/R106" },
+        { (long int)0x4007da8f, "HF M30/M31/M36/M300/M306" },
+        { (long int)0x4007da90, "HF S20/S21/S200" },
+        { (long int)0x4007da92, "FS31/FS36/FS37/FS300/FS305/FS306/FS307" },
+        { (long int)0x4007dda9, "HF G25" },
+        { (long int)0x4007dfb4, "XC10" },
+        { (long int)0x80000001, "EOS-1D" },
+        { (long int)0x80000167, "EOS-1DS" },
+        { (long int)0x80000168, "EOS 10D" },
+        { (long int)0x80000169, "EOS-1D Mark III" },
+        { (long int)0x80000170, "EOS Digital Rebel / 300D / Kiss Digital" },
+        { (long int)0x80000174, "EOS-1D Mark II" },
+        { (long int)0x80000175, "EOS 20D" },
+        { (long int)0x80000176, "EOS Digital Rebel XSi / 450D / Kiss X2" },
+        { (long int)0x80000188, "EOS-1Ds Mark II" },
+        { (long int)0x80000189, "EOS Digital Rebel XT / 350D / Kiss Digital N" },
+        { (long int)0x80000190, "EOS 40D" },
+        { (long int)0x80000213, "EOS 5D" },
+        { (long int)0x80000215, "EOS-1Ds Mark III" },
+        { (long int)0x80000218, "EOS 5D Mark II" },
+        { (long int)0x80000219, "WFT-E1" },
+        { (long int)0x80000232, "EOS-1D Mark II N" },
+        { (long int)0x80000234, "EOS 30D" },
+        { (long int)0x80000236, "EOS Digital Rebel XTi / 400D / Kiss Digital X" },
+        { (long int)0x80000241, "WFT-E2" },
+        { (long int)0x80000246, "WFT-E3" },
+        { (long int)0x80000250, "EOS 7D" },
+        { (long int)0x80000252, "EOS Rebel T1i / 500D / Kiss X3" },
+        { (long int)0x80000254, "EOS Rebel XS / 1000D / Kiss F" },
+        { (long int)0x80000261, "EOS 50D" },
+        { (long int)0x80000269, "EOS-1D X" },
+        { (long int)0x80000270, "EOS Rebel T2i / 550D / Kiss X4" },
+        { (long int)0x80000271, "WFT-E4" },
+        { (long int)0x80000273, "WFT-E5" },
+        { (long int)0x80000281, "EOS-1D Mark IV" },
+        { (long int)0x80000285, "EOS 5D Mark III" },
+        { (long int)0x80000286, "EOS Rebel T3i / 600D / Kiss X5" },
+        { (long int)0x80000287, "EOS 60D" },
+        { (long int)0x80000288, "EOS Rebel T3 / 1100D / Kiss X50" },
+        { (long int)0x80000289, "EOS 7D Mark II" },
+        { (long int)0x80000297, "WFT-E2 II" },
+        { (long int)0x80000298, "WFT-E4 II" },
+        { (long int)0x80000301, "EOS Rebel T4i / 650D / Kiss X6i" },
+        { (long int)0x80000302, "EOS 6D" },
+        { (long int)0x80000324, "EOS-1D C" },
+        { (long int)0x80000325, "EOS 70D" },
+        { (long int)0x80000326, "EOS Rebel T5i / 700D / Kiss X7i" },
+        { (long int)0x80000327, "EOS Rebel T5 / 1200D / Kiss X70" },
+        { (long int)0x80000328, "EOS-1D X MARK II" },
+        { (long int)0x80000331, "EOS M" },
+        { (long int)0x80000350, "EOS 80D" },
+        { (long int)0x80000355, "EOS M2" },
+        { (long int)0x80000346, "EOS Rebel SL1 / 100D / Kiss X7" },
+        { (long int)0x80000347, "EOS Rebel T6s / 760D / 8000D" },
+        { (long int)0x80000349, "EOS 5D Mark IV" },
+        { (long int)0x80000382, "EOS 5DS" },
+        { (long int)0x80000393, "EOS Rebel T6i / 750D / Kiss X8i" },
+        { (long int)0x80000401, "EOS 5DS R" },
+        { (long int)0x80000404, "EOS Rebel T6 / 1300D / Kiss X80" },
+        { (long int)0x80000405, "EOS Rebel T7i / 800D / Kiss X9i" },
+        { (long int)0x80000408, "EOS 77D / 9000D" }
     };
 
     //! SerialNumberFormat, tag 0x0015
     extern const TagDetails canonSerialNumberFormat[] = {
-        {  0x90000000, N_("Format 1") },
-        {  0xa0000000, N_("Format 2") },
+        {  (long int)0x90000000, N_("Format 1") },
+        {  (long int)0xa0000000, N_("Format 2") },
     };
 
     //! SuperMacro, tag 0x001a
@@ -215,9 +432,10 @@ namespace Exiv2 {
         TagInfo(0x0015, "SerialNumberFormat", N_("Serial Number Format"), N_("Serial number format"), canonId, makerTags, unsignedLong, -1, EXV_PRINT_TAG(canonSerialNumberFormat)),
         TagInfo(0x001a, "SuperMacro", N_("Super Macro"), N_("Super macro"), canonId, makerTags, signedShort, -1, EXV_PRINT_TAG(canonSuperMacro)),
         TagInfo(0x0026, "AFInfo", N_("AF Info"), N_("AF info"), canonId, makerTags, unsignedShort, -1, printValue),
+        TagInfo(0x0035, "TimeInfo", N_("Time Info"), N_("Time zone information"), canonId, makerTags, signedLong, -1, printValue),
         TagInfo(0x0083, "OriginalDecisionDataOffset", N_("Original Decision Data Offset"), N_("Original decision data offset"), canonId, makerTags, signedLong, -1, printValue),
         TagInfo(0x00a4, "WhiteBalanceTable", N_("White Balance Table"), N_("White balance table"), canonId, makerTags, unsignedShort, -1, printValue),
-        TagInfo(0x0095, "LensModel", N_("LensModel"), N_("LensModel"), canonId, makerTags, asciiString, -1, printValue),
+        TagInfo(0x0095, "LensModel", N_("Lens Model"), N_("Lens model"), canonId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0096, "InternalSerialNumber", N_("Internal Serial Number"), N_("Internal serial number"), canonId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0097, "DustRemovalData", N_("Dust Removal Data"), N_("Dust removal data"), canonId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0099, "CustomFunctions", N_("Custom Functions"), N_("Custom functions"), canonId, makerTags, unsignedShort, -1, printValue),
@@ -252,7 +470,8 @@ namespace Exiv2 {
         { 3,   N_("Fine")         },
         { 4,   N_("RAW")          },
         { 5,   N_("Superfine")    },
-        { 130, N_("Normal Movie") }
+        { 130, N_("Normal Movie") },
+        { 131, N_("Movie (2)")    }
     };
 
     //! FlashMode, tag 0x0004
@@ -270,68 +489,127 @@ namespace Exiv2 {
 
     //! DriveMode, tag 0x0005
     extern const TagDetails canonCsDriveMode[] = {
-        { 0, N_("Single / timer")             },
-        { 1, N_("Continuous")                 },
-        { 2, N_("Movie")                      },
-        { 3, N_("Continuous, speed priority") },
-        { 4, N_("Continuous, low")            },
-        { 5, N_("Continuous, high")           }
+        {  0, N_("Single / timer")             },
+        {  1, N_("Continuous")                 },
+        {  2, N_("Movie")                      },
+        {  3, N_("Continuous, speed priority") },
+        {  4, N_("Continuous, low")            },
+        {  5, N_("Continuous, high")           },
+        {  6, N_("Silent Single")              },
+        {  9, N_("Single, Silent")             },
+        { 10, N_("Continuous, Silent")         }
     };
 
     //! FocusMode, tag 0x0007
     extern const TagDetails canonCsFocusMode[] = {
-        {  0, N_("One shot AF")  },
-        {  1, N_("AI servo AF")  },
-        {  2, N_("AI focus AF")  },
-        {  3, N_("Manual focus") },
-        {  4, N_("Single")       },
-        {  5, N_("Continuous")   },
-        {  6, N_("Manual focus") },
-        { 16, N_("Pan focus")    },
-        { 16, N_("Pan focus")    }    // To silence compiler warning
+        {   0, N_("One shot AF")      },
+        {   1, N_("AI servo AF")      },
+        {   2, N_("AI focus AF")      },
+        {   3, N_("Manual focus (3)") },
+        {   4, N_("Single")           },
+        {   5, N_("Continuous")       },
+        {   6, N_("Manual focus (6)") },
+        {  16, N_("Pan focus")        },
+        { 256, N_("AF + MF")          },
+        { 512, N_("Movie Snap Focus") },
+        { 519, N_("Movie Servo AF")   },
+        { 519, N_("Movie Servo AF")   }    // To silence compiler warning
     };
 
     //! ImageSize, tag 0x000a
     extern const TagDetails canonCsImageSize[] = {
-        { 0, N_("Large")    },
-        { 1, N_("Medium")   },
-        { 2, N_("Small")    },
-        { 5, N_("Medium 1") },
-        { 6, N_("Medium 2") },
-        { 7, N_("Medium 3") }
+        {   0, N_("Large")             },
+        {   1, N_("Medium")            },
+        {   2, N_("Small")             },
+        {   5, N_("Medium 1")          },
+        {   6, N_("Medium 2")          },
+        {   7, N_("Medium 3")          },
+        {   8, N_("Postcard")          },
+        {   9, N_("Widescreen")        },
+        {  10, N_("Medium Widescreen") },
+        {  14, N_("Small 1")           },
+        {  15, N_("Small 2")           },
+        {  16, N_("Small 3")           },
+        { 128, N_("640x480 Movie")     },
+        { 129, N_("Medium Movie")      },
+        { 130, N_("Small Movie")       },
+        { 137, N_("1280x720 Movie")    },
+        { 142, N_("1920x1080 Movie")   }
     };
 
     //! EasyMode, tag 0x000b
     extern const TagDetails canonCsEasyMode[] = {
-        {  0, N_("Full auto")        },
-        {  1, N_("Manual")           },
-        {  2, N_("Landscape")        },
-        {  3, N_("Fast shutter")     },
-        {  4, N_("Slow shutter")     },
-        {  5, N_("Night Scene")      },
-        {  6, N_("Gray scale")       },
-        {  7, N_("Sepia")            },
-        {  8, N_("Portrait")         },
-        {  9, N_("Sports")           },
-        { 10, N_("Macro / close-up") },
-        { 11, N_("Black & white")    },
-        { 12, N_("Pan focus")        },
-        { 13, N_("Vivid")            },
-        { 14, N_("Neutral")          },
-        { 15, N_("Flash off")        },
-        { 16, N_("Long shutter")     },
-        { 17, N_("Super macro")      },
-        { 18, N_("Foliage")          },
-        { 19, N_("Indoor")           },
-        { 20, N_("Fireworks")        },
-        { 21, N_("Beach")            },
-        { 22, N_("Underwater")       },
-        { 23, N_("Snow")             },
-        { 24, N_("Kids & pets")      },
-        { 25, N_("Night SnapShot")   },
-        { 26, N_("Digital macro")    },
-        { 27, N_("My Colors")        },
-        { 28, N_("Still image")      }
+        {   0, N_("Full auto")              },
+        {   1, N_("Manual")                 },
+        {   2, N_("Landscape")              },
+        {   3, N_("Fast shutter")           },
+        {   4, N_("Slow shutter")           },
+        {   5, N_("Night")                  },
+        {   6, N_("Gray Scale")             },
+        {   7, N_("Sepia")                  },
+        {   8, N_("Portrait")               },
+        {   9, N_("Sports")                 },
+        {  10, N_("Macro")                  },
+        {  11, N_("Black & White")          },
+        {  12, N_("Pan focus")              },
+        {  13, N_("Vivid")                  },
+        {  14, N_("Neutral")                },
+        {  15, N_("Flash Off")              },
+        {  16, N_("Long Shutter")           },
+        {  17, N_("Super Macro")            },
+        {  18, N_("Foliage")                },
+        {  19, N_("Indoor")                 },
+        {  20, N_("Fireworks")              },
+        {  21, N_("Beach")                  },
+        {  22, N_("Underwater")             },
+        {  23, N_("Snow")                   },
+        {  24, N_("Kids & Pets")            },
+        {  25, N_("Night Snapshot")         },
+        {  26, N_("Digital Macro")          },
+        {  27, N_("My Colors")              },
+        {  28, N_("Movie Snap")             },
+        {  29, N_("Super Macro 2")          },
+        {  30, N_("Color Accent")           },
+        {  31, N_("Color Swap")             },
+        {  32, N_("Aquarium")               },
+        {  33, N_("ISO 3200")               },
+        {  34, N_("ISO 6400")               },
+        {  35, N_("Creative Light Effect")  },
+        {  36, N_("Easy")                   },
+        {  37, N_("Quick Shot")             },
+        {  38, N_("Creative Auto")          },
+        {  39, N_("Zoom Blur")              },
+        {  40, N_("Low Light")              },
+        {  41, N_("Nostalgic")              },
+        {  42, N_("Super Vivid")            },
+        {  43, N_("Poster Effect")          },
+        {  44, N_("Face Self-timer")        },
+        {  45, N_("Smile")                  },
+        {  46, N_("Wink Self-timer")        },
+        {  47, N_("Fisheye Effect")         },
+        {  48, N_("Miniature Effect")       },
+        {  49, N_("High-speed Burst")       },
+        {  50, N_("Best Image Selection")   },
+        {  51, N_("High Dynamic Range")     },
+        {  52, N_("Handheld Night Scene")   },
+        {  53, N_("Movie Digest")           },
+        {  54, N_("Live View Control")      },
+        {  55, N_("Discreet")               },
+        {  56, N_("Blur Reduction")         },
+        {  57, N_("Monochrome")             },
+        {  58, N_("Toy Camera Effect")      },
+        {  59, N_("Scene Intelligent Auto") },
+        {  60, N_("High-speed Burst HQ")    },
+        {  61, N_("Smooth Skin")            },
+        {  62, N_("Soft Focus")             },
+        { 257, N_("Spotlight")              },
+        { 258, N_("Night 2")                },
+        { 259, N_("Night+")                 },
+        { 260, N_("Super Night")            },
+        { 261, N_("Sunset")                 },
+        { 263, N_("Night Scene")            },
+        { 264, N_("Surface")                },
+        { 265, N_("Low Light 2")            }
     };
 
     //! DigitalZoom, tag 0x000c
@@ -355,28 +633,44 @@ namespace Exiv2 {
         {     0, N_("n/a")       },
         {    14, N_("Auto High") },
         {    15, N_("Auto")      },
-        {    16,   "50"      },
-        {    17,  "100"      },
-        {    18,  "200"      },
-        {    19,  "400"      },
-        {    20,  "800"      },
-        { 16464,   "80"      },
-        { 16484,  "100"      },
-        { 16584,  "200"      },
-        { 16784,  "400"      },
-        { 17184,  "800"      },
-        { 17984, "1600"      },
-        { 19584, "3200"      }
+        {    16,    "50"         },
+        {    17,   "100"         },
+        {    18,   "200"         },
+        {    19,   "400"         },
+        {    20,   "800"         },
+        { 16464,    "80"         },
+        { 16484,   "100"         },
+        { 16509,   "125"         },
+        { 16544,   "160"         },
+        { 16584,   "200"         },
+        { 16634,   "250"         },
+        { 16704,   "320"         },
+        { 16784,   "400"         },
+        { 16884,   "500"         },
+        { 17024,   "640"         },
+        { 17184,   "800"         },
+        { 17384,  "1000"         },
+        { 17634,  "1250"         },
+        { 17984,  "1600"         },
+        { 18384,  "2000"         },
+        { 18884,  "2500"         },
+        { 19584,  "3200"         },
+        { 20384,  "4000"         },
+        { 21384,  "5000"         },
+        { 22784,  "6400"         },
+        { 24384,  "8000"         },
+        { 26384, "10000"         },
+        { 29184, "12800"         }
     };
 
     //! MeteringMode, tag 0x0011
     extern const TagDetails canonCsMeteringMode[] = {
-        { 0, N_("Default")         },
-        { 1, N_("Spot")            },
-        { 2, N_("Average")         },
-        { 3, N_("Evaluative")      },
-        { 4, N_("Partial")         },
-        { 5, N_("Center weighted") }
+        { 0, N_("Default")                 },
+        { 1, N_("Spot")                    },
+        { 2, N_("Average")                 },
+        { 3, N_("Evaluative")              },
+        { 4, N_("Partial")                 },
+        { 5, N_("Center-weighted average") }
     };
 
     //! FocusType, tag 0x0012
@@ -402,7 +696,8 @@ namespace Exiv2 {
         { 0x3002, N_("Right")                     },
         { 0x3003, N_("Center")                    },
         { 0x3004, N_("Left")                      },
-        { 0x4001, N_("Auto AF point selection")   }
+        { 0x4001, N_("Auto AF point selection")   },
+        { 0x4006, N_("Face Detect")               }
     };
 
     //! ExposureProgram, tag 0x0014
@@ -413,7 +708,8 @@ namespace Exiv2 {
         { 3, N_("Aperture priority (Av)") },
         { 4, N_("Manual (M)")             },
         { 5, N_("A-DEP")                  },
-        { 6, N_("M-DEP")                  }
+        { 6, N_("M-DEP")                  },
+        { 7, N_("Bulb")                   }
     };
 
     //! LensType, tag 0x0016
@@ -421,18 +717,18 @@ namespace Exiv2 {
         {   1, "Canon EF 50mm f/1.8"                                        },
         {   2, "Canon EF 28mm f/2.8"                                        },
         {   3, "Canon EF 135mm f/2.8 Soft"                                  },
-        {   4, "Canon EF 35-105mm f/3.5-4.5 or Sigma Lens"                  }, // 0
+        {   4, "Canon EF 35-105mm f/3.5-4.5"                                }, // 0
         {   4, "Sigma UC Zoom 35-135mm f/4-5.6"                             }, // 1
         {   5, "Canon EF 35-70mm f/3.5-4.5"                                 },
-        {   6, "Canon EF 28-70mm f/3.5-4.5 or Sigma or Tokina Lens"         }, // 0
+        {   6, "Canon EF 28-70mm f/3.5-4.5"                                 }, // 0
         {   6, "Sigma 18-50mm f/3.5-5.6 DC"                                 }, // 1
         {   6, "Sigma 18-125mm f/3.5-5.6 DC IF ASP"                         }, // 2
         {   6, "Tokina AF193-2 19-35mm f/3.5-4.5"                           }, // 3
         {   6, "Sigma 28-80mm f/3.5-5.6 II Macro"                           }, // 4
         {   7, "Canon EF 100-300mm f/5.6L"                                  },
         {   8, "Canon EF 100-300mm f/5.6"                                   }, // 0
-        {   8, "Sigma 70-300mm f/4-5.6 DG Macro"                            }, // 1
-        {   8, "Tokina AT-X242AF 24-200mm f/3.5-5.6"                        }, // 2
+        {   8, "Sigma 70-300mm f/4-5.6 [APO] DG Macro"                      }, // 1
+        {   8, "Tokina AT-X 242 AF 24-200mm f/3.5-5.6"                      }, // 2
         {   9, "Canon EF 70-210mm f/4"                                      }, // 0
         {   9, "Sigma 55-200mm f/4-5.6 DC"                                  }, // 1
         {  10, "Canon EF 50mm f/2.5 Macro"                                  }, // 0
@@ -450,11 +746,11 @@ namespace Exiv2 {
         {  20, "Canon EF 100-200mm f/4.5A"                                  },
         {  21, "Canon EF 80-200mm f/2.8L"                                   },
         {  22, "Canon EF 20-35mm f/2.8L"                                    }, // 0
-        {  22, "Tokina AT-X280AF PRO 28-80mm f/2.8 Aspherical"              }, // 1
+        {  22, "Tokina AT-X 280 AF PRO 28-80mm f/2.8 Aspherical"            }, // 1
         {  23, "Canon EF 35-105mm f/3.5-4.5"                                },
         {  24, "Canon EF 35-80mm f/4-5.6 Power Zoom"                        },
         {  25, "Canon EF 35-80mm f/4-5.6 Power Zoom"                        },
-        {  26, "Canon EF 100mm f/2.8 Macro or Cosina or Tamron Lens"        }, // 0
+        {  26, "Canon EF 100mm f/2.8 Macro"                                 }, // 0
         {  26, "Cosina 100mm f/3.5 Macro AF"                                }, // 1
         {  26, "Tamron SP AF 90mm f/2.8 Di Macro"                           }, // 2
         {  26, "Tamron SP AF 180mm f/3.5 Di Macro"                          }, // 3
@@ -463,17 +759,29 @@ namespace Exiv2 {
         {  28, "Canon EF 80-200mm f/4.5-5.6"                                }, // 0
         {  28, "Tamron SP AF 28-105mm f/2.8 LD Aspherical IF"               }, // 1
         {  28, "Tamron SP AF 28-75mm f/2.8 XR Di LD Aspherical [IF] Macro"  }, // 2
-        {  28, "Tamron AF 70-300mm f/4.5-5.6 Di LD 1:2 Macro Zoom"          }, // 3
+        {  28, "Tamron AF 70-300mm f/4-5.6 Di LD 1:2 Macro"                 }, // 3
         {  28, "Tamron AF Aspherical 28-200mm f/3.8-5.6"                    }, // 4
-        {  29, "Canon EF 50mm f/1.8 MkII"                                   },
+        {  29, "Canon EF 50mm f/1.8 II"                                     },
         {  30, "Canon EF 35-105mm f/4.5-5.6"                                },
         {  31, "Canon EF 75-300mm f/4-5.6"                                  }, // 0
         {  31, "Tamron SP AF 300mm f/2.8 LD IF"                             }, // 1
         {  32, "Canon EF 24mm f/2.8"                                        }, // 0
         {  32, "Sigma 15mm f/2.8 EX Fisheye"                                }, // 1
-        {  33, "Voigtlander or Zeiss Lens"                                  }, // 0
+        {  33, "Voigtlander or Carl Zeiss Lens"                             }, // 0
         {  33, "Voigtlander Ultron 40mm f/2 SLII Aspherical"                }, // 1
-        {  33, "Zeiss Distagon 35mm T* f/2 ZE"                              }, // 2
+        {  33, "Voigtlander Color Skopar 20mm f/3.5 SLII Aspherical"        }, // 2
+        {  33, "Voigtlander APO-Lanthar 90mm f/3.5 SLII Close Focus"        }, // 3
+        {  33, "Carl Zeiss Distagon 15mm T* f/2.8 ZE"                       }, // 4
+        {  33, "Carl Zeiss Distagon 18mm T* f/3.5 ZE"                       }, // 5
+        {  33, "Carl Zeiss Distagon 21mm T* f/2.8 ZE"                       }, // 6
+        {  33, "Carl Zeiss Distagon 25mm T* f/2 ZE"                         }, // 7
+        {  33, "Carl Zeiss Distagon 28mm T* f/2 ZE"                         }, // 8
+        {  33, "Carl Zeiss Distagon 35mm T* f/2 ZE"                         }, // 9
+        {  33, "Carl Zeiss Distagon 35mm T* f/1.4 ZE"                       }, // 10
+        {  33, "Carl Zeiss Planar 50mm T* f/1.4 ZE"                         }, // 11
+        {  33, "Carl Zeiss Makro-Planar T* 50mm f/2 ZE"                     }, // 12
+        {  33, "Carl Zeiss Makro-Planar T* 100mm f/2 ZE"                    }, // 13
+        {  33, "Carl Zeiss Apo-Sonnar T* 135mm f/2 ZE"                      }, // 14
         {  35, "Canon EF 35-80mm f/4-5.6"                                   },
         {  36, "Canon EF 38-76mm f/4.5-5.6"                                 },
         {  37, "Canon EF 35-80mm f/4-5.6"                                   }, // 0
@@ -491,12 +799,16 @@ namespace Exiv2 {
         {  44, "Canon EF 90-300mm f/4.5-5.6"                                },
         {  45, "Canon EF-S 18-55mm f/3.5-5.6"                               },
         {  46, "Canon EF 28-90mm f/4-5.6"                                   },
+        {  47, "Zeiss Milvus 35mm f/2"                                      }, // 0
+        {  47, "Zeiss Milvus 50mm f/2 Makro"                                }, // 1
         {  48, "Canon EF-S 18-55mm f/3.5-5.6 IS"                            },
         {  49, "Canon EF-S 55-250mm f/4-5.6 IS"                             },
         {  50, "Canon EF-S 18-200mm f/3.5-5.6 IS"                           },
         {  51, "Canon EF-S 18-135mm f/3.5-5.6 IS"                           },
         {  52, "Canon EF-S 18-55mm f/3.5-5.6 IS II"                         },
         {  53, "Canon EF-S 18-55mm f/3.5-5.6 III"                           },
+        {  54, "Canon EF-S 55-250mm f/4-5.6 IS II"                          },
+        {  60, "Irix 11mm f/4"                                              },
         {  94, "Canon TS-E 17mm f/4L"                                       },
         {  95, "Canon TS-E 24.0mm f/3.5 L II"                               },
         { 124, "Canon MP-E 65mm f/2.8 1-5x Macro Photo"                     },
@@ -512,6 +824,7 @@ namespace Exiv2 {
         { 131, "Sigma APO 50-150mm f/2.8 EX DC HSM"                         }, // 4
         { 131, "Sigma APO 120-300mm f/2.8 EX DG HSM"                        }, // 5
         { 131, "Sigma 4.5mm F2.8 EX DC HSM Circular Fisheye"                }, // 6
+        { 131, "Sigma 70-200mm f/2.8 APO EX HSM"                            }, // 7
         { 132, "Canon EF 1200mm f/5.6L"                                     },
         { 134, "Canon EF 600mm f/4L IS"                                     },
         { 135, "Canon EF 200mm f/1.8L"                                      },
@@ -522,16 +835,24 @@ namespace Exiv2 {
         { 137, "Sigma 18-250mm f/3.5-6.3 DC OS HSM"                         }, // 3
         { 137, "Sigma 24-70mm f/2.8 IF EX DG HSM"                           }, // 4
         { 137, "Sigma 18-125mm f/3.8-5.6 DC OS HSM"                         }, // 5
-        { 137, "Sigma 17-70mm f/2.8-4 DC Macro OS HSM"                      }, // 6
+        { 137, "Sigma 17-70mm f/2.8-4 DC Macro OS HSM | C"                  }, // 6
         { 137, "Sigma 17-50mm f/2.8 OS HSM"                                 }, // 7
-        { 137, "Sigma 18-200mm f/3.5-6.3 II DC OS HSM"                      }, // 8
+        { 137, "Sigma 18-200mm f/3.5-6.3 DC OS HSM [II]"                    }, // 8
         { 137, "Tamron AF 18-270mm f/3.5-6.3 Di II VC PZD"                  }, // 9
+        { 137, "Sigma 8-16mm f/4.5-5.6 DC HSM"                              }, // 10
+        { 137, "Tamron SP 17-50mm f/2.8 XR Di II VC"                        }, // 11
+        { 137, "Tamron SP 60mm f/2 Macro Di II"                             }, // 12
+        { 137, "Sigma 10-20mm f/3.5 EX DC HSM"                              }, // 13
+        { 137, "Tamron SP 24-70mm f/2.8 Di VC USD"                          }, // 14
+        { 137, "Sigma 18-35mm f/1.8 DC HSM"                                 }, // 15
+        { 137, "Sigma 12-24mm f/4.5-5.6 DG HSM II"                          }, // 16
         { 138, "Canon EF 28-80mm f/2.8-4L"                                  },
         { 139, "Canon EF 400mm f/2.8L"                                      },
         { 140, "Canon EF 500mm f/4.5L"                                      },
         { 141, "Canon EF 500mm f/4.5L"                                      },
         { 142, "Canon EF 300mm f/2.8L IS"                                   },
-        { 143, "Canon EF 500mm f/4L IS"                                     },
+        { 143, "Canon EF 500mm f/4L IS"                                     }, // 0
+        { 143, "Sigma 17-70mm f/2.8-4 DC Macro OS HSM"                      }, // 1
         { 144, "Canon EF 35-135mm f/4-5.6 USM"                              },
         { 145, "Canon EF 100-300mm f/4.5-5.6 USM"                           },
         { 146, "Canon EF 70-210mm f/3.5-4.5 USM"                            },
@@ -542,6 +863,7 @@ namespace Exiv2 {
         { 150, "Sigma 20mm EX f/1.8"                                        }, // 1
         { 150, "Sigma 30mm f/1.4 DC HSM"                                    }, // 2
         { 150, "Sigma 24mm f/1.8 DG Macro EX"                               }, // 3
+        { 150, "Sigma 28mm f/1.8 DG Macro EX"                               }, // 4
         { 151, "Canon EF 200mm f/2.8L"                                      },
         { 152, "Canon EF 300mm f/4L IS"                                     }, // 0
         { 152, "Sigma 12-24mm f/4.5-5.6 EX DG ASPHERICAL HSM"               }, // 1
@@ -553,27 +875,34 @@ namespace Exiv2 {
         { 153, "Tamron AF 28-300mm f/3.5-6.3 XR LD Aspherical [IF] Macro"   }, // 2
         { 153, "Tamron AF 18-200mm f/3.5-6.3 XR Di II LD Aspherical [IF] Macro Model A14" }, // 3
         { 153, "Tamron 18-250mm f/3.5-6.3 Di II LD Aspherical [IF] Macro"   }, // 4
-        { 154, "Canon EF 20mm f/2.8 USM"                                    },
+        { 154, "Canon EF 20mm f/2.8 USM"                                    }, // 0
+        { 154, "Zeiss Milvus 21mm f/2.8"                                    }, // 1
         { 155, "Canon EF 85mm f/1.8 USM"                                    },
         { 156, "Canon EF 28-105mm f/3.5-4.5 USM"                            }, // 0
-        { 156, "Tamron SP AF 70-300mm F4-5.6 Di VC USD"                     }, // 1
+        { 156, "Tamron SP 70-300mm f/4-5.6 Di VC USD"                       }, // 1
+        { 156, "Tamron SP AF 28-105mm f/2.8 LD Aspherical IF"               }, // 2
         { 160, "Canon EF 20-35mm f/3.5-4.5 USM"                             }, // 0
         { 160, "Tamron AF 19-35mm f/3.5-4.5"                                }, // 1
         { 160, "Tokina AT-X 124 AF 12-24mm f/4 DX"                          }, // 2
         { 160, "Tokina AT-X 107 AF DX Fish-eye 10-17mm f/3.5-4.5"           }, // 3
         { 160, "Tokina AT-X 116 PRO DX AF 11-16mm f/2.8"                    }, // 4
+        { 160, "Tokina AT-X 11-20 F2.8 PRO DX Aspherical 11-20mm f/2.8"     }, // 5
         { 161, "Canon EF 28-70mm f/2.8L"                                    }, // 0
         { 161, "Sigma 24-70mm EX f/2.8"                                     }, // 1
         { 161, "Sigma 28-70mm f/2.8 EX"                                     }, // 2
-        { 161, "Tamron AF 17-50mm f/2.8 Di-II LD Aspherical"                }, // 3
-        { 161, "Tamron 90mm f/2.8"                                          }, // 4
+        { 161, "Sigma 24-60mm f/2.8 EX DG"                                  }, // 3
+        { 161, "Tamron AF 17-50mm f/2.8 Di-II LD Aspherical"                }, // 4
+        { 161, "Tamron 90mm f/2.8"                                          }, // 5
+        { 161, "Tamron SP AF 17-35mm f/2.8-4 Di LD Aspherical IF"           }, // 6
+        { 161, "Tamron SP AF 28-75mm f/2.8 XR Di LD Aspherical [IF] Macro"  }, // 7
         { 162, "Canon EF 200mm f/2.8L"                                      },
         { 163, "Canon EF 300mm f/4L"                                        },
         { 164, "Canon EF 400mm f/5.6L"                                      },
         { 165, "Canon EF 70-200mm f/2.8 L"                                  },
         { 166, "Canon EF 70-200mm f/2.8 L + 1.4x"                           },
         { 167, "Canon EF 70-200mm f/2.8 L + 2x"                             },
-        { 168, "Canon EF 28mm f/1.8 USM"                                    },
+        { 168, "Canon EF 28mm f/1.8 USM"                                    }, // 0
+        { 168, "Sigma 50-100mm f/1.8 DC HSM | A"                            }, // 1
         { 169, "Canon EF 17-35mm f/2.8L"                                    }, // 0
         { 169, "Sigma 18-200mm f/3.5-6.3 DC OS"                             }, // 1
         { 169, "Sigma 15-30mm f/3.5-4.5 EX DG Aspherical"                   }, // 2
@@ -581,37 +910,59 @@ namespace Exiv2 {
         { 169, "Sigma 50mm f/1.4 EX DG HSM"                                 }, // 4
         { 169, "Sigma 85mm f/1.4 EX DG HSM"                                 }, // 5
         { 169, "Sigma 30mm f/1.4 EX DC HSM"                                 }, // 6
+        { 169, "Sigma 35mm f/1.4 DG HSM"                                    }, // 7
         { 170, "Canon EF 200mm f/2.8L II"                                   },
         { 171, "Canon EF 300mm f/4L"                                        },
-        { 172, "Canon EF 400mm f/5.6L"                                      },
-        { 173, "Canon EF 180mm Macro f/3.5L or Sigma Lens"                  }, // 0
+        { 172, "Canon EF 400mm f/5.6L"                                      }, // 0
+        { 172, "Sigma 150-600mm f/5-6.3 DG OS HSM | S"                      }, // 1
+        { 172, "Sigma 150-500mm f/5-6.3 APO DG OS HSM + 1.4x"               }, // 2
+        { 173, "Canon EF 180mm Macro f/3.5L"                                }, // 0
         { 173, "Sigma 180mm EX HSM Macro f/3.5"                             }, // 1
         { 173, "Sigma APO Macro 150mm f/3.5 EX DG IF HSM"                   }, // 2
+        { 173, "Sigma 150-500mm f/5-6.3 APO DG OS HSM + 2x"                 }, // 3
         { 174, "Canon EF 135mm f/2L"                                        }, // 0
         { 174, "Sigma 70-200mm f/2.8 EX DG APO OS HSM"                      }, // 1
+        { 174, "Sigma 50-500mm f/4.5-6.3 APO DG OS HSM"                     }, // 2
+        { 174, "Sigma 150-500mm f/5-6.3 APO DG OS HSM"                      }, // 3
+        { 174, "Zeiss Milvus 100mm f/2 Makro"                               }, // 4
+        { 174, "Sigma 120-300mm f/2.8 EX APO DG OS HSM"                     }, // 5
         { 175, "Canon EF 400mm f/2.8L"                                      },
         { 176, "Canon EF 24-85mm f/3.5-4.5 USM"                             },
         { 177, "Canon EF 300mm f/4L IS"                                     },
         { 178, "Canon EF 28-135mm f/3.5-5.6 IS"                             },
         { 179, "Canon EF 24mm f/1.4L"                                       },
-        { 180, "Canon EF 35mm f/1.4L"                                       },
-        { 181, "Canon EF 100-400mm f/4.5-5.6L IS + 1.4x"                    },
-        { 182, "Canon EF 100-400mm f/4.5-5.6L IS + 2x"                      },
-        { 183, "Canon EF 100-400mm f/4.5-5.6L IS"                           },
+        { 180, "Canon EF 35mm f/1.4L"                                       }, // 0
+        { 180, "Sigma 50mm f/1.4 DG HSM | A"                                }, // 1
+        { 180, "Sigma 24mm f/1.4 DG HSM | A"                                }, // 2
+        { 180, "Zeiss Milvus 50mm f/1.4"                                    }, // 3
+        { 180, "Zeiss Milvus 85mm f/1.4"                                    }, // 4
+        { 180, "Zeiss Otus 28mm f/1.4 ZE"                                   }, // 5
+        { 181, "Canon EF 100-400mm f/4.5-5.6L IS + 1.4x"                    }, // 0
+        { 181, "Sigma 150-600mm f/5-6.3 DG OS HSM | S + 1.4x"               }, // 1
+        { 182, "Canon EF 100-400mm f/4.5-5.6L IS + 2x"                      }, // 0
+        { 182, "Sigma 150-600mm f/5-6.3 DG OS HSM | S + 2x"                 }, // 1
+        { 183, "Canon EF 100-400mm f/4.5-5.6L IS"                           }, // 0
+        { 183, "Sigma 150mm f/2.8 EX DG OS HSM APO Macro"                   }, // 1
+        { 183, "Sigma 105mm f/2.8 EX DG OS HSM Macro"                       }, // 2
+        { 183, "Sigma 180mm f/2.8 EX DG OS HSM APO Macro"                   }, // 3
+        { 183, "Sigma 150-600mm f/5-6.3 DG OS HSM | C"                      }, // 4
+        { 183, "Sigma 150-600mm f/5-6.3 DG OS HSM | S"                      }, // 5
         { 184, "Canon EF 400mm f/2.8L + 2x"                                 },
         { 185, "Canon EF 600mm f/4L IS"                                     },
         { 186, "Canon EF 70-200mm f/4L"                                     },
         { 187, "Canon EF 70-200mm f/4L + 1.4x"                              },
         { 188, "Canon EF 70-200mm f/4L + 2x"                                },
         { 189, "Canon EF 70-200mm f/4L + 2.8x"                              },
-        { 190, "Canon EF 100mm f/2.8 Macro"                                 },
+        { 190, "Canon EF 100mm f/2.8 Macro USM"                             },
         { 191, "Canon EF 400mm f/4 DO IS"                                   },
         { 193, "Canon EF 35-80mm f/4-5.6 USM"                               },
         { 194, "Canon EF 80-200mm f/4.5-5.6 USM"                            },
         { 195, "Canon EF 35-105mm f/4.5-5.6 USM"                            },
         { 196, "Canon EF 75-300mm f/4-5.6 USM"                              },
         { 197, "Canon EF 75-300mm f/4-5.6 IS USM"                           },
-        { 198, "Canon EF 50mm f/1.4 USM"                                    },
+        { 198, "Canon EF 50mm f/1.4 USM"                                    }, // 0
+        { 198, "Zeiss Otus 55mm f/1.4 ZE"                                   }, // 1
+        { 198, "Zeiss Otus 85mm f/1.4 ZE"                                   }, // 2
         { 199, "Canon EF 28-80mm f/3.5-5.6 USM"                             },
         { 200, "Canon EF 75-300mm f/4-5.6 USM"                              },
         { 201, "Canon EF 28-80mm f/3.5-5.6 USM"                             },
@@ -621,9 +972,15 @@ namespace Exiv2 {
         { 210, "Canon EF 28-90mm f/4-5.6 USM"                               },
         { 211, "Canon EF 28-200mm f/3.5-5.6 USM"                            },
         { 212, "Canon EF 28-105mm f/4-5.6 USM"                              },
-        { 213, "Canon EF 90-300mm f/4.5-5.6 USM"                            },
+        { 213, "Canon EF 90-300mm f/4.5-5.6 USM"                            }, // 0
+        { 213, "Tamron SP 150-600mm F/5-6.3 Di VC USD"                      }, // 1
+        { 213, "Tamron 16-300mm f/3.5-6.3 Di II VC PZD Macro"               }, // 2
+        { 213, "Tamron SP 35mm f/1.8 Di VC USD"                             }, // 3
+        { 213, "Tamron SP 45mm f/1.8 Di VC USD"                             }, // 4
+        { 213, "Tamron SP 70-300mm f/4-5.6 Di VC USD"                       }, // 5
         { 214, "Canon EF-S 18-55mm f/3.5-5.6 USM"                           },
         { 215, "Canon EF 55-200mm f/4.5-5.6 II USM"                         },
+        { 217, "Tamron AF 18-270mm f/3.5-6.3 Di II VC PZD"                  },
         { 224, "Canon EF 70-200mm f/2.8L IS"                                },
         { 225, "Canon EF 70-200mm f/2.8L IS + 1.4x"                         },
         { 226, "Canon EF 70-200mm f/2.8L IS + 2x"                           },
@@ -634,7 +991,8 @@ namespace Exiv2 {
         { 231, "Canon EF 17-40mm f/4L"                                      },
         { 232, "Canon EF 70-300mm f/4.5-5.6 DO IS USM"                      },
         { 233, "Canon EF 28-300mm f/3.5-5.6L IS"                            },
-        { 234, "Canon EF-S 17-85mm f4-5.6 IS USM"                           },
+        { 234, "Canon EF-S 17-85mm f4-5.6 IS USM"                           }, // 0
+        { 234, "Tokina AT-X 12-28 PRO DX 12-28mm f/4"                       }, // 1
         { 235, "Canon EF-S 10-22mm f/3.5-4.5 USM"                           },
         { 236, "Canon EF-S 60mm f/2.8 Macro USM"                            },
         { 237, "Canon EF 24-105mm f/4L IS"                                  },
@@ -648,15 +1006,61 @@ namespace Exiv2 {
         { 245, "Canon EF 70-200mm f/4L IS + 2.8x"                           },
         { 246, "Canon EF 16-35mm f/2.8L II"                                 },
         { 247, "Canon EF 14mm f/2.8L II USM"                                },
-        { 248, "Canon EF 200mm f/2L IS"                                     },
+        { 248, "Canon EF 200mm f/2L IS"                                     }, // 0
+        { 248, "Sigma 24-35mm f/2 DG HSM | A"                               }, // 1
         { 249, "Canon EF 800mm f/5.6L IS"                                   },
-        { 250, "Canon EF 24 f/1.4L II"                                      },
+        { 250, "Canon EF 24 f/1.4L II"                                      }, // 0
+        { 250, "Sigma 20mm f/1.4 DG HSM | A"                                }, // 1
         { 251, "Canon EF 70-200mm f/2.8L IS II USM"                         },
+        { 252, "Canon EF 70-200mm f/2.8L IS II USM + 1.4x"                  },
+        { 253, "Canon EF 70-200mm f/2.8L IS II USM + 2x"                    },
         { 254, "Canon EF 100mm f/2.8L Macro IS USM"                         },
+        { 255, "Sigma 24-105mm f/4 DG OS HSM | A"                           }, // 0
+        { 255, "Sigma 180mm f/2.8 EX DG OS HSM APO Macro"                   }, // 1
         { 488, "Canon EF-S 15-85mm f/3.5-5.6 IS USM"                        },
         { 489, "Canon EF 70-300mm f/4-5.6L IS USM"                          },
-        { 490, "Canon EF 8-15mm f/4L USM"                                   },
-        { 491, "Canon EF 300mm f/2.8L IS II USM"                            }
+        { 490, "Canon EF 8-15mm f/4L Fisheye USM"                           },
+        { 491, "Canon EF 300mm f/2.8L IS II USM"                            },
+        { 492, "Canon EF 400mm f/2.8L IS II USM"                            },
+        { 493, "Canon EF 500mm f/4L IS II USM"                              }, // 0
+        { 493, "Canon EF 24-105mm f/4L IS USM"                              }, // 1
+        { 494, "Canon EF 600mm f/4.0L IS II USM"                            },
+        { 495, "Canon EF 24-70mm f/2.8L II USM"                             },
+        { 496, "Canon EF 200-400mm f/4L IS USM"                             },
+        { 499, "Canon EF 200-400mm f/4L IS USM + 1.4x"                      },
+        { 502, "Canon EF 28mm f/2.8 IS USM"                                 },
+        { 503, "Canon EF 24mm f/2.8 IS USM"                                 },
+        { 504, "Canon EF 24-70mm f/4L IS USM"                               },
+        { 505, "Canon EF 35mm f/2 IS USM"                                   },
+        { 506, "Canon EF 400mm f/4 DO IS II USM"                            },
+        { 507, "Canon EF 16-35mm f/4L IS USM"                               },
+        { 508, "Canon EF 11-24mm f/4L USM"                                  },
+        { 747, "Canon EF 100-400mm f/4.5-5.6L IS II USM"                    }, // 0
+        { 747, "Tamron SP 150-600mm F5-6.3 Di VC USD G2"                    }, // 1
+        { 748, "Canon EF 100-400mm f/4.5-5.6L IS II USM + 1.4x"             },
+        { 750, "Canon EF 35mm f/1.4L II USM"                                },
+        { 751, "Canon EF 16-35mm f/2.8L III USM"                            },
+        { 752, "Canon EF 24-105mm f/4L IS II USM"                           },
+        { 4142,"Canon EF-S 18-135mm f/3.5-5.6 IS STM"                       },
+        { 4143,"Canon EF-M 18-55mm f/3.5-5.6 IS STM"                        }, // 0
+        { 4143,"Tamron 18-200mm F/3.5-6.3 Di III VC"                        }, // 1
+        { 4144,"Canon EF 40mm f/2.8 STM"                                    },
+        { 4145,"Canon EF-M 22mm f/2 STM"                                    },
+        { 4146,"Canon EF-S 18-55mm f/3.5-5.6 IS STM"                        },
+        { 4147,"Canon EF-M 11-22mm f/4-5.6 IS STM"                          },
+        { 4148,"Canon EF-S 55-250mm f/4-5.6 IS STM"                         },
+        { 4149,"Canon EF-M 55-200mm f/4.5-6.3 IS STM"                       },
+        { 4150,"Canon EF-S 10-18mm f/4.5-5.6 IS STM"                        },
+        { 4152,"Canon EF 24-105mm f/3.5-5.6 IS STM"                         },
+        { 4153,"Canon EF-M 15-45mm f/3.5-6.3 IS STM"                        },
+        { 4154,"Canon EF-S 24mm f/2.8 STM"                                  },
+        { 4155,"Canon EF-M 28mm f/3.5 Macro IS STM"                         },
+        { 4156,"Canon EF 50mm f/1.8 STM"                                    },
+        { 4157,"Canon EF-M 18-150mm 1:3.5-6.3 IS STM"                       },
+        { 4158,"Canon EF-S 18-55mm f/4-5.6 IS STM"                          },
+        {36910,"Canon EF 70-300mm f/4-5.6 IS II USM"                        },
+        {36912,"Canon EF-S 18-135mm f/3.5-5.6 IS USM"                       },
+        {65535,"n/a"                                                        }
     };
 
     //! A lens id and a pretty-print function for special treatment of the id.
@@ -669,30 +1073,50 @@ namespace Exiv2 {
 
     //! List of lens ids which require special treatment with the medicine
     const LensIdFct lensIdFct[] = {
-        {   4, 0                        }, // no known medicine
+        {   4, printCsLensByFocalLength }, // not tested
         {   6, printCsLensByFocalLength },
         {   8, printCsLensByFocalLength },
         {   9, printCsLensByFocalLength },
-        {  10, printCsLensByFocalLength }, // works partly
+        {  10, printCsLensByFocalLengthAndMaxAperture }, // works partly
         {  22, printCsLensByFocalLength },
-        {  26, printCsLensByFocalLength }, // works partly
+        {  26, printCsLensByFocalLengthAndMaxAperture }, // works partly
         {  28, printCsLensByFocalLength },
         {  31, printCsLensByFocalLength },
         {  32, printCsLensByFocalLength },
-        {  33, printCsLensByFocalLength }, // not tested
+        {  33, printCsLensByFocalLengthAndMaxAperture }, // works partly
         {  37, printCsLensByFocalLength },
         {  42, printCsLensByFocalLength },
+        {  47, printCsLensByFocalLength }, // not tested
         { 131, printCsLensByFocalLength },
         { 137, printCsLensByFocalLength }, // not tested
+        { 143, printCsLensByFocalLength },
         { 150, printCsLensByFocalLength },
         { 152, printCsLensByFocalLength },
         { 153, printCsLensByFocalLength },
-        { 156, printCsLensByFocalLength },
+        { 154, printCsLensByFocalLength }, // not tested
+        { 156, printCsLensByFocalLengthAndMaxAperture },
         { 160, printCsLensByFocalLength },
         { 161, printCsLensByFocalLength },
-        { 169, printCsLensByFocalLength },
-        { 173, printCsLensByFocalLength }, // works partly
-        { 174, printCsLensByFocalLength }  // not tested
+        { 168, printCsLensByFocalLength },
+        { 169, printCsLensByFocalLengthAndMaxAperture },
+        { 172, printCsLensByFocalLengthTC }, // not tested
+        { 173, printCsLensByFocalLengthTC }, // works partly
+        { 174, printCsLensByFocalLength }, // not tested
+        { 180, printCsLensByFocalLength },
+        { 181, printCsLensByFocalLengthTC }, // not tested
+        { 182, printCsLensByFocalLengthTC }, // not tested
+        { 183, printCsLensByFocalLength }, // not tested
+        { 198, printCsLensByFocalLength }, // not tested
+        { 213, printCsLensByFocalLength }, // not tested
+        { 234, printCsLensByFocalLength }, // not tested
+        { 248, printCsLensByFocalLength }, // not tested
+        { 250, printCsLensByFocalLength }, // not tested
+        { 255, printCsLensByFocalLength }, // not tested
+        { 493, printCsLensByFocalLength }, // not tested
+        { 747, printCsLensByFocalLength }, // not tested
+        { 4143,printCsLensByFocalLength }, // not tested
+        { 4154,printCsLensByFocalLength }, // not tested
+       {0xffff,printCsLensFFFF          }
     };
 
     //! FlashActivity, tag 0x001c
@@ -717,7 +1141,8 @@ namespace Exiv2 {
     //! FocusContinuous, tag 0x0020
     extern const TagDetails canonCsFocusContinuous[] = {
         { 0, N_("Single")     },
-        { 1, N_("Continuous") }
+        { 1, N_("Continuous") },
+        { 8, N_("Manual")     }
     };
 
     //! AESetting, tag 0x0021
@@ -731,9 +1156,16 @@ namespace Exiv2 {
 
     //! ImageStabilization, tag 0x0022
     extern const TagDetails canonCsImageStabilization[] = {
-        { 0, N_("Off")           },
-        { 1, N_("On")            },
-        { 2, N_("On, shot only") }
+        {   0, N_("Off")            },
+        {   1, N_("On")             },
+        {   2, N_("Shoot Only")     },
+        {   3, N_("Panning")        },
+        {   4, N_("Dynamic")        },
+        { 256, N_("Off (2)")        },
+        { 257, N_("On (2)")         },
+        { 258, N_("Shoot Only (2)") },
+        { 259, N_("Panning (2)")    },
+        { 260, N_("Dynamic (2)")    }
     };
 
     //! SpotMeteringMode, tag 0x0027
@@ -817,7 +1249,7 @@ namespace Exiv2 {
         TagInfo(0x002a, "ColorTone", N_("Color Tone"), N_("Color tone"), canonCsId, makerTags, signedShort, 1, printValue),
         TagInfo(0x002e, "SRAWQuality", N_("SRAW Quality Tone"), N_("SRAW quality"), canonCsId, makerTags, signedShort, 1, EXV_PRINT_TAG(canonCsSRAWQuality)),
         // End of list marker
-        TagInfo(0xffff, "(UnknownCanonCsTag)", "(UnknownCanonCsTag)", N_("Unknown Canon Camera Settings 1 tag"), canonCsId, makerTags, unsignedShort, 1, printValue)
+        TagInfo(0xffff, "(UnknownCanonCsTag)", "(UnknownCanonCsTag)", N_("Unknown Canon Camera Settings 1 tag"), canonCsId, makerTags, signedShort, 1, printValue)
     };
 
     const TagInfo* CanonMakerNote::tagListCs()
@@ -828,7 +1260,7 @@ namespace Exiv2 {
     //! WhiteBalance, multiple tags
     extern const TagDetails canonSiWhiteBalance[] = {
         {  0, N_("Auto")                        },
-        {  1, N_("Sunny")                       },
+        {  1, N_("Daylight")                    },
         {  2, N_("Cloudy")                      },
         {  3, N_("Tungsten")                    },
         {  4, N_("Fluorescent")                 },
@@ -847,7 +1279,8 @@ namespace Exiv2 {
         { 18, N_("Custom 3")                    },
         { 19, N_("Custom 3")                    },
         { 20, N_("PC Set 4")                    },
-        { 21, N_("PC Set 5")                    }
+        { 21, N_("PC Set 5")                    },
+        { 23, N_("Auto (ambience priority)")    }
     };
 
     //! AFPointUsed, tag 0x000e
@@ -898,7 +1331,7 @@ namespace Exiv2 {
         TagInfo(0x0010, "0x0010", "0x0010", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
         TagInfo(0x0011, "0x0011", "0x0011", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
         TagInfo(0x0012, "0x0012", "0x0012", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
-        TagInfo(0x0013, "SubjectDistance", N_("Subject Distance"), N_("Subject distance (units are not clear)"), canonSiId, makerTags, unsignedShort, 1, printSi0x0013),
+        TagInfo(0x0013, "SubjectDistance", N_("Subject Distance"), N_("Subject distance"), canonSiId, makerTags, unsignedShort, 1, printSi0x0013),
         TagInfo(0x0014, "0x0014", "0x0014", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
         TagInfo(0x0015, "ApertureValue", N_("Aperture Value"), N_("Aperture"), canonSiId, makerTags, unsignedShort, 1, printSi0x0015),
         TagInfo(0x0016, "ShutterSpeedValue", N_("Shutter Speed Value"), N_("Shutter speed"), canonSiId, makerTags, unsignedShort, 1, printSi0x0016),
@@ -907,7 +1340,7 @@ namespace Exiv2 {
         TagInfo(0x0019, "0x0019", "0x0019", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
         TagInfo(0x001a, "0x001a", "0x001a", N_("Unknown"), canonSiId, makerTags, unsignedShort, 1, printValue),
         // End of list marker
-        TagInfo(0xffff, "(UnknownCanonSiTag)", "(UnknownCanonSiTag)", N_("Unknown Canon Camera Settings 2 tag"), canonSiId, makerTags, unsignedShort, 1, printValue)
+        TagInfo(0xffff, "(UnknownCanonCsTag)", "(UnknownCanonCsTag)", N_("Unknown Canon Camera Settings 1 tag"), canonCsId, makerTags, unsignedShort, 1, printValue)
     };
 
     const TagInfo* CanonMakerNote::tagListSi()
@@ -1015,16 +1448,23 @@ namespace Exiv2 {
 
     //! RawJpgSize, tag 0x0007
     extern const TagDetails canonRawJpgSize[] = {
-        { 0,   N_("Large")        },
-        { 1,   N_("Medium")       },
-        { 2,   N_("Small")        },
-        { 5,   N_("Medium 1")     },
-        { 6,   N_("Medium 2")     },
-        { 7,   N_("Medium 3")     },
-        { 8,   N_("Postcard")     },
-        { 9,   N_("Widescreen")   },
-        { 129, N_("Medium Movie") },
-        { 130, N_("Small Movie")  }
+        {   0, N_("Large")             },
+        {   1, N_("Medium")            },
+        {   2, N_("Small")             },
+        {   5, N_("Medium 1")          },
+        {   6, N_("Medium 2")          },
+        {   7, N_("Medium 3")          },
+        {   8, N_("Postcard")          },
+        {   9, N_("Widescreen")        },
+        {  10, N_("Medium Widescreen") },
+        {  14, N_("Small 1")           },
+        {  15, N_("Small 2")           },
+        {  16, N_("Small 3")           },
+        { 128, N_("640x480 Movie")     },
+        { 129, N_("Medium Movie")      },
+        { 130, N_("Small Movie")       },
+        { 137, N_("1280x720 Movie")    },
+        { 142, N_("1920x1080 Movie")   }
     };
 
     //! NoiseReduction, tag 0x0008
@@ -1077,6 +1517,8 @@ namespace Exiv2 {
         TagInfo(0x000f, "ToningEffect", N_("Toning Effect"), N_("Toning Effect"), canonFiId, makerTags, signedShort, 1, EXV_PRINT_TAG(canonToningEffect)),
         TagInfo(0x0010, "MacroMagnification", N_("Macro Magnification"), N_("Macro magnification"), canonFiId, makerTags, signedShort, 1, printValue),
         TagInfo(0x0013, "LiveViewShooting", N_("Live View Shooting"), N_("Live view shooting"), canonFiId, makerTags, signedShort, 1, EXV_PRINT_TAG(canonOffOn)),
+        TagInfo(0x0014, "FocusDistanceUpper", N_("Focus Distance Upper"), N_("Focus Distance Upper"), canonFiId, makerTags, signedShort, 1, printFiFocusDistance),
+        TagInfo(0x0015, "FocusDistanceLower", N_("Focus Distance Lower"), N_("Focus Distance Lower"), canonFiId, makerTags, signedShort, 1, printFiFocusDistance),
         TagInfo(0x0019, "FlashExposureLock", N_("Flash Exposure Lock"), N_("Flash exposure lock"), canonFiId, makerTags, signedShort, 1, EXV_PRINT_TAG(canonOffOn)),
         // End of list marker
         TagInfo(0xffff, "(UnknownCanonFiTag)", "(UnknownCanonFiTag)", N_("Unknown Canon File Info tag"), canonFiId, makerTags, signedShort, 1, printValue)
@@ -1090,8 +1532,8 @@ namespace Exiv2 {
     //! Tone Curve Values
     extern const TagDetails canonToneCurve[] = {
         { 0, N_("Standard") },
-	{ 1, N_("Manual")   },
-	{ 2, N_("Custom")   }
+        { 1, N_("Manual")   },
+        { 2, N_("Custom")   }
     };
 
     //! Sharpness Frequency Values
@@ -1126,6 +1568,8 @@ namespace Exiv2 {
         { 0x84, N_("Neutral")         },
         { 0x85, N_("Faithful")        },
         { 0x86, N_("Monochrome")      },
+        { 0x87, N_("Auto")            },
+        { 0x88, N_("Fine Detail")     }
     };
 
     // Canon Processing Info Tag
@@ -1151,12 +1595,70 @@ namespace Exiv2 {
         return tagInfoPr_;
     }
 
+    //! canonTimeZoneCity - array of cityID/cityName used by Canon
+    extern const TagDetails canonTimeZoneCity[] = {
+        { 0x0000, N_("n/a")                 },
+        { 0x0001, N_("Chatham Islands")     },
+        { 0x0002, N_("Wellington")          },
+        { 0x0003, N_("Solomon Islands")     },
+        { 0x0004, N_("Sydney")              },
+        { 0x0005, N_("Adelaide")            },
+        { 0x0006, N_("Tokyo")               },
+        { 0x0007, N_("Hong Kong")           },
+        { 0x0008, N_("Bangkok")             },
+        { 0x0009, N_("Yangon")              },
+        { 0x000a, N_("Dhaka")               },
+        { 0x000b, N_("Kathmandu")           },
+        { 0x000c, N_("Delhi")               },
+        { 0x000d, N_("Karachi")             },
+        { 0x000e, N_("Kabul")               },
+        { 0x000f, N_("Dubai")               },
+        { 0x0010, N_("Tehran")              },
+        { 0x0011, N_("Moscow")              },
+        { 0x0012, N_("Cairo")               },
+        { 0x0013, N_("Paris")               },
+        { 0x0014, N_("London")              },
+        { 0x0015, N_("Azores")              },
+        { 0x0016, N_("Fernando de Noronha") },
+        { 0x0017, N_("Sao Paulo")           },
+        { 0x0018, N_("Newfoundland")        },
+        { 0x0019, N_("Santiago")            },
+        { 0x001a, N_("Caracas")             },
+        { 0x001b, N_("New York")            },
+        { 0x001c, N_("Chicago")             },
+        { 0x001d, N_("Denver")              },
+        { 0x001e, N_("Los Angeles")         },
+        { 0x001f, N_("Anchorage")           },
+        { 0x0020, N_("Honolulu")            },
+        { 0x0021, N_("Samoa")               },
+        { 0x7ffe, N_("(not set)")           },
+    };
+
+    // Canon Time Info Tag
+    const TagInfo CanonMakerNote::tagInfoTi_[] = {
+        TagInfo(0x0001, "TimeZone", N_("Time zone offset"), N_("Time zone offset in minutes"), canonTiId, makerTags, signedLong, 1, printValue),
+        TagInfo(0x0002, "TimeZoneCity", N_("Time zone city"), N_("Time zone city"), canonTiId, makerTags, signedLong, 1, EXV_PRINT_TAG(canonTimeZoneCity)),
+        TagInfo(0x0003, "DaylightSavings", N_("Daylight Savings"), N_("Daylight Saving Time"), canonTiId, makerTags, signedLong, 1, printValue),
+        TagInfo(0xffff, "(UnknownCanonTiTag)", "(UnknownCanonTiTag)", N_("Unknown Canon Time Info tag"), canonTiId, makerTags, signedLong, 1, printValue)
+    };
+
+    const TagInfo* CanonMakerNote::tagListTi()
+    {
+        return tagInfoTi_;
+    }
+
     std::ostream& CanonMakerNote::printFiFileNumber(std::ostream& os,
                                                     const Value& value,
                                                     const ExifData* metadata)
     {
+        std::ios::fmtflags f( os.flags() );
         if (   !metadata || value.typeId() != unsignedLong
-            || value.count() == 0) return os << "(" << value << ")";
+            || value.count() == 0)
+        {
+            os << "(" << value << ")";
+            os.flags(f);
+            return os;
+        }
 
         ExifData::const_iterator pos = metadata->findKey(ExifKey("Exif.Image.Model"));
         if (pos == metadata->end()) return os << "(" << value << ")";
@@ -1170,7 +1672,9 @@ namespace Exiv2 {
             uint32_t val = value.toLong();
             uint32_t dn = (val & 0xffc0) >> 6;
             uint32_t fn = ((val >> 16) & 0xff) + ((val & 0x3f) << 8);
-            return os << std::dec << dn << "-" << std::setw(4) << std::setfill('0') << fn;
+            os << std::dec << dn << "-" << std::setw(4) << std::setfill('0') << fn;
+            os.flags(f);
+            return os;
         }
         if (   model.find("30D") != std::string::npos
             || model.find("400D") != std::string::npos
@@ -1181,9 +1685,12 @@ namespace Exiv2 {
             uint32_t dn = (val & 0xffc00) >> 10;
             while (dn < 100) dn += 0x40;
             uint32_t fn = ((val & 0x3ff) << 4) + ((val >> 20) & 0x0f);
-            return os << std::dec << dn << "-" << std::setw(4) << std::setfill('0') << fn;
+            os << std::dec << dn << "-" << std::setw(4) << std::setfill('0') << fn;
+            os.flags(f);
+            return os;
         }
 
+        os.flags(f);
         return os << "(" << value << ")";
     }
 
@@ -1191,9 +1698,11 @@ namespace Exiv2 {
                                                    const Value& value,
                                                    const ExifData* metadata)
     {
+        std::ios::fmtflags f( os.flags() );
         if (   !metadata
             || value.count() < 4
             || value.typeId() != unsignedShort) {
+            os.flags(f);
             return os << value;
         }
 
@@ -1210,10 +1719,12 @@ namespace Exiv2 {
                 os << std::fixed << std::setprecision(1);
                 os << fl << " mm";
                 os.copyfmt(oss);
+                os.flags(f);
                 return os;
             }
         }
 
+        os.flags(f);
         return os << value;
     }
 
@@ -1257,18 +1768,110 @@ namespace Exiv2 {
         return os;
     }
 
+    std::ostream& printCsLensFFFF(std::ostream& os,
+                                const Value& value,
+                                const ExifData* metadata)
+    {
+        try {
+            // 1140
+            if( metadata->findKey(ExifKey("Exif.Image.Model"        ))->value().toString() == "Canon EOS 30D"
+            &&  metadata->findKey(ExifKey("Exif.CanonCs.Lens"       ))->value().toString() == "24 24 1"
+            &&  metadata->findKey(ExifKey("Exif.CanonCs.MaxAperture"))->value().toString() == "95" // F2.8
+            ){
+                return os << "Canon EF-S 24mm f/2.8 STM" ;
+            }
+        } catch (std::exception&) {};
+
+        return EXV_PRINT_TAG(canonCsLensType)(os, value, metadata);
+    }
+
     //! Helper structure
-    struct LensTypeAndFocalLength {
+    struct LensTypeAndFocalLengthAndMaxAperture {
         long        lensType_;                  //!< Lens type
-        std::string focalLength_;               //!< Focal length
+        float       focalLengthMin_;            //!< Mininum focal length
+        float       focalLengthMax_;            //!< Maximum focal length
+        std::string focalLength_;               //!< Focal length as a string
+        std::string maxAperture_;               //!< Aperture
     };
 
     //! Compare tag details with a lens entry
-    bool operator==(const TagDetails& td, const LensTypeAndFocalLength& ltfl) {
+    bool operator==(const TagDetails& td, const LensTypeAndFocalLengthAndMaxAperture& ltfl) {
         return (   td.val_ == ltfl.lensType_
-                && std::string(td.label_).find(ltfl.focalLength_) != std::string::npos);
+                && std::string(td.label_).find(ltfl.focalLength_) != std::string::npos
+                && std::string(td.label_).find(ltfl.maxAperture_) != std::string::npos);
     }
 
+    //! extractLensFocalLength from metadata
+    void extractLensFocalLength(LensTypeAndFocalLengthAndMaxAperture& ltfl,
+                                const ExifData* metadata)
+    {
+        ExifKey key("Exif.CanonCs.Lens");
+        ExifData::const_iterator pos = metadata->findKey(key);
+        ltfl.focalLengthMin_ = 0.0;
+        ltfl.focalLengthMax_ = 0.0;
+        if (   pos != metadata->end()
+            && pos->value().count() >= 3
+            && pos->value().typeId() == unsignedShort) {
+            float fu = pos->value().toFloat(2);
+            if (fu != 0.0) {
+                ltfl.focalLengthMin_ = pos->value().toLong(1) / fu;
+                ltfl.focalLengthMax_ = pos->value().toLong(0) / fu;
+            }
+        }
+    }
+
+    //! convertFocalLength to a human readable string
+    void convertFocalLength(LensTypeAndFocalLengthAndMaxAperture& ltfl,
+                            double divisor)
+    {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(0);
+        if (ltfl.focalLengthMin_ == ltfl.focalLengthMax_) {
+            oss << (ltfl.focalLengthMin_ / divisor) << "mm";
+        } else {
+            oss << (ltfl.focalLengthMin_ / divisor) << "-" << (ltfl.focalLengthMax_ / divisor) << "mm";
+        }
+        ltfl.focalLength_ = oss.str();
+    }
+
+    //! printCsLensByFocalLengthAndMaxAperture to human readable string
+    std::ostream& printCsLensByFocalLengthAndMaxAperture(std::ostream& os,
+                                           const Value& value,
+                                           const ExifData* metadata)
+    {
+        if (   !metadata || value.typeId() != unsignedShort
+            || value.count() == 0) return os << value;
+
+        LensTypeAndFocalLengthAndMaxAperture ltfl;
+        ltfl.lensType_ = value.toLong();
+
+        extractLensFocalLength(ltfl, metadata);
+        if (ltfl.focalLengthMax_ == 0.0) return os << value;
+        convertFocalLength(ltfl, 1.0);
+
+        ExifKey key("Exif.CanonCs.MaxAperture");
+        ExifData::const_iterator pos = metadata->findKey(key);
+        if (   pos != metadata->end()
+            && pos->value().count() == 1
+            && pos->value().typeId() == unsignedShort) {
+
+            long val = static_cast<int16_t>(pos->value().toLong(0));
+            if (val > 0)
+            {
+                std::ostringstream oss;
+                oss << std::setprecision(2);
+                oss << fnumber(canonEv(val));
+                ltfl.maxAperture_ = oss.str();
+            }
+        }
+        if (ltfl.maxAperture_.empty()) return os << value;
+
+        const TagDetails* td = find(canonCsLensType, ltfl);
+        if (!td) return os << value;
+        return os << td->label_;
+    }
+
+    //! printCsLensByFocalLength to human readable string
     std::ostream& printCsLensByFocalLength(std::ostream& os,
                                            const Value& value,
                                            const ExifData* metadata)
@@ -1276,28 +1879,13 @@ namespace Exiv2 {
         if (   !metadata || value.typeId() != unsignedShort
             || value.count() == 0) return os << value;
 
-        LensTypeAndFocalLength ltfl;
+        LensTypeAndFocalLengthAndMaxAperture ltfl;
         ltfl.lensType_ = value.toLong();
 
-        ExifKey key("Exif.CanonCs.Lens");
-        ExifData::const_iterator pos = metadata->findKey(key);
-        if (   pos != metadata->end()
-            && pos->value().count() >= 3
-            && pos->value().typeId() == unsignedShort) {
-            float fu = pos->value().toFloat(2);
-            if (fu != 0.0) {
-                float len1 = pos->value().toLong(0) / fu;
-                float len2 = pos->value().toLong(1) / fu;
-                std::ostringstream oss;
-                oss << std::fixed << std::setprecision(0);
-                if (len1 == len2) {
-                    oss << len1 << "mm";
-                } else {
-                    oss << len2 << "-" << len1 << "mm";
-                }
-                ltfl.focalLength_ = oss.str();
-            }
-        }
+        extractLensFocalLength(ltfl, metadata);
+        if (ltfl.focalLengthMax_ == 0.0) return os << value;
+        convertFocalLength(ltfl, 1.0);
+
         if (ltfl.focalLength_.empty()) return os << value;
 
         const TagDetails* td = find(canonCsLensType, ltfl);
@@ -1305,12 +1893,47 @@ namespace Exiv2 {
         return os << td->label_;
     }
 
+    //! printCsLensByFocalLengthTC to human readable string
+    std::ostream& printCsLensByFocalLengthTC(std::ostream& os,
+                                             const Value& value,
+                                             const ExifData* metadata)
+    {
+        if (   !metadata || value.typeId() != unsignedShort
+            || value.count() == 0) return os << value;
+
+        LensTypeAndFocalLengthAndMaxAperture ltfl;
+        ltfl.lensType_ = value.toLong();
+
+        extractLensFocalLength(ltfl, metadata);
+        if (ltfl.focalLengthMax_ == 0.0) return os << value;
+        convertFocalLength(ltfl, 1.0); // just lens
+        const TagDetails* td = find(canonCsLensType, ltfl);
+        if (!td) {
+            convertFocalLength(ltfl, 1.4); // lens + 1.4x TC
+            td = find(canonCsLensType, ltfl);
+            if (!td) {
+                convertFocalLength(ltfl, 2.0); // lens + 2x TC
+                td = find(canonCsLensType, ltfl);
+                if (!td) return os << value;
+            }
+        }
+        return os << td->label_;
+    }
+
+    //! printCsLensType by searching the config file if necessary
     std::ostream& CanonMakerNote::printCsLensType(std::ostream& os,
                                                   const Value& value,
                                                   const ExifData* metadata)
     {
         if (   value.typeId() != unsignedShort
             || value.count() == 0) return os << "(" << value << ")";
+
+		// #1034
+		const std::string undefined("undefined") ;
+		const std::string section  ("canon");
+		if ( Internal::readExiv2Config(section,value.toString(),undefined) != undefined ) {
+			return os << Internal::readExiv2Config(section,value.toString(),undefined);
+		}
 
         const LensIdFct* lif = find(lensIdFct, value.toLong());
         if (!lif) {
@@ -1326,9 +1949,13 @@ namespace Exiv2 {
                                               const Value& value,
                                               const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
+
         if (   value.count() < 3
             || value.typeId() != unsignedShort) {
-            return os << "(" << value << ")";
+            os << "(" << value << ")";
+            os.flags(f);
+            return os;
         }
 
         float fu = value.toFloat(2);
@@ -1344,6 +1971,7 @@ namespace Exiv2 {
             os << len2 << " - " << len1 << " mm";
         }
         os.copyfmt(oss);
+        os.flags(f);
         return os;
     }
 
@@ -1351,11 +1979,13 @@ namespace Exiv2 {
                                                 const Value& value,
                                                 const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         if (   value.typeId() == unsignedShort
             && value.count() > 0) {
             // Ported from Exiftool by Will Stokes
             os << exp(canonEv(value.toLong()) * log(2.0)) * 100.0 / 32.0;
         }
+        os.flags(f);
         return os;
     }
 
@@ -1371,7 +2001,7 @@ namespace Exiv2 {
             // see also printSi0x0017
             std::ostringstream oss;
             oss.copyfmt(os);
-            int res = static_cast<int>(100.0 * (value.toLong() / 32.0 + 5.0) + 0.5);
+            int res = static_cast<int>(100.0 * (static_cast<short>(value.toLong()) / 32.0 + 5.0) + 0.5);
             os << std::fixed << std::setprecision(2) << res / 100.0;
             os.copyfmt(oss);
         }
@@ -1416,6 +2046,7 @@ namespace Exiv2 {
                                                 const Value& value,
                                                 const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         if (   value.typeId() != unsignedShort
             || value.count() == 0) return os << value;
 
@@ -1424,8 +2055,9 @@ namespace Exiv2 {
             os << "Infinite";
         }
         else {
-            os << l << "";
+            os << value.toLong()/100.0 << " m";
         }
+        os.flags(f);
         return os;
     }
 
@@ -1450,6 +2082,7 @@ namespace Exiv2 {
                                                 const Value& value,
                                                 const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         if (   value.typeId() != unsignedShort
             || value.count() == 0) return os << value;
 
@@ -1458,6 +2091,7 @@ namespace Exiv2 {
         if (ur.second > 1) {
             os << "/" << ur.second;
         }
+        os.flags(f);
         return os << " s";
     }
 
@@ -1474,6 +2108,31 @@ namespace Exiv2 {
            << value.toLong() / 8.0 - 6.0;
         os.copyfmt(oss);
         return os;
+    }
+
+    std::ostream& CanonMakerNote::printFiFocusDistance(std::ostream& os,
+                                                       const Value& value,
+                                                       const ExifData*)
+    {
+       std::ios::fmtflags f( os.flags() );
+       if (   value.typeId() != signedShort
+         || value.count() == 0) return os << value;
+
+      std::ostringstream oss;
+      oss.copyfmt(os);
+      os << std::fixed << std::setprecision(2);
+
+      long l = value.toLong();
+      if (l == 0xffff) {
+        os << "Infinite";
+      }
+      else {
+        os << value.toLong()/100.0 << " m";
+      }
+
+      os.copyfmt(oss);
+      os.flags(f);
+      return os;
     }
 
 // *****************************************************************************

@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,14 +20,14 @@
  */
 /*
   File:      datasets.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
              Gilles Caulier (gc) <caulier dot gilles at gmail dot com>
   History:   24-Jul-04, brad: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: datasets.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: datasets.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -714,21 +714,24 @@ namespace Exiv2 {
 
     std::ostream& operator<<(std::ostream& os, const DataSet& dataSet)
     {
+        std::ios::fmtflags f( os.flags() );
         IptcKey iptcKey(dataSet.number_, dataSet.recordId_);
-        return os << dataSet.name_ << ", "
-                  << std::dec << dataSet.number_ << ", "
-                  << "0x" << std::setw(4) << std::setfill('0')
-                  << std::right << std::hex << dataSet.number_ << ", "
-                  << IptcDataSets::recordName(dataSet.recordId_) << ", "
-                  << std::boolalpha << dataSet.mandatory_ << ", "
-                  << dataSet.repeatable_ << ", "
-                  << std::dec << dataSet.minbytes_ << ", "
-                  << dataSet.maxbytes_ << ", "
-                  << iptcKey.key() << ", "
-                  << TypeInfo::typeName(
-                      IptcDataSets::dataSetType(dataSet.number_,
-                                                dataSet.recordId_)) << ", "
-                  << dataSet.desc_;
+        os << dataSet.name_ << ", "
+           << std::dec << dataSet.number_ << ", "
+           << "0x" << std::setw(4) << std::setfill('0')
+           << std::right << std::hex << dataSet.number_ << ", "
+           << IptcDataSets::recordName(dataSet.recordId_) << ", "
+           << std::boolalpha << dataSet.mandatory_ << ", "
+           << dataSet.repeatable_ << ", "
+           << std::dec << dataSet.minbytes_ << ", "
+           << dataSet.maxbytes_ << ", "
+           << iptcKey.key() << ", "
+           << TypeInfo::typeName(
+              IptcDataSets::dataSetType(dataSet.number_,
+                                          dataSet.recordId_)) << ", "
+           << dataSet.desc_;
+        os.flags(f);
+        return os;
     }
 
 }                                       // namespace Exiv2

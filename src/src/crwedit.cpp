@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// crwedit.cpp, $Rev: 1560 $
+// crwedit.cpp, $Rev: 4544 $
 // Print the CIFF structure of a CRW file
 
 #include "crwimage.hpp"
@@ -79,7 +79,7 @@ void write(const std::string& filename, const Exiv2::Internal::CiffHeader* pHead
         throw Exiv2::Error(9, io.path(), Exiv2::strError());
     }
     Exiv2::IoCloser closer(io);
-    long ret = io.write(&blob[0], blob.size());
+    long ret = io.write(&blob[0], (long) blob.size());
     if (static_cast<size_t>(ret) != blob.size()) throw Exiv2::Error(21);
     io.close();
 }

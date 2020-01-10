@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// stringto-test.cpp, $Rev: 2286 $
+// stringto-test.cpp, $Rev: 3090 $
 // Test conversions from string to long, float and Rational types.
 
 #include <exiv2/exiv2.hpp>

@@ -27,7 +27,11 @@
 // macros with 0 or 1 values.
 
 /* 20-Oct-07, ahu: Determine the platform, set the above defines accordingly.                     */
+
+#if !defined(_FILE_OFFSET_BITS)
 #define _FILE_OFFSET_BITS 64
+#endif
+
 #if defined __CYGWIN32__ && !defined __CYGWIN__
    /* For backwards compatibility with Cygwin b19 and
       earlier, we define __CYGWIN__ here, so that
@@ -96,7 +100,10 @@
 
 #if defined ( DEBUG )
     #if defined ( NDEBUG )
-        #error "XMP environment error - both DEBUG and NDEBUG are defined"
+		#undef NDEBUG
+		#warning
+		#warning "XMP environment - DEBUG and NDEBUG defined.  NDEBUG has been undefined"
+		#warning
     #endif
     #define XMP_DebugBuild 1
 #endif
@@ -121,6 +128,8 @@
 	#endif
 #endif
 
+#define UNUSED(x) (void)(x)
+
 // =================================================================================================
 // Macintosh Specific Settings
 // ===========================
@@ -136,3 +145,20 @@
 // =================================================================================================
 
 #endif  // __XMP_Environment_h__
+
+/*
+  If you're using Solaris and the Solaris Studio compiler, then you really
+  do need to use -library=stdcxx4 along with these inclusions below
+*/
+#if defined(OS_SOLARIS)
+#include <stdio.h>
+#include <string.h>
+#include <strings.h>
+#include <stdlib.h>
+#include <math.h>
+#if defined(__cplusplus)
+#include <ios>
+#include <fstream>
+#endif
+#endif
+

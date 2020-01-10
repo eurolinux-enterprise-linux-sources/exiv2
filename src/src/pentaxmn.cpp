@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,31 +20,25 @@
  */
 /*
   File:      pentaxmn.cpp
-  Version:   $Rev: 2681 $
-  Author(s): Michal Cihar <michal@cihar.com>
-  Based on fujimn.cpp by:
-             Andreas Huggel (ahu) <ahuggel@gmx.net>
-             Gilles Caulier (gc) <caulier dot gilles at gmail dot com>
-  History:   27-Sep-07 created
-  Credits:   See header file.
+  Version:   $Rev: 4746 $
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: pentaxmn.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: pentaxmn.cpp 4746 2017-03-23 03:51:21Z nkbj $")
 
 // *****************************************************************************
 // included header files
 #include "types.hpp"
 #include "pentaxmn_int.hpp"
+#include "makernote_int.hpp"
 #include "value.hpp"
+#include "exif.hpp"
+#include "tags.hpp"
+#include "metadatum.hpp"
 #include "i18n.h"                // NLS support.
 
 // + standard includes
 #include <string>
-#include <sstream>
-#include <iomanip>
-#include <cassert>
-#include <cstring>
 
 // *****************************************************************************
 // class member definitions
@@ -60,91 +54,143 @@ namespace Exiv2 {
 
     //! CameraModel, tag 0x0005
     extern const TagDetails pentaxModel[] = {
-        {    0x0000d, N_("Optio 330/430") },
-        {    0x12926, N_("Optio 230") },
-        {    0x12958, N_("Optio 330GS") },
-        {    0x12962, N_("Optio 450/550") },
-        {    0x1296c, N_("Optio S") },
-        {    0x12994, N_("*ist D") },
-        {    0x129b2, N_("Optio 33L") },
-        {    0x129bc, N_("Optio 33LF") },
-        {    0x129c6, N_("Optio 33WR/43WR/555") },
-        {    0x129d5, N_("Optio S4") },
-        {    0x12a02, N_("Optio MX") },
-        {    0x12a0c, N_("Optio S40") },
-        {    0x12a16, N_("Optio S4i") },
-        {    0x12a34, N_("Optio 30") },
-        {    0x12a52, N_("Optio S30") },
-        {    0x12a66, N_("Optio 750Z") },
-        {    0x12a70, N_("Optio SV") },
-        {    0x12a75, N_("Optio SVi") },
-        {    0x12a7a, N_("Optio X") },
-        {    0x12a8e, N_("Optio S5i") },
-        {    0x12a98, N_("Optio S50") },
-        {    0x12aa2, N_("*ist DS") },
-        {    0x12ab6, N_("Optio MX4") },
-        {    0x12ac0, N_("Optio S5n") },
-        {    0x12aca, N_("Optio WP") },
-        {    0x12afc, N_("Optio S55") },
-        {    0x12b10, N_("Optio S5z") },
-        {    0x12b1a, N_("*ist DL") },
-        {    0x12b24, N_("Optio S60") },
-        {    0x12b2e, N_("Optio S45") },
-        {    0x12b38, N_("Optio S6") },
-        {    0x12b4c, N_("Optio WPi") },
-        {    0x12b56, N_("BenQ DC X600") },
-        {    0x12b60, N_("*ist DS2") },
-        {    0x12b62, N_("Samsung GX-1S") },
-        {    0x12b6a, N_("Optio A10") },
-        {    0x12b7e, N_("*ist DL2") },
-        {    0x12b80, N_("Samsung GX-1L") },
-        {    0x12b9c, N_("K100D") },
-        {    0x12b9d, N_("K110D") },
-        {    0x12ba2, N_("K100D Super") },
-        {    0x12bb0, N_("Optio T10/T20") },
-        {    0x12be2, N_("Optio W10") },
-        {    0x12bf6, N_("Optio M10") },
-        {    0x12c1e, N_("K10D") },
-        {    0x12c20, N_("Samsung GX10") },
-        {    0x12c28, N_("Optio S7") },
-        {    0x12c2d, N_("Optio L20") },
-        {    0x12c32, N_("Optio M20") },
-        {    0x12c3c, N_("Optio W20") },
-        {    0x12c46, N_("Optio A20") },
-        {    0x12c8c, N_("Optio M30") },
-        {    0x12c78, N_("Optio E30") },
-        {    0x12c7d, N_("Optio E35") },
-        {    0x12c82, N_("Optio T30") },
-        {    0x12c96, N_("Optio W30") },
-        {    0x12ca0, N_("Optio A30") },
-        {    0x12cb4, N_("Optio E40") },
-        {    0x12cbe, N_("Optio M40") },
-        {    0x12cc8, N_("Optio Z10") },
-        {    0x12cd2, N_("K20D") },
-        {    0x12cd4, N_("Samsung GX20") },
-        {    0x12cdc, N_("Optio S10") },
-        {    0x12ce6, N_("Optio A40") },
-        {    0x12cf0, N_("Optio V10") },
-        {    0x12cfa, N_("K200D") },
-        {    0x12d04, N_("Optio S12") },
-        {    0x12d0e, N_("Optio E50") },
-        {    0x12d18, N_("Optio M50") },
-        {    0x12d2c, N_("Optio V20") },
-        {    0x12d40, N_("Optio W60") },
-        {    0x12d4a, N_("Optio M60") },
-        {    0x12d68, N_("Optio E60") },
-        {    0x12d72, N_("K2000") },
-        {    0x12d73, N_("K-m") },
-        {    0x12d86, N_("Optio P70") },
-        {    0x12d9a, N_("Optio E70") },
-        {    0x12dae, N_("X70") },
-        {    0x12db8, N_("K-7") },
-        {    0x12dcc, N_("Optio W80") },
-        {    0x12dea, N_("Optio P80") },
-        {    0x12df4, N_("Optio WS80") },
-        {    0x12dfe, N_("K-x") },
-        {    0x12e08, N_("645D") },
-        {    0x12e3a, N_("Optio I-10") },
+        {    0x0000d, "Optio 330/430" },
+        {    0x12926, "Optio 230" },
+        {    0x12958, "Optio 330GS" },
+        {    0x12962, "Optio 450/550" },
+        {    0x1296c, "Optio S" },
+        {    0x12971, "Optio S V1.01" },
+        {    0x12994, "*ist D" },
+        {    0x129b2, "Optio 33L" },
+        {    0x129bc, "Optio 33LF" },
+        {    0x129c6, "Optio 33WR/43WR/555" },
+        {    0x129d5, "Optio S4" },
+        {    0x12a02, "Optio MX" },
+        {    0x12a0c, "Optio S40" },
+        {    0x12a16, "Optio S4i" },
+        {    0x12a34, "Optio 30" },
+        {    0x12a52, "Optio S30" },
+        {    0x12a66, "Optio 750Z" },
+        {    0x12a70, "Optio SV" },
+        {    0x12a75, "Optio SVi" },
+        {    0x12a7a, "Optio X" },
+        {    0x12a8e, "Optio S5i" },
+        {    0x12a98, "Optio S50" },
+        {    0x12aa2, "*ist DS" },
+        {    0x12ab6, "Optio MX4" },
+        {    0x12ac0, "Optio S5n" },
+        {    0x12aca, "Optio WP" },
+        {    0x12afc, "Optio S55" },
+        {    0x12b10, "Optio S5z" },
+        {    0x12b1a, "*ist DL" },
+        {    0x12b24, "Optio S60" },
+        {    0x12b2e, "Optio S45" },
+        {    0x12b38, "Optio S6" },
+        {    0x12b4c, "Optio WPi" },
+        {    0x12b56, "BenQ DC X600" },
+        {    0x12b60, "*ist DS2" },
+        {    0x12b62, "Samsung GX-1S" },
+        {    0x12b6a, "Optio A10" },
+        {    0x12b7e, "*ist DL2" },
+        {    0x12b80, "Samsung GX-1L" },
+        {    0x12b9c, "K100D" },
+        {    0x12b9d, "K110D" },
+        {    0x12ba2, "K100D Super" },
+        {    0x12bb0, "Optio T10/T20" },
+        {    0x12be2, "Optio W10" },
+        {    0x12bf6, "Optio M10" },
+        {    0x12c1e, "K10D" },
+        {    0x12c20, "Samsung GX10" },
+        {    0x12c28, "Optio S7" },
+        {    0x12c2d, "Optio L20" },
+        {    0x12c32, "Optio M20" },
+        {    0x12c3c, "Optio W20" },
+        {    0x12c46, "Optio A20" },
+        {    0x12c78, "Optio E30" },
+        {    0x12c7d, "Optio E35" },
+        {    0x12c82, "Optio T30" },
+        {    0x12c8c, "Optio M30" },
+        {    0x12c91, "Optio L30" },
+        {    0x12c96, "Optio W30" },
+        {    0x12ca0, "Optio A30" },
+        {    0x12cb4, "Optio E40" },
+        {    0x12cbe, "Optio M40" },
+        {    0x12cc3, "Optio L40" },
+        {    0x12cc5, "Optio L36" },
+        {    0x12cc8, "Optio Z10" },
+        {    0x12cd2, "K20D" },
+        {    0x12cd4, "Samsung GX20" },
+        {    0x12cdc, "Optio S10" },
+        {    0x12ce6, "Optio A40" },
+        {    0x12cf0, "Optio V10" },
+        {    0x12cfa, "K200D" },
+        {    0x12d04, "Optio S12" },
+        {    0x12d0e, "Optio E50" },
+        {    0x12d18, "Optio M50" },
+        {    0x12d22, "Optio L50" },
+        {    0x12d2c, "Optio V20" },
+        {    0x12d40, "Optio W60" },
+        {    0x12d4a, "Optio M60" },
+        {    0x12d68, "Optio E60/M90" },
+        {    0x12d72, "K2000" },
+        {    0x12d73, "K-m" },
+        {    0x12d86, "Optio P70" },
+        {    0x12d90, "Optio L70" },
+        {    0x12d9a, "Optio E70" },
+        {    0x12dae, "X70" },
+        {    0x12db8, "K-7" },
+        {    0x12dcc, "Optio W80" },
+        {    0x12dea, "Optio P80" },
+        {    0x12df4, "Optio WS80" },
+        {    0x12dfe, "K-x" },
+        {    0x12e08, "645D" },
+        {    0x12e12, "Optio E80" },
+        {    0x12e30, "Optio W90" },
+        {    0x12e3a, "Optio I-10" },
+        {    0x12e44, "Optio H90" },
+        {    0x12e4e, "Optio E90" },
+        {    0x12e58, "X90" },
+        {    0x12e6c, "K-r" },
+        {    0x12e76, "K-5" },
+        {    0x12e8a, "Optio RS1000/RS1500" },
+        {    0x12e94, "Optio RZ10" },
+        {    0x12e9e, "Optio LS1000" },
+        {    0x12ebc, "Optio WG-1 GPS" },
+        {    0x12ed0, "Optio S1" },
+        {    0x12ee4, "Q" },
+        {    0x12ef8, "K-01" },
+        {    0x12f0c, "Optio RZ18" },
+        {    0x12f16, "Optio VS20" },
+        {    0x12f2a, "Optio WG-2 GPS" },
+        {    0x12f48, "Optio LS465" },
+        {    0x12f52, "K-30" },
+        {    0x12f5c, "X-5" },
+        {    0x12f66, "Q10" },
+        {    0x12f70, "K-5 II" },
+        {    0x12f71, "K-5 II s" },
+        {    0x12f7a, "Q7" },
+        {    0x12f84, "MX-1" },
+        {    0x12f8e, "WG-3 GPS" },
+        {    0x12f98, "WG-3" },
+        {    0x12fa2, "WG-10" },
+        {    0x12fb6, "K-50" },
+        {    0x12fc0, "K-3" },
+        {    0x12fca, "K-500" },
+        {    0x12fde, "WG-4 GPS" },
+        {    0x12fe8, "WG-4" },
+        {    0x13006, "WG-20" },
+        {    0x13010, "645Z" },
+        {    0x1301a, "K-S1" },
+        {    0x13024, "K-S2" },
+        {    0x1302e, "Q-S1" },
+        {    0x13056, "WG-30" },
+        {    0x1307e, "WG-30W" },
+        {    0x13088, "WG-5 GPS" },
+        {    0x13092, "K-1" },
+        {    0x1309c, "K-3 II" },
+        {    0x131f0, "WG-M2" },
+        {    0x13222, "K-70" },
+        {    0x1322c, "KP" },
     };
 
     //! Quality, tag 0x0008
@@ -155,42 +201,64 @@ namespace Exiv2 {
         {   3, N_("TIFF") },
         {   4, N_("RAW") },
         {   5, N_("Premium") },
+        {   65535, N_("n/a") },
     };
 
     //! Size, tag 0x0009
     extern const TagDetails pentaxSize[] = {
-        {    0, N_("640x480") },
+        {    0, "640x480" },
         {    1, N_("Full") },
-        {    2, N_("1024x768") },
-        {    3, N_("1280x960") },
-        {    4, N_("1600x1200") },
-        {    5, N_("2048x1536") },
+        {    2, "1024x768" },
+        {    3, "1280x960" },
+        {    4, "1600x1200" },
+        {    5, "2048x1536" },
         {    8, N_("2560x1920 or 2304x1728") },
-        {    9, N_("3072x2304") },
-        {    10, N_("3264x2448") },
-        {    19, N_("320x240") },
-        {    20, N_("2288x1712") },
-        {    21, N_("2592x1944") },
+        {    9, "3072x2304" },
+        {    10, "3264x2448" },
+        {    19, "320x240" },
+        {    20, "2288x1712" },
+        {    21, "2592x1944" },
         {    22, N_("2304x1728 or 2592x1944") },
-        {    23, N_("3056x2296") },
+        {    23, "3056x2296" },
         {    25, N_("2816x2212 or 2816x2112") },
-        {    27, N_("3648x2736") },
+        {    27, "3648x2736" },
+        {    29, "4000x3000" },
+        {    30, "4288x3216" },
+        {    31, "4608x3456" },
+        {    129, "1920x1080" },
+        {    135, "4608x2592" },
+        {    257, "3216x3216" },
+// not sure what to do with these values:
+//    '0 0' = 2304x1728
+//    '4 0' = 1600x1200
+//    '5 0' = 2048x1536
+//    '8 0' = 2560x1920
+//    '32 2' = 960x640
+//    '33 2' = 1152x768
+//    '34 2' = 1536x1024
+//    '35 1' = 2400x1600
+//    '36 0' = 3008x2008 or 3040x2024
+//    '37 0' = 3008x2000
     };
 
     //! Flash, tag 0x000c
     extern const TagDetails pentaxFlash[] = {
         {    0x000, N_("Auto, Did not fire") },
-        {    0x001, N_("Off") },
+        {    0x001, N_("Off, Did not fire") },
+        {    0x002, N_("Off, Did not fire") },
         {    0x003, N_("Auto, Did not fire, Red-eye reduction") },
+        {    0x005, N_("On. Did not fire. Wireless (Master)") },
         {    0x100, N_("Auto, Fired") },
-        {    0x102, N_("On") },
+        {    0x102, N_("On, Fired") },
         {    0x103, N_("Auto, Fired, Red-eye reduction") },
         {    0x104, N_("On, Red-eye reduction") },
-        {    0x105, N_("On, Wireless") },
+        {    0x105, N_("On, Wireless (Master)") },
+        {    0x106, N_("On, Wireless (Control)") },
         {    0x108, N_("On, Soft") },
         {    0x109, N_("On, Slow-sync") },
         {    0x10a, N_("On, Slow-sync, Red-eye reduction") },
         {    0x10b, N_("On, Trailing-curtain Sync") },
+// exiftool recognises 2 values, the values here correpond with Value 0
     };
 
     //! Focus, tag 0x000d
@@ -204,6 +272,9 @@ namespace Exiv2 {
         {    16, N_("AF-S") },
         {    17, N_("AF-C") },
         {    18, N_("AF-A") },
+        {    32, N_("Contrast-detect") },
+        {    33, N_("Tracking Contrast-detect") },
+        {    288, N_("Face Detect") },
     };
 
     //! AFPoint, tag 0x000e
@@ -212,6 +283,8 @@ namespace Exiv2 {
         {    0xfffe, N_("Fixed Center") },
         {    0xfffd, N_("Automatic Tracking AF") },
         {    0xfffc, N_("Face Recognition AF") },
+        {    0xfffb, N_("AF Select") },
+        {    0, N_("None") },
         {    1, N_("Upper-left") },
         {    2, N_("Top") },
         {    3, N_("Upper-right") },
@@ -242,49 +315,86 @@ namespace Exiv2 {
 
     //! ISO, tag 0x0014
     extern const TagDetails pentaxISO[] = {
-        {    3, N_("50") },
-        {    4, N_("64") },
-        {    5, N_("80") },
-        {    6, N_("100") },
-        {    7, N_("125") },
-        {    8, N_("160") },
-        {    9, N_("200") },
-        {    10, N_("250") },
-        {    11, N_("320") },
-        {    12, N_("400") },
-        {    13, N_("500") },
-        {    14, N_("640") },
-        {    15, N_("800") },
-        {    16, N_("1000") },
-        {    17, N_("1250") },
-        {    18, N_("1600") },
-        {    19, N_("2000") },
-        {    20, N_("2500") },
-        {    21, N_("3200") },
-        {    22, N_("4000") },
-        {    23, N_("5000") },
-        {    24, N_("6400") },
-        {    50, N_("50") },
-        {    100, N_("100") },
-        {    200, N_("200") },
-        {    268, N_("200") },
-        {    400, N_("400") },
-        {    800, N_("800") },
-        {    1600, N_("1600") },
-        {    3200, N_("3200") },
-        {    258, N_("50") },
-        {    259, N_("70") },
-        {    260, N_("100") },
-        {    261, N_("140") },
-        {    262, N_("200") },
-        {    263, N_("280") },
-        {    264, N_("400") },
-        {    265, N_("560") },
-        {    266, N_("800") },
-        {    267, N_("1100") },
-        {    268, N_("1600") },
-        {    269, N_("2200") },
-        {    270, N_("3200") },
+        {    3, "50" },
+        {    4, "64" },
+        {    5, "80" },
+        {    6, "100" },
+        {    7, "125" },
+        {    8, "160" },
+        {    9, "200" },
+        {    10, "250" },
+        {    11, "320" },
+        {    12, "400" },
+        {    13, "500" },
+        {    14, "640" },
+        {    15, "800" },
+        {    16, "1000" },
+        {    17, "1250" },
+        {    18, "1600" },
+        {    19, "2000" },
+        {    20, "2500" },
+        {    21, "3200" },
+        {    22, "4000" },
+        {    23, "5000" },
+        {    24, "6400" },
+        {    25, "8000" },
+        {    26, "10000" },
+        {    27, "12800" },
+        {    28, "16000" },
+        {    29, "20000" },
+        {    30, "25600" },
+        {    31, "32000" },
+        {    32, "40000" },
+        {    33, "51200" },
+        {    34, "64000" },
+        {    35, "80000" },
+        {    36, "102400" },
+        {    37, "128000" },
+        {    38, "160000" },
+        {    39, "204800" },
+        {    40, "256000" },
+        {    41, "320000" },
+        {    42, "409600" },
+        {    43, "512000" },
+        {    44, "640000" },
+        {    45, "819200" },
+        {    50, "50" },
+        {    100, "100" },
+        {    200, "200" },
+//        {    268, "200" },
+        {    400, "400" },
+        {    800, "800" },
+        {    1600, "1600" },
+        {    3200, "3200" },
+        {    258, "50" },
+        {    259, "70" },
+        {    260, "100" },
+        {    261, "140" },
+        {    262, "200" },
+        {    263, "280" },
+        {    264, "400" },
+        {    265, "560" },
+        {    266, "800" },
+        {    267, "1100" },
+        {    268, "1600" },
+        {    269, "2200" },
+        {    270, "3200" },
+        {    271, "4500" },
+        {    272, "6400" },
+        {    273, "9000" },
+        {    274, "12800" },
+        {    275, "18000" },
+        {    276, "25600" },
+        {    277, "36000" },
+        {    278, "51200" },
+        {    279, "72000" },
+        {    280, "102400" },
+        {    281, "144000" },
+        {    282, "204800" },
+        {    283, "288000" },
+        {    284, "409600" },
+        {    285, "576000" },
+        {    286, "819200" },
     };
 
     //! Generic for Off/On switches
@@ -306,8 +416,8 @@ namespace Exiv2 {
         {    2, N_("Spot") },
     };
 
-    //! WhiteBallance, tag 0x0019
-    extern const TagDetails pentaxWhiteBallance[] = {
+    //! WhiteBalance, tag 0x0019
+    extern const TagDetails pentaxWhiteBalance[] = {
         {    0, N_("Auto") },
         {    1, N_("Daylight") },
         {    2, N_("Shade") },
@@ -319,17 +429,19 @@ namespace Exiv2 {
         {    8, N_("WhiteFluorescent") },
         {    9, N_("Flash") },
         {    10, N_("Cloudy") },
+        {    15, N_("Color Temperature Enhancement") },
         {    17, N_("Kelvin") },
         {    65534, N_("Unknown") },
         {    65535, N_("User Selected") },
     };
 
-    //! WhiteBallance, tag 0x001a
-    extern const TagDetails pentaxWhiteBallanceMode[] = {
+    //! WhiteBalance, tag 0x001a
+    extern const TagDetails pentaxWhiteBalanceMode[] = {
         {    1, N_("Auto (Daylight)") },
         {    2, N_("Auto (Shade)") },
         {    3, N_("Auto (Flash)") },
         {    4, N_("Auto (Tungsten)") },
+        {    6, N_("Auto (DaylightFluorescent)") },
         {    7, N_("Auto (DaywhiteFluorescent)") },
         {    8, N_("Auto (WhiteFluorescent)") },
         {    10, N_("Auto (Cloudy)") },
@@ -346,6 +458,8 @@ namespace Exiv2 {
         {     4, N_("Med High")  },
         {     5, N_("Very Low")  },
         {     6, N_("Very High") },
+        {     7, N_("-4") },
+        {     8, N_("+4") },
         { 65535, N_("None")      },
         { 65535, N_("None")      }              // To silence compiler warning
     };
@@ -359,6 +473,8 @@ namespace Exiv2 {
         {    4, N_("Med High") },
         {    5, N_("Very Low") },
         {    6, N_("Very High") },
+        {    7, N_("-4") },
+        {    8, N_("+4") },
     };
 
     //! Sharpness, tag 0x0021
@@ -370,6 +486,8 @@ namespace Exiv2 {
         {    4, N_("Med Hard") },
         {    5, N_("Very Soft") },
         {    6, N_("Very Hard") },
+        {    7, N_("-4") },
+        {    8, N_("+4") },
     };
 
     //! Location, tag 0x0022
@@ -452,20 +570,27 @@ namespace Exiv2 {
         {    69, N_("Stockholm") },
         {    70, N_("Lisbon") },
         {    71, N_("Copenhagen") },
+        {    72, N_("Warsaw") },
+        {    73, N_("Prague") },
+        {    74, N_("Budapest") },
     };
 
     //! ImageProcessing, combi-tag 0x0032 (4 bytes)
     extern const TagDetails pentaxImageProcessing[] = {
         { 0x00000000, N_("Unprocessed") },
         { 0x00000004, N_("Digital Filter") },
+        { 0x01000000, N_("Resized") },
         { 0x02000000, N_("Cropped") },
         { 0x04000000, N_("Color Filter") },
+        { 0x06000000, N_("Digital Filter 6") },
         { 0x10000000, N_("Frame Synthesis?") }
     };
 
     //! PictureMode, combi-tag 0x0033 (3 bytes)
     extern const TagDetails pentaxPictureMode[] = {
         { 0x000000, N_("Program") },
+        { 0x000100, N_("Hi-speed Program") },
+        { 0x000200, N_("DOF Program") },
         { 0x000300, N_("MTF Program") },
         { 0x000400, N_("Standard") },
         { 0x000500, N_("Portrait") },
@@ -486,6 +611,13 @@ namespace Exiv2 {
         { 0x001300, N_("Food") },
         { 0x001400, N_("Stage Lighting") },
         { 0x001500, N_("Night Snap") },
+        { 0x001700, N_("Blue Sky") },
+        { 0x001800, N_("Sunset") },
+        { 0x001a00, N_("Night Scene HDR") },
+        { 0x001b00, N_("HDR") },
+        { 0x001c00, N_("Quick Macro") },
+        { 0x001d00, N_("Forest") },
+        { 0x001e00, N_("Backlight Silhouette") },
         /* AUTO PICT modes (auto-selected) */
         { 0x010400, N_("Auto PICT (Standard)") },
         { 0x010500, N_("Auto PICT (Portrait)") },
@@ -504,6 +636,7 @@ namespace Exiv2 {
         { 0x020101, N_("Hi-speed Program") },
         { 0x020201, N_("DOF Program") },
         { 0x020301, N_("MTF Program") },
+        { 0x021601, N_("Shallow DOF") },
         { 0x030001, N_("Green Mode") },
         { 0x040001, N_("Shutter Speed Priority") },
         { 0x050001, N_("Aperture Priority") },
@@ -522,6 +655,12 @@ namespace Exiv2 {
         { 0x0f0001, N_("Sensitivity Priority AE (1)") },
         { 0x100000, N_("Flash X-Sync Speed AE") },
         { 0x100001, N_("Flash X-Sync Speed AE (1)") },
+        { 0x120001, N_("Auto Program (Normal)") },
+        { 0x120101, N_("Auto Program (Hi-Speed)") },
+        { 0x120201, N_("Auto Program (DOF)") },
+        { 0x120301, N_("Auto Program (MTF)") },
+        { 0x121601, N_("Auto Program (Shallow DOF)") },
+        { 0x141601, N_("Blur control") },
         /* other modes */
         { 0x000001, N_("Program") },
         { 0xfe0000, N_("Video (30 fps)") },
@@ -534,12 +673,21 @@ namespace Exiv2 {
         { 0x01000000, N_("Continuous") },
         { 0x02000000, N_("Continuous (Hi)") },
         { 0x03000000, N_("Burst") },
+        { 0xff000000, N_("Video") },
         { 0x00100000, N_("Single-frame") }, /* on 645D */
         { 0x00010000, N_("Self-timer (12 sec)") },
         { 0x00020000, N_("Self-timer (2 sec)") },
+        { 0x000f0000, N_("Video") },
+        { 0x00100000, N_("Mirror Lock-up") },
         { 0x00000100, N_("Remote Control (3 sec)") },
         { 0x00000200, N_("Remote Control") },
+        { 0x00000400, N_("Remote Continuous Shooting") },
         { 0x00000001, N_("Multiple Exposure") },
+        { 0x00000010, N_("HDR") },
+        { 0x00000020, N_("HDR Strong 1") },
+        { 0x00000030, N_("HDR Strong 2") },
+        { 0x00000040, N_("HDR Strong 3") },
+        { 0x000000e0, N_("HDR Auto") },
         { 0x000000ff, N_("Video") },
     };
 
@@ -552,38 +700,65 @@ namespace Exiv2 {
     //! LensType, combi-tag 0x003f (2 unsigned long)
     extern const TagDetails pentaxLensType[] = {
         { 0x0000, N_("M-42 or No Lens") },
-        { 0x0100, N_("K,M Lens") },
+        { 0x0100, N_("K or M Lens") },
         { 0x0200, N_("A Series Lens") },
-        { 0x0300, "SIGMA" },
+        { 0x0300, "Sigma Lens" },
         { 0x0311, "smc PENTAX-FA SOFT 85mm F2.8" },
         { 0x0312, "smc PENTAX-F 1.7X AF ADAPTER" },
         { 0x0313, "smc PENTAX-F 24-50mm F4" },
         { 0x0314, "smc PENTAX-F 35-80mm F4-5.6" },
         { 0x0315, "smc PENTAX-F 80-200mm F4.7-5.6" },
         { 0x0316, "smc PENTAX-F FISH-EYE 17-28mm F3.5-4.5" },
-        { 0x0317, "smc PENTAX-F 100-300mm F4.5-5.6" },
+        { 0x0317, "smc PENTAX-F 100-300mm F4.5-5.6" },                   //0
+        { 0x0317, "Sigma AF 28-300mm F3.5-6.3 DG IF Macro" },            //1
+        { 0x0317, "Tokina 80-200mm F2.8 ATX-Pro" },                      //2
         { 0x0318, "smc PENTAX-F 35-135mm F3.5-4.5" },
-        { 0x0319, "smc PENTAX-F 35-105mm F4-5.6 or SIGMA or Tokina" },
+        { 0x0319, "smc PENTAX-F 35-105mm F4-5.6" },                      //0
+        { 0x0319, "Sigma AF 28-300mm F3.5-5.6 DL IF" },                  //1
+        { 0x0319, "Sigma 55-200mm F4-5.6 DC" },                          //2
+        { 0x0319, "Sigma AF 28-300mm F3.5-5.6 DL IF" },                  //3
+        { 0x0319, "Sigma AF 28-300mm F3.5-6.3 DG IF Macro" },            //4
+        { 0x0319, "Tokina 80-200mm F2.8 ATX-Pro" },                      //5
+        { 0x0319, "Sigma Zoom 70-210mm F4-5.6 UC-II" },                  //6
         { 0x031a, "smc PENTAX-F* 250-600mm F5.6 ED[IF]" },
-        { 0x031b, "smc PENTAX-F 28-80mm F3.5-4.5" },
-        { 0x031c, "smc PENTAX-F 35-70mm F3.5-4.5" },
-        { 0x031d, "PENTAX-F 28-80mm F3.5-4.5 or SIGMA AF 18-125mm F3.5-5.6 DC" },
+        { 0x031b, "smc PENTAX-F 28-80mm F3.5-4.5" },                     //0
+        { 0x031b, "Tokina AT-X Pro AF 28-70mm F2.6-2.8" },               //1
+        { 0x031c, "smc PENTAX-F 35-70mm F3.5-4.5" },                     //0
+        { 0x031c, "Tokina 19-35mm F3.5-4.5 AF" },                        //1
+        { 0x031c, "Tokina AT-X AF 400mm F5.6" },                         //2
+        { 0x031d, "PENTAX-F 28-80mm F3.5-4.5" },                         //0
+        { 0x031d, "Sigma AF 18-125mm F3.5-5.6 DC" },                     //1
+        { 0x031d, "Tokina AT-X PRO 28-70mm F2.6-2.8" },                  //2
         { 0x031e, "PENTAX-F 70-200mm F4-5.6" },
-        { 0x031f, "smc PENTAX-F 70-210mm F4-5.6" },
+        { 0x031f, "smc PENTAX-F 70-210mm F4-5.6" },                      //0
+        { 0x031f, "Tokina AF 730 75-300mm F4.5-5.6" },                   //1
+        { 0x031f, "Takumar-F 70-210mm F4-5.6" },                         //2
         { 0x0320, "smc PENTAX-F 50mm F1.4" },
         { 0x0321, "smc PENTAX-F 50mm F1.7" },
         { 0x0322, "smc PENTAX-F 135mm F2.8 [IF]" },
         { 0x0323, "smc PENTAX-F 28mm F2.8" },
-        { 0x0324, "SIGMA 20mm F1.8 EX DG ASPHERICAL RF" },
+        { 0x0324, "Sigma 20mm F1.8 EX DG Aspherical RF" },
         { 0x0326, "smc PENTAX-F* 300mm F4.5 ED[IF]" },
         { 0x0327, "smc PENTAX-F* 600mm F4 ED[IF]" },
-        { 0x0328, "smc PENTAX-F MACRO 100mm F2.8" },
-        { 0x0329, "smc PENTAX-F MACRO 50mm F2.8 or Sigma 50mm F2,8 MACRO" },
-        { 0x032c, "Tamron 35-90mm F4 AF or various SIGMA models" },
-        { 0x032e, "SIGMA APO 70-200mm F2.8 EX" },
+        { 0x0328, "smc PENTAX-F Macro 100mm F2.8" },
+        { 0x0329, "smc PENTAX-F Macro 50mm F2.8" },                      //0
+        { 0x0329, "Sigma 50mm F2.8 Macro" },                             //1
+        { 0x032a, "Sigma 300mm F2.8 EX DG APO IF" },
+        { 0x032c, "Tamron 35-90mm F4 AF" },                              //0
+        { 0x032c, "Sigma AF 10-20mm F4-5.6 EX DC" },                     //1
+        { 0x032c, "Sigma 12-24mm F4.5-5.6 EX DG" },                      //2
+        { 0x032c, "Sigma 17-70mm F2.8-4.5 DC Macro" },                   //3
+        { 0x032c, "Sigma 18-50mm F3.5-5.6 DC" },                         //4
+        { 0x032c, "Sigma 17-35mm F2.8-4 EX DG" },                        //5
+        { 0x032c, "Sigma AF 18-35mm F3.5-4.5 Aspherical" },              //6
+        { 0x032e, "Sigma or Samsung Lens" },                             //0
+        { 0x032e, "Sigma APO 70-200mm F2.8 EX" },                        //1
+        { 0x032e, "Sigma EX APO 100-300mm F4 IF" },                      //2
+        { 0x032e, "Samsung/Schneider D-XENON 50-200mm F4-5.6 ED" },      //3
         { 0x0332, "smc PENTAX-FA 28-70mm F4 AL" },
-        { 0x0333, "SIGMA 28mm F1.8 EX DG ASPHERICAL MACRO" },
-        { 0x0334, "smc PENTAX-FA 28-200mm F3.8-5.6 AL[IF]" },
+        { 0x0333, "Sigma 28mm F1.8 EX DG Aspherical Macro" },
+        { 0x0334, "smc PENTAX-FA 28-200mm F3.8-5.6 AL[IF]" },            //0
+        { 0x0334, "Tamron AF LD 28-200mm F3.8-5.6 [IF] Aspherical (171D)" },//1
         { 0x0335, "smc PENTAX-FA 28-80mm F3.5-5.6 AL" },
         { 0x03f7, "smc PENTAX-DA FISH-EYE 10-17mm F3.5-4.5 ED[IF]" },
         { 0x03f8, "smc PENTAX-DA 12-24mm F4 ED AL[IF]" },
@@ -592,45 +767,71 @@ namespace Exiv2 {
         { 0x03fc, "smc PENTAX-DA 18-55mm F3.5-5.6 AL" },
         { 0x03fd, "smc PENTAX-DA 14mm F2.8 ED[IF]" },
         { 0x03fe, "smc PENTAX-DA 16-45mm F4 ED AL" },
-        { 0x03ff, "SIGMA" },
+        { 0x03ff, "Sigma Lens" },                                        //0
+        { 0x03ff, "Sigma 18-200mm F3.5-6.3 DC" },                        //1
+        { 0x03ff, "Sigma DL-II 35-80mm F4-5.6" },                        //2
+        { 0x03ff, "Sigma DL Zoom 75-300mm F4-5.6" },                     //3
+        { 0x03ff, "Sigma DF EX Aspherical 28-70mm F2.8" },               //4
+        { 0x03ff, "Sigma AF Tele 400mm F5.6 Multi-coated" },             //5
+        { 0x03ff, "Sigma 24-60mm F2.8 EX DG" },                          //6
+        { 0x03ff, "Sigma 70-300mm F4-5.6 Macro" },                       //7
+        { 0x03ff, "Sigma 55-200mm F4-5.6 DC" },                          //8
+        { 0x03ff, "Sigma 18-50mm F2.8 EX DC" },                          //9
+        { 0x03ff, "Sigma 18-50mm F2.8 EX DC Macro" },                    //10
         { 0x0401, "smc PENTAX-FA SOFT 28mm F2.8" },
         { 0x0402, "smc PENTAX-FA 80-320mm F4.5-5.6" },
         { 0x0403, "smc PENTAX-FA 43mm F1.9 Limited" },
         { 0x0406, "smc PENTAX-FA 35-80mm F4-5.6" },
+        { 0x040a, "Irix 15mm F2.4" },
         { 0x040c, "smc PENTAX-FA 50mm F1.4" },
         { 0x040f, "smc PENTAX-FA 28-105mm F4-5.6 [IF]" },
-        { 0x0410, "TAMRON AF 80-210mm F4-5.6 (178D)" },
-        { 0x0413, "TAMRON SP AF 90mm F2.8 (172E)" },
+        { 0x0410, "Tamron AF 80-210mm F4-5.6 (178D)" },
+        { 0x0413, "Tamron SP AF 90mm F2.8 (172E)" },
         { 0x0414, "smc PENTAX-FA 28-80mm F3.5-5.6" },
-        { 0x0416, "TOKINA 28-80mm F3.5-5.6" },
+        { 0x0415, "Cosina AF 100-300mm F5.6-6.7" },
+        { 0x0416, "Tokina 28-80mm F3.5-5.6" },
         { 0x0417, "smc PENTAX-FA 20-35mm F4 AL" },
         { 0x0418, "smc PENTAX-FA 77mm F1.8 Limited" },
-        { 0x0419, "TAMRON SP AF 14mm F2.8" },
-        { 0x041a, "smc PENTAX-FA MACRO 100mm F3.5" },
-        { 0x041b, "TAMRON AF28-300mm F/3.5-6.3 LD Aspherical[IF] MACRO (285D)" },
+        { 0x0419, "Tamron SP AF 14mm F2.8" },
+        { 0x041a, "smc PENTAX-FA Macro 100mm F3.5" },                    //0
+        { 0x041a, "Cosina 100mm F3.5 Macro" },                           //1
+        { 0x041b, "Tamron AF28-300mm F/3.5-6.3 LD Aspherical[IF] Macro (185D/285D)" },
         { 0x041c, "smc PENTAX-FA 35mm F2 AL" },
-        { 0x041d, "TAMRON AF 28-200mm F/3.8-5.6 LD Super II MACRO (371D)" },
+        { 0x041d, "Tamron AF 28-200mm F/3.8-5.6 LD Super II Macro (371D)" },
         { 0x0422, "smc PENTAX-FA 24-90mm F3.5-4.5 AL[IF]" },
         { 0x0423, "smc PENTAX-FA 100-300mm F4.7-5.8" },
-        { 0x0424, "TAMRON AF70-300mm F/4-5.6 LD MACRO" },
-        { 0x0425, "TAMRON SP AF 24-135mm F3.5-5.6 AD AL (190D)" },
+        { 0x0424, "Tamron AF 70-300mm F/4-5.6 LD Macro 1:2 (572D/A17)" },
+        { 0x0425, "Tamron SP AF 24-135mm F3.5-5.6 AD AL (190D)" },
         { 0x0426, "smc PENTAX-FA 28-105mm F3.2-4.5 AL[IF]" },
         { 0x0427, "smc PENTAX-FA 31mm F1.8AL Limited" },
-        { 0x0429, "TAMRON AF 28-200mm Super Zoom F3.8-5.6 Aspherical XR [IF] MACRO (A03)" },
+        { 0x0429, "Tamron AF 28-200mm Super Zoom F3.8-5.6 Aspherical XR [IF] Macro (A03)" },
         { 0x042b, "smc PENTAX-FA 28-90mm F3.5-5.6" },
         { 0x042c, "smc PENTAX-FA J 75-300mm F4.5-5.8 AL" },
-        { 0x042d, "TAMRON 28-300mm F3.5-6.3 Ultra zoom XR" },
+        { 0x042d, "Tamron Lens" },                                       //0
+        { 0x042d, "Tamron 28-300mm F3.5-6.3 Ultra zoom XR" },            //1
+        { 0x042d, "Tamron AF 28-300mm F3.5-6.3 XR Di LD Aspherical [IF] Macro" },//2
         { 0x042e, "smc PENTAX-FA J 28-80mm F3.5-5.6 AL" },
         { 0x042f, "smc PENTAX-FA J 18-35mm F4-5.6 AL" },
-        { 0x0431, "TAMRON SP AF 28-75mm F2.8 XR Di (A09)" },
-        { 0x0433, "smc PENTAX-D FA 50mm F2.8 MACRO" },
-        { 0x0434, "smc PENTAX-D FA 100mm F2.8 MACRO" },
+        { 0x0431, "Tamron SP AF 28-75mm F2.8 XR Di LD Aspherical [IF] Macro (A09)" },
+        { 0x0433, "smc PENTAX-D FA 50mm F2.8 Macro" },
+        { 0x0434, "smc PENTAX-D FA 100mm F2.8 Macro" },
+        { 0x0437, "Samsung/Schneider D-XENOGON 35mm F2" },
+        { 0x0438, "Samsung/Schneider D-XENON 100mm F2.8 Macro" },
+        { 0x044b, "Tamron SP AF 70-200mm F2.8 Di LD [IF] Macro (A001)" },
+        { 0x04d6, "smc PENTAX-DA 35mm F2.4 AL" },
+        { 0x04e5, "smc PENTAX-DA 18-55mm F3.5-5.6 AL II" },
+        { 0x04e6, "Tamron SP AF 17-50mm F2.8 XR Di II" },
+        { 0x04e7, "smc PENTAX-DA 18-250mm F3.5-6.3 ED AL [IF]" },
+        { 0x04ed, "Samsung/Schneider D-XENOGON 10-17mm F3.5-4.5" },
+        { 0x04ef, "Samsung/Schneider D-XENON 12-24mm F4 ED AL [IF]" },
+        { 0x04f2, "smc PENTAX-DA* 16-50mm F2.8 ED AL [IF] SDM (SDM unused)" },
+        { 0x04f3, "smc PENTAX-DA 70mm F2.4 Limited" },
         { 0x04f4, "smc PENTAX-DA 21mm F3.2 AL Limited" },
-        { 0x04f5, "Schneider D-XENON 50-200mm" },
-        { 0x04f6, "Schneider D-XENON 18-55mm" },
-        { 0x04f7, "smc PENTAX-DA 10-17mm F3.5-4.5 ED [IF] Fisheye zoom" },
+        { 0x04f5, "Samsung/Schneider D-XENON 50-200mm F4-5.6" },
+        { 0x04f6, "Samsung/Schneider D-XENON 18-55mm F3.5-5.6" },
+        { 0x04f7, "smc PENTAX-DA FISH-EYE 10-17mm F3.5-4.5 ED [IF]" },
         { 0x04f8, "smc PENTAX-DA 12-24mm F4 ED AL [IF]" },
-        { 0x04f9, "TAMRON XR DiII 18-200mm F3.5-6.3 (A14)" },
+        { 0x04f9, "Tamron XR DiII 18-200mm F3.5-6.3 (A14)" },
         { 0x04fa, "smc PENTAX-DA 50-200mm F4-5.6 ED" },
         { 0x04fb, "smc PENTAX-DA 40mm F2.8 Limited" },
         { 0x04fc, "smc PENTAX-DA 18-55mm F3.5-5.6 AL" },
@@ -643,8 +844,8 @@ namespace Exiv2 {
         { 0x0505, "smc PENTAX-FA* 600mm F4 ED[IF]" },
         { 0x0506, "smc PENTAX-FA* 300mm F4.5 ED[IF]" },
         { 0x0507, "smc PENTAX-FA 135mm F2.8 [IF]" },
-        { 0x0508, "smc PENTAX-FA MACRO 50mm F2.8" },
-        { 0x0509, "smc PENTAX-FA MACRO 100mm F2.8" },
+        { 0x0508, "smc PENTAX-FA Macro 50mm F2.8" },
+        { 0x0509, "smc PENTAX-FA Macro 100mm F2.8" },
         { 0x050a, "smc PENTAX-FA* 85mm F1.4 [IF]" },
         { 0x050b, "smc PENTAX-FA* 200mm F2.8 ED[IF]" },
         { 0x050c, "smc PENTAX-FA 28-80mm F3.5-4.7" },
@@ -652,6 +853,7 @@ namespace Exiv2 {
         { 0x050e, "smc PENTAX-FA* 250-600mm F5.6 ED[IF]" },
         { 0x050f, "smc PENTAX-FA 28-105mm F4-5.6" },
         { 0x0510, "smc PENTAX-FA 100-300mm F4.5-5.6" },
+        { 0x0562, "smc PENTAX-FA 100-300mm F4.5-5.6" },
         { 0x0601, "smc PENTAX-FA* 85mm F1.4[IF]" },
         { 0x0602, "smc PENTAX-FA* 200mm F2.8 ED[IF]" },
         { 0x0603, "smc PENTAX-FA* 300mm F2.8 ED[IF]" },
@@ -663,16 +865,33 @@ namespace Exiv2 {
         { 0x0609, "smc PENTAX-FA 20mm F2.8" },
         { 0x060a, "smc PENTAX-FA* 400mm F5.6 ED[IF]" },
         { 0x060d, "smc PENTAX-FA* 400mm F5.6 ED[IF]" },
-        { 0x060e, "smc PENTAX-FA* MACRO 200mm F4 ED[IF]" },
+        { 0x060e, "smc PENTAX-FA* Macro 200mm F4 ED[IF]" },
         { 0x0700, "smc PENTAX-DA 21mm F3.2 AL Limited" },
+        { 0x073a, "smc PENTAX-D FA Macro 100mm F2.8 WR" },
         { 0x074b, "Tamron SP AF 70-200mm F2.8 Di LD [IF] Macro (A001)" },
+        { 0x07c9, "smc Pentax-DA L 50-200mm F4-5.6 ED WR" },
+        { 0x07ca, "smc PENTAX-DA L 18-55mm F3.5-5.6 AL WR" },
+        { 0x07cb, "HD PENTAX-DA 55-300mm F4-5.8 ED WR" },
+        { 0x07cc, "HD PENTAX-DA 15mm F4 ED AL Limited" },
+        { 0x07cd, "HD PENTAX-DA 35mm F2.8 Macro Limited" },
+        { 0x07ce, "HD PENTAX-DA 70mm F2.4 Limited" },
+        { 0x07cf, "HD PENTAX-DA 21mm F3.2 ED AL Limited" },
+        { 0x07d0, "HD PENTAX-DA 40mm F2.8 Limited" },
+        { 0x07d4, "smc PENTAX-DA 50mm F1.8" },
+        { 0x07d5, "smc PENTAX-DA 40mm F2.8 XS" },
+        { 0x07d6, "smc PENTAX-DA 35mm F2.4 AL" },
+        { 0x07d8, "smc PENTAX-DA L 55-300mm F4-5.8 ED" },
         { 0x07d9, "smc PENTAX-DA 50-200mm F4-5.6 ED WR" },
         { 0x07da, "smc PENTAX-DA 18-55mm F3.5-5.6 AL WR" },
         { 0x07dc, "Tamron SP AF 10-24mm F3.5-4.5 Di II LD Aspherical [IF]" },
-        { 0x07de, "smc PENTAX-DA 18-55mm F3.5-5.6 AL II" },
-        { 0x07df, "Samsung D-XENON 18-55mm F3.5-5.6 II" },
+        { 0x07dd, "smc PENTAX-DA L 50-200mm F4-5.6 ED" },
+        { 0x07de, "smc PENTAX-DA L 18-55mm F3.5-5.6" },
+        { 0x07df, "Samsung/Schneider D-XENON 18-55mm F3.5-5.6 II" },
         { 0x07e0, "smc PENTAX-DA 15mm F4 ED AL Limited" },
-        { 0x07e1, "Samsung D-XENON 18-250mm F3.5-6.3" },
+        { 0x07e1, "Samsung/Schneider D-XENON 18-250mm F3.5-6.3" },
+        { 0x07e2, "smc PENTAX-DA* 55mm F1.4 SDM (SDM unused)" },
+        { 0x07e3, "smc PENTAX-DA* 60-250mm F4 [IF] SDM (SDM unused)" },
+        { 0x07e4, "Samsung 16-45mm F4 ED" },
         { 0x07e5, "smc PENTAX-DA 18-55mm F3.5-5.6 AL II" },
         { 0x07e6, "Tamron AF 17-50mm F2.8 XR Di-II LD (Model A16)" },
         { 0x07e7, "smc PENTAX-DA 18-250mm F3.5-6.3ED AL [IF]" },
@@ -680,11 +899,48 @@ namespace Exiv2 {
         { 0x07ea, "smc PENTAX-DA* 300 mm F4ED [IF] SDM (SDM not used)" },
         { 0x07eb, "smc PENTAX-DA* 200mm F2.8 ED [IF] SDM (SDM not used)" },
         { 0x07ec, "smc PENTAX-DA 55-300mm F4-5.8 ED" },
-        { 0x07ee, "TAMRON AF 18-250mm F3.5-6.3 Di II LD Aspherical [IF] MACRO" },
+        { 0x07ee, "Tamron AF 18-250mm F3.5-6.3 Di II LD Aspherical [IF] Macro" },
         { 0x07f1, "smc PENTAX-DA* 50-135mm F2.8 ED [IF] SDM (SDM not used)" },
         { 0x07f2, "smc PENTAX-DA* 16-50mm F2.8 ED AL [IF] SDM (SDM not used)" },
         { 0x07f3, "smc PENTAX-DA 70mm F2.4 Limited" },
         { 0x07f4, "smc PENTAX-DA 21mm F3.2 AL Limited" },
+        { 0x0800, "Sigma 50-150mm F2.8 II APO EX DC HSM" },
+        { 0x0803, "Sigma AF 18-125mm F3.5-5.6 DC" },
+        { 0x0804, "Sigma 50mm F1.4 EX DG HSM" },
+        { 0x0807, "Sigma 24-70mm F2.8 IF EX DG HSM" },
+        { 0x0808, "Sigma 18-250mm F3.5-6.3 DC OS HSM" },
+        { 0x080b, "Sigma 10-20mm F3.5 EX DC HSM" },
+        { 0x080c, "Sigma 70-300mm F4-5.6 DG OS" },
+        { 0x080d, "Sigma 120-400mm F4.5-5.6 APO DG OS HSM" },
+        { 0x080e, "Sigma 17-70mm F2.8-4.0 DC Macro OS HSM" },
+        { 0x080f, "Sigma 150-500mm F5-6.3 APO DG OS HSM" },
+        { 0x0810, "Sigma 70-200mm F2.8 EX DG Macro HSM II" },
+        { 0x0811, "Sigma 50-500mm F4.5-6.3 DG OS HSM" },
+        { 0x0812, "Sigma 8-16mm F4.5-5.6 DC HSM" },
+        { 0x0815, "Sigma 17-50mm F2.8 EX DC OS HSM" },
+        { 0x0816, "Sigma 85mm F1.4 EX DG HSM" },
+        { 0x0817, "Sigma 70-200mm F2.8 APO EX DG OS HSM" },
+        { 0x0819, "Sigma 17-50mm F2.8 EX DC HSM" },
+        { 0x081b, "Sigma 18-200mm F3.5-6.3 II DC HSM" },
+        { 0x081c, "Sigma 18-250mm F3.5-6.3 DC Macro HSM" },
+        { 0x081d, "Sigma 35mm F1.4 DG HSM" },
+        { 0x081e, "Sigma 17-70mm F2.8-4 DC Macro HSM | C" },
+        { 0x081f, "Sigma 18-35mm F1.8 DC HSM" },
+        { 0x0820, "Sigma 30mm F1.4 DC HSM | A" },
+        { 0x0822, "Sigma 18-300mm F3.5-6.3 DC Macro HSM" },
+        { 0x083b, "HD PENTAX-D FA 150-450mm F4.5-5.6 ED DC AW" },
+        { 0x083c, "HD PENTAX-D FA* 70-200mm F2.8 ED DC AW" },
+        { 0x083d, "HD PENTAX-D FA 28-105mm F3.5-5.6 ED DC WR" },
+        { 0x083e, "HD PENTAX-D FA 24-70mm F2.8 ED SDM WR" },
+        { 0x083f, "HD PENTAX-D FA 15-30mm F2.8 ED SDM WR" },
+        { 0x08c5, "HD PENTAX-DA 55-300mm F4.5-6.3 ED PLM WR RE" },
+        { 0x08c6, "smc PENTAX-DA L 18-50mm F4-5.6 DC WR RE" },
+        { 0x08c7, "HD PENTAX-DA 18-50mm F4-5.6 DC WR RE" },
+        { 0x08c8, "HD PENTAX-DA 16-85mm F3.5-5.6 ED DC WR" },
+        { 0x08d1, "HD PENTAX-DA 20-40mm F2.8-4 ED Limited DC WR" },
+        { 0x08d2, "smc PENTAX-DA 18-270mm F3.5-6.3 ED SDM" },
+        { 0x08d3, "HD PENTAX-DA 560mm F5.6 ED AW" },
+        { 0x08d7, "smc PENTAX-DA 18-135mm F3.5-5.6 ED AL [IF] DC WR" },
         { 0x08e2, "smc PENTAX-DA* 55mm F1.4 SDM" },
         { 0x08e3, "smc PENTAX DA* 60-250mm F4 [IF] SDM"},
         { 0x08e8, "smc PENTAX-DA 17-70mm F4 AL [IF] SDM" },
@@ -692,9 +948,45 @@ namespace Exiv2 {
         { 0x08eb, "smc PENTAX-DA* 200mm F2.8 ED [IF] SDM" },
         { 0x08f1, "smc PENTAX-DA* 50-135mm F2.8 ED [IF] SDM" },
         { 0x08f2, "smc PENTAX-DA* 16-50mm F2.8 ED AL [IF] SDM" },
-        { 0x0b04, "smc PENTAX-FA645 Zoom 45mm-85mm F4.5" },
-        { 0x0b07, "smc PENTAX-FA645 Macro 120mm F4" },
-        { 0x0b11, "smc PENTAX-FA645 Zoom 150mm-300mm F5.6 ED [IF]" },
+        { 0x08ff, "Sigma Lens" },                                        //0
+        { 0x08ff, "Sigma 70-200mm F2.8 EX DG Macro HSM II" },            //1
+        { 0x08ff, "Sigma 150-500mm F5-6.3 DG APO [OS] HSM" },            //2
+        { 0x08ff, "Sigma 50-150mm F2.8 II APO EX DC HSM" },              //3
+        { 0x08ff, "Sigma 4.5mm F2.8 EX DC HSM Circular Fisheye" },       //4
+        { 0x08ff, "Sigma 50-200mm F4-5.6 DC OS" },                       //5
+        { 0x08ff, "Sigma 24-70mm F2.8 EX DG HSM" },                      //6
+        { 0x08ff, "Sigma 18-50mm F2.8-4.5 HSM OS" },                     //7
+        { 0x0900, "645 Manual Lens" },
+        { 0x0a00, "645 A Series Lens" },
+        { 0x0b01, "smc PENTAX-FA 645 75mm F2.8" },
+        { 0x0b02, "smc PENTAX-FA 645 45mm F2.8" },
+        { 0x0b03, "smc PENTAX-FA* 645 300mm F4 ED [IF]" },
+        { 0x0b04, "smc PENTAX-FA 645 45mm-85mm F4.5" },
+        { 0x0b05, "smc PENTAX-FA 645 400mm F5.6 ED [IF]" },
+        { 0x0b07, "smc PENTAX-FA 645 Macro 120mm F4" },
+        { 0x0b08, "smc PENTAX-FA 645 80-160mm F4.5" },
+        { 0x0b09, "smc PENTAX-FA 645 200mm F4 [IF]" },
+        { 0x0b0a, "smc PENTAX-FA 645 150mm F2.8 [IF]" },
+        { 0x0b0b, "smc PENTAX-FA 645 35mm F3.5 AL [IF]" },
+        { 0x0b0c, "smc PENTAX-FA 645 300mm F5.6 ED [IF]" },
+        { 0x0b0e, "smc PENTAX-FA 645 55-110mm F5.6" },
+        { 0x0b10, "smc PENTAX-FA 645 33-55mm F4.5 AL" },
+        { 0x0b11, "smc PENTAX-FA 645 150-300mm F5.6 ED [IF]" },
+        { 0x0b15, "HD PENTAX-D FA 645 35mm F3.5 AL [IF]" },
+        { 0x0d12, "smc PENTAX-D FA 645 55mm F2.8 AL [IF] SDM AW" },
+        { 0x0d13, "smc PENTAX-D FA 645 25mm F4 AL [IF] SDM AW" },
+        { 0x0d14, "HD PENTAX-D FA 645 90mm F2.8 ED AW SR" },
+        { 0x0dfd, "HD PENTAX-DA 645 28-45mm F4.5 ED AW SR" },
+        { 0x1500, "Pentax Q Manual Lens" },
+        { 0x1501, "01 Standard Prime 8.5mm F1.9" },
+        { 0x1502, "02 Standard Zoom 5-15mm F2.8-4.5" },
+        { 0x1603, "03 Fish-eye 3.2mm F5.6" },
+        { 0x1604, "04 Toy Lens Wide 6.3mm F7.1" },
+        { 0x1605, "05 Toy Lens Telephoto 18mm F8" },
+        { 0x1506, "06 Telephoto Zoom 15-45mm F2.8" },
+        { 0x1507, "07 Mount Shield 11.5mm F9" },
+        { 0x1508, "08 Wide Zoom 3.8-5.9mm F3.7-4" },
+        { 0x15e9, "Adapter Q for K-mount Lens" },
     };
 
     //! ImageTone, tag 0x004f
@@ -705,7 +997,10 @@ namespace Exiv2 {
         {    3, N_("Landscape") },
         {    4, N_("Vibrant") },
         {    5, N_("Monochrome") },
+        {    6, N_("Muted") },
         {    7, N_("Reversal film") },
+        {    8, N_("Bleach bypass") },
+        {    9, N_("Radiant") },
     };
 
     //! DynamicRangeExpansion, tag 0x0069
@@ -723,7 +1018,7 @@ namespace Exiv2 {
         {   4, N_("Custom") },
     };
 
-    std::ostream& PentaxMakerNote::printPentaxVersion(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printVersion(std::ostream& os, const Value& value, const ExifData*)
     {
         std::string val = value.toString();
         size_t i;
@@ -734,7 +1029,7 @@ namespace Exiv2 {
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxResolution(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printResolution(std::ostream& os, const Value& value, const ExifData*)
     {
         std::string val = value.toString();
         size_t i;
@@ -745,7 +1040,7 @@ namespace Exiv2 {
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxDate(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printDate(std::ostream& os, const Value& value, const ExifData*)
     {
         /* I choose same format as is used inside EXIF itself */
         os << ((value.toLong(0) << 8) + value.toLong(1));
@@ -756,60 +1051,70 @@ namespace Exiv2 {
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxTime(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printTime(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         os << std::setw(2) << std::setfill('0') << value.toLong(0);
         os << ":";
         os << std::setw(2) << std::setfill('0') << value.toLong(1);
         os << ":";
         os << std::setw(2) << std::setfill('0') << value.toLong(2);
+        os.flags(f);
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxExposure(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printExposure(std::ostream& os, const Value& value, const ExifData*)
     {
         os << static_cast<float>(value.toLong()) / 100 << " ms";
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxFValue(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printFValue(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         os << "F" << std::setprecision(2)
            << static_cast<float>(value.toLong()) / 10;
+        os.flags(f);
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxFocalLength(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printFocalLength(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         os << std::fixed << std::setprecision(1)
            << static_cast<float>(value.toLong()) / 100
            << " mm";
+        os.flags(f);
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxCompensation(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printCompensation(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         os << std::setprecision(2)
            << (static_cast<float>(value.toLong()) - 50) / 10
            << " EV";
+        os.flags(f);
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxTemperature(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printTemperature(std::ostream& os, const Value& value, const ExifData*)
     {
         os << value.toLong() << " C";
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxFlashCompensation(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printFlashCompensation(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         os << std::setprecision(2)
            << static_cast<float>(value.toLong()) / 256
            << " EV";
+        os.flags(f);
         return os;
     }
 
-    std::ostream& PentaxMakerNote::printPentaxBracketing(std::ostream& os, const Value& value, const ExifData*)
+    std::ostream& PentaxMakerNote::printBracketing(std::ostream& os, const Value& value, const ExifData*)
     {
         long l0 = value.toLong(0);
 
@@ -860,17 +1165,283 @@ namespace Exiv2 {
         return os;
     }
 
+    std::ostream& PentaxMakerNote::printShutterCount(std::ostream& os, const Value& value, const ExifData* metadata)
+    {
+        ExifData::const_iterator dateIt = metadata->findKey(
+                ExifKey("Exif.PentaxDng.Date"));
+        if (dateIt == metadata->end()) {
+            dateIt = metadata->findKey(ExifKey("Exif.Pentax.Date"));
+        }
+        ExifData::const_iterator timeIt = metadata->findKey(
+                ExifKey("Exif.PentaxDng.Time"));
+        if (timeIt == metadata->end()) {
+            timeIt = metadata->findKey(ExifKey("Exif.Pentax.Time"));
+        }
+        if (    dateIt == metadata->end() || dateIt->size() != 4 ||
+                timeIt == metadata->end() || timeIt->size() != 3 ||
+                value.size() != 4) {
+            os << "undefined";
+            return os;
+        }
+        const uint32_t date =
+            (dateIt->toLong(0) << 24) + (dateIt->toLong(1) << 16) +
+            (dateIt->toLong(2) <<  8) + (dateIt->toLong(3) <<  0);
+        const uint32_t time =
+            (timeIt->toLong(0) << 24) + (timeIt->toLong(1) << 16) +
+            (timeIt->toLong(2) <<  8);
+        const uint32_t countEnc =
+            (value.toLong(0) << 24) + (value.toLong(1) << 16) +
+            (value.toLong(2) <<  8) + (value.toLong(3) <<  0);
+        // The shutter count is encoded using date and time values stored
+        // in Pentax-specific tags.  The prototype for the encoding/decoding
+        // function is taken from Phil Harvey's ExifTool: Pentax.pm file,
+        // CryptShutterCount() routine.
+        const uint32_t count = countEnc ^ date ^ (~time);
+        os << count;
+        return os;
+    }
+
+    // #1144 begin
+    static std::string getKeyString(const std::string& key,const ExifData* metadata)
+    {
+        std::string result;
+        if ( metadata->findKey(ExifKey(key)) != metadata->end() ) {
+            result = metadata->findKey(ExifKey(key))->toString();
+        }
+        return result;
+    }
+
+    static long getKeyLong(const std::string& key,const ExifData* metadata)
+    {
+        long result = -1;
+        if ( metadata->findKey(ExifKey(key)) != metadata->end() ) {
+            result = (long) metadata->findKey(ExifKey(key))->toFloat(0);
+        }
+        return result;
+    }
+
+    //! resolveLens0x32c print lens in human format
+    std::ostream& resolveLens0x32c(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    {
+        try {
+            unsigned long lensID    = 0x32c;
+            unsigned long index     = 0;
+
+            long        focalLength = getKeyLong  ("Exif.Photo.FocalLength",metadata);
+            bool        bFL10_20    = 10 <= focalLength && focalLength <= 20;
+
+            // std::cout << "model,focalLength = " << model << "," << focalLength << std::endl;
+            if ( bFL10_20 ) index = 1;
+
+            if ( index > 0 )  {
+                const TagDetails* td = find(pentaxLensType, lensID);
+                os << exvGettext(td[index].label_);
+                return os;
+            }
+        } catch (...) {}
+        return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+    }
+    // #1144 end
+
+    // #816 begin
+    //! resolveLens0x3ff print lens in human format
+    std::ostream& resolveLens0x3ff(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    // ----------------------------------------------------------------------
+    {
+        try {
+            unsigned long lensID = 0x3ff;
+            unsigned long index  = 0;
+
+            const ExifData::const_iterator lensInfo = metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo")) != metadata->end()
+                                                    ? metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo"))
+                                                    : metadata->findKey(ExifKey("Exif.Pentax.LensInfo"))
+                                                    ;
+            if ( lensInfo == metadata->end() ) return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+            if ( lensInfo->count() < 5       ) return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+
+            if ( value.count() == 2 ) {
+                // http://dev.exiv2.org/attachments/download/326/IMGP4432.PEF
+                // exiv2 -pv --grep Lens ~/Downloads/IMGP4432.PEF
+                // 0x003f Pentax       LensType  Byte        2 3 255
+                // 0x0207 Pentax       LensInfo  Undefined  36 3 255 0 0 40 148 71 152 80 6 241 65 237 153 88 36 1 76 107 251 255 255 255 0 0 80 6 241 0 0 0 0 0 0 0 0
+                unsigned long base   = 1;
+
+                // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Pentax.html#LensData
+                const ExifData::const_iterator lensInfo = metadata->findKey(ExifKey("Exif.Pentax.LensInfo"));
+                unsigned int  autoAperture     = lensInfo->toLong(base+1) & 0x01 ;
+                unsigned int  minAperture      = lensInfo->toLong(base+2) & 0x06 ;
+                unsigned int  minFocusDistance = lensInfo->toLong(base+3) & 0xf8 ;
+
+                if ( autoAperture == 0x0 && minAperture == 0x0 && minFocusDistance == 0x28 && lensInfo->toLong(base+4) == 148) index = 8;
+                if ( autoAperture == 0x0 && minAperture == 0x0 && minFocusDistance == 0x28 && lensInfo->toLong(base+5) == 110) index = 7;
+                if ( autoAperture == 0x0 && minAperture == 0x0 && minFocusDistance == 0x28 && lensInfo->toLong(base+4) == 110) index = 7;
+
+            } else if ( value.count() == 3 ) {
+                // http://dev.exiv2.org/attachments/download/858/_IGP9032.DNG
+                // $ exiv2 -pv --grep Lens ~/Downloads/_IGP9032.DNG
+                // 0x003f PentaxDng    LensType  Byte        3    3 255   0
+                // 0x0207 PentaxDng    LensInfo  Undefined  69  131   0   0 255 0  40 148  68 244 ...
+                //                                                0   1   2   3 4   5   6
+                if ( lensInfo->toLong(4) == 0 && lensInfo->toLong(5) == 40 && lensInfo->toLong(6) == 148 ) index = 8;
+
+            } else if ( value.count() == 4 ) {
+                // http://dev.exiv2.org/attachments/download/868/IMGP2221.JPG
+                // 0x0207 PentaxDng    LensInfo  Undefined 128    0 131 128   0 0 255   1 184   0 0 0 0 0
+                //                                                0   1   2   3 4   5   6
+                if ( lensInfo->count() == 128 && lensInfo->toLong(1) == 131 && lensInfo->toLong(2) == 128 ) index = 8;
+                // #1155
+                if ( lensInfo->toLong(6) == 5 )  index = 7;
+            }
+
+            if ( index > 0 )  {
+                const TagDetails* td = find(pentaxLensType, lensID);
+                os << exvGettext(td[index].label_);
+                return os;
+            }
+        } catch (...) {}
+        return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+    }
+
+    // #1155
+    //! resolveLens0x8ff print lens in human format
+    std::ostream& resolveLens0x8ff(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    // ----------------------------------------------------------------------
+    {
+        try {
+            unsigned long lensID = 0x8ff;
+            unsigned long index  = 0;
+
+            const ExifData::const_iterator lensInfo = metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo")) != metadata->end()
+                                                    ? metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo"))
+                                                    : metadata->findKey(ExifKey("Exif.Pentax.LensInfo"))
+                                                    ;
+            if ( value.count() == 4 ) {
+                std::string model       = getKeyString("Exif.Image.Model"      ,metadata);
+                if ( model.find("PENTAX K-3")==0 && lensInfo->count() == 128 && lensInfo->toLong(1) == 168 && lensInfo->toLong(2) == 144 ) index = 7;
+            }
+
+            if ( index > 0 )  {
+                const TagDetails* td = find(pentaxLensType, lensID);
+                os << exvGettext(td[index].label_);
+                return os;
+            }
+        } catch (...) {}
+        return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+    }
+
+    // #1155
+    //! resolveLens0x319 print lens in human format
+    std::ostream& resolveLens0x319(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    // ----------------------------------------------------------------------
+    {
+        try {
+            unsigned long lensID = 0x319;
+            unsigned long index  = 0;
+
+            const ExifData::const_iterator lensInfo = metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo")) != metadata->end()
+                                                    ? metadata->findKey(ExifKey("Exif.PentaxDng.LensInfo"))
+                                                    : metadata->findKey(ExifKey("Exif.Pentax.LensInfo"))
+                                                    ;
+            if ( value.count() == 4 ) {
+                std::string model       = getKeyString("Exif.Image.Model"      ,metadata);
+                if ( model.find("PENTAX K-3")==0 && lensInfo->count() == 128 && lensInfo->toLong(1) == 131 && lensInfo->toLong(2) == 128 )
+                    index = 6;
+            }
+            if ( value.count() == 2 ) {
+                std::string model       = getKeyString("Exif.Image.Model"      ,metadata);
+                if ( model.find("PENTAX K100D")==0 && lensInfo->count() == 44 )
+                    index = 6;
+                if ( model.find("PENTAX *ist DL")==0 && lensInfo->count() == 36 )
+                    index = 6;
+            }
+
+            if ( index > 0 )  {
+                const TagDetails* td = find(pentaxLensType, lensID);
+                os << exvGettext(td[index].label_);
+                return os;
+            }
+        } catch (...) {}
+        return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+    }
+
+    //! resolveLensType print lens in human format
+    std::ostream& resolveLensType(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    {
+        return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+    }
+
+    struct LensIdFct {
+       long     id_;                           //!< Lens id
+       PrintFct fct_;                          //!< Pretty-print function
+       //! Comparison operator for find template
+       bool operator==(long id) const { return id_ == id; }
+    };
+
+    //! List of lens ids which require special treatment using resolveLensType
+    const LensIdFct lensIdFct[] = {
+       {   0x0317, resolveLensType },
+       {   0x0319, resolveLens0x319},
+       {   0x031b, resolveLensType },
+       {   0x031c, resolveLensType },
+       {   0x031d, resolveLensType },
+       {   0x031f, resolveLensType },
+       {   0x0329, resolveLensType },
+       {   0x032c, resolveLens0x32c},
+       {   0x032e, resolveLensType },
+       {   0x0334, resolveLensType },
+       {   0x03ff, resolveLens0x3ff},
+       {   0x041a, resolveLensType },
+       {   0x042d, resolveLensType },
+       {   0x08ff, resolveLens0x8ff},
+    };
+
+    //! A lens id and a pretty-print function for special treatment of the id.
+    std::ostream& printLensType(std::ostream& os, const Value& value,
+                                                 const ExifData* metadata)
+    {
+        // #1034
+        const std::string  undefined("undefined") ;
+        const std::string  section  ("pentax");
+        if ( Internal::readExiv2Config(section,value.toString(),undefined) != undefined ) {
+            return os << Internal::readExiv2Config(section,value.toString(),undefined);
+        }
+
+        unsigned long index = value.toLong(0)*256+value.toLong(1);
+
+        // std::cout << std::endl << "printLensType value =" << value.toLong() << " index = " << index << std::endl;
+        const LensIdFct* lif = find(lensIdFct, index);
+        if (!lif) {
+           return EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)(os, value, metadata);
+        }
+        if (metadata && lif->fct_) {
+            return lif->fct_(os, value, metadata);
+        }
+
+        if (   value.typeId() != unsignedShort
+                   || value.count() == 0) return os << "(" << value << ")";
+
+        return os << value;
+    }
+
+    // #816 end
+    // ----------------------------------------------------------------------
+
     // Pentax MakerNote Tag Info
     const TagInfo PentaxMakerNote::tagInfo_[] = {
         TagInfo(0x0000, "Version", N_("Version"),
                 N_("Pentax Makernote version"),
-                pentaxId, makerTags, undefined, -1, printPentaxVersion),
+                pentaxId, makerTags, undefined, -1, printVersion),
         TagInfo(0x0001, "Mode", N_("Shooting mode"),
                 N_("Camera shooting mode"),
                 pentaxId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(pentaxShootingMode)),
         TagInfo(0x0002, "PreviewResolution", N_("Resolution of a preview image"),
                 N_("Resolution of a preview image"),
-                pentaxId, makerTags, undefined, -1, printPentaxResolution),
+                pentaxId, makerTags, undefined, -1, printResolution),
         TagInfo(0x0003, "PreviewLength", N_("Length of a preview image"),
                 N_("Size of an IFD containing a preview image"),
                 pentaxId, makerTags, undefined, -1, printValue),
@@ -878,14 +1449,14 @@ namespace Exiv2 {
                 N_("Offset to an IFD containing a preview image"),
                 pentaxId, makerTags, undefined, -1, printValue),
         TagInfo(0x0005, "ModelID", N_("Model identification"),
-                N_("Pentax model idenfication"),
+                N_("Pentax model identification"),
                 pentaxId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(pentaxModel)),
         TagInfo(0x0006, "Date", N_("Date"),
                 N_("Date"),
-                pentaxId, makerTags, undefined, -1, printPentaxDate),
+                pentaxId, makerTags, undefined, -1, printDate),
         TagInfo(0x0007, "Time", N_("Time"),
                 N_("Time"),
-                pentaxId, makerTags, undefined, -1, printPentaxTime),
+                pentaxId, makerTags, undefined, -1, printTime),
         TagInfo(0x0008, "Quality", N_("Image quality"),
                 N_("Image quality settings"),
                 pentaxId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(pentaxQuality)),
@@ -908,30 +1479,30 @@ namespace Exiv2 {
         /* Some missing ! */
         TagInfo(0x0012, "ExposureTime", N_("Exposure time"),
                 N_("Exposure time"),
-                pentaxId, makerTags, unsignedLong, -1, printPentaxExposure),
+                pentaxId, makerTags, unsignedLong, -1, printExposure),
         TagInfo(0x0013, "FNumber", N_("F-Number"),
                 N_("F-Number"),
-                pentaxId, makerTags, unsignedLong, -1, printPentaxFValue),
+                pentaxId, makerTags, unsignedLong, -1, printFValue),
         TagInfo(0x0014, "ISO", N_("ISO sensitivity"),
                 N_("ISO sensitivity settings"),
                 pentaxId, makerTags, unsignedLong, -1, EXV_PRINT_TAG(pentaxISO)),
         /* Some missing ! */
         TagInfo(0x0016, "ExposureCompensation", N_("Exposure compensation"),
                 N_("Exposure compensation"),
-                pentaxId, makerTags, unsignedLong, -1, printPentaxCompensation),
+                pentaxId, makerTags, unsignedLong, -1, printCompensation),
         /* Some missing ! */
         TagInfo(0x0017, "MeteringMode", N_("MeteringMode"),
                 N_("MeteringMode"),
                 pentaxId, makerTags, undefined, -1, EXV_PRINT_TAG(pentaxMeteringMode)),
         TagInfo(0x0018, "AutoBracketing", N_("AutoBracketing"),
                 N_("AutoBracketing"),
-                pentaxId, makerTags, undefined, -1, printPentaxBracketing),
-        TagInfo(0x0019, "WhiteBallance", N_("White ballance"),
-                N_("White ballance"),
-                pentaxId, makerTags, undefined, -1, EXV_PRINT_TAG(pentaxWhiteBallance)),
-        TagInfo(0x001a, "WhiteBallanceMode", N_("White ballance mode"),
-                N_("White ballance mode"),
-                pentaxId, makerTags, undefined, -1, EXV_PRINT_TAG(pentaxWhiteBallanceMode)),
+                pentaxId, makerTags, undefined, -1, printBracketing),
+        TagInfo(0x0019, "WhiteBalance", N_("White balance"),
+                N_("White balance"),
+                pentaxId, makerTags, undefined, -1, EXV_PRINT_TAG(pentaxWhiteBalance)),
+        TagInfo(0x001a, "WhiteBalanceMode", N_("White balance mode"),
+                N_("White balance mode"),
+                pentaxId, makerTags, undefined, -1, EXV_PRINT_TAG(pentaxWhiteBalanceMode)),
         TagInfo(0x001b, "BlueBalance", N_("Blue balance"),
                 N_("Blue color balance"),
                 pentaxId, makerTags, unsignedLong, -1, printValue),
@@ -940,7 +1511,7 @@ namespace Exiv2 {
                 pentaxId, makerTags, unsignedLong, -1, printValue),
         TagInfo(0x001d, "FocalLength", N_("FocalLength"),
                 N_("FocalLength"),
-                pentaxId, makerTags, undefined, -1, printPentaxFocalLength),
+                pentaxId, makerTags, undefined, -1, printFocalLength),
         TagInfo(0x001e, "DigitalZoom", N_("Digital zoom"),
                 N_("Digital zoom"),
                 pentaxId, makerTags, unsignedLong, -1, printValue),
@@ -1007,7 +1578,7 @@ namespace Exiv2 {
                 pentaxId, makerTags, unsignedByte, -1, printValue),
         TagInfo(0x003f, "LensType", N_("Lens type"),
                 N_("Lens type"),
-                pentaxId, makerTags, unsignedByte, -1, EXV_PRINT_COMBITAG_MULTI(pentaxLensType, 2, 1, 2)),
+                pentaxId, makerTags, unsignedByte, -1, printLensType), // #816
         TagInfo(0x0040, "SensitivityAdjust", N_("Sensitivity adjust"),
                 N_("Sensitivity adjust"),
                 pentaxId, makerTags, unsignedLong, -1, printValue),
@@ -1017,7 +1588,7 @@ namespace Exiv2 {
         /* Some missing ! */
         TagInfo(0x0047, "Temperature", N_("Temperature"),
                 N_("Camera temperature"),
-                pentaxId, makerTags, signedByte, -1, printPentaxTemperature),
+                pentaxId, makerTags, signedByte, -1, printTemperature),
         TagInfo(0x0048, "AELock", N_("AE lock"),
                 N_("AE lock"),
                 pentaxId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(pentaxOffOn)),
@@ -1027,13 +1598,13 @@ namespace Exiv2 {
         /* Some missing ! */
         TagInfo(0x004d, "FlashExposureCompensation", N_("Flash exposure compensation"),
                 N_("Flash exposure compensation"),
-                pentaxId, makerTags, signedLong, -1, printPentaxFlashCompensation),
+                pentaxId, makerTags, signedLong, -1, printFlashCompensation),
         /* Some missing ! */
         TagInfo(0x004f, "ImageTone", N_("Image tone"),
                 N_("Image tone"),
                 pentaxId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(pentaxImageTone)),
-        TagInfo(0x0050, "ColorTemperature", N_("Colort temperature"),
-                N_("Colort temperature"),
+        TagInfo(0x0050, "ColorTemperature", N_("Color temperature"),
+                N_("Color temperature"),
                 pentaxId, makerTags, unsignedShort, -1, printValue),
         /* Some missing ! */
         TagInfo(0x005c, "ShakeReduction", N_("Shake reduction"),
@@ -1041,7 +1612,7 @@ namespace Exiv2 {
                 pentaxId, makerTags, undefined, -1, printValue),
         TagInfo(0x005d, "ShutterCount", N_("Shutter count"),
                 N_("Shutter count"),
-                pentaxId, makerTags, undefined, -1, printValue), /* TODO: This has some encryption by date (see exiftool) */
+                pentaxId, makerTags, undefined, -1, printShutterCount),
         TagInfo(0x0069, "DynamicRangeExpansion", N_("Dynamic range expansion"),
                 N_("Dynamic range expansion"),
                 pentaxId, makerTags, undefined, -1, EXV_PRINT_COMBITAG(pentaxDynamicRangeExpansion, 4, 0)),

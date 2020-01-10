@@ -1,6 +1,6 @@
 # ***************************************************** -*- Makefile -*-
 #
-# Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+# Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
 #
 # This Makefile is part of the Exiv2 distribution.
 #
@@ -31,7 +31,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # File:      Makefile
-# Version:   $Rev: 2681 $
+# Version:   $Rev: 4742 $
 # Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
 # History:   10-Dec-03, ahu: created
 #
@@ -68,8 +68,12 @@ doxygen:
 	doxygen $(top_srcdir)/config/Doxyfile
 
 tags:
-	cd $(top_srcdir)/doc/templates && $(MAKE) all
-	cp -f $(top_srcdir)/doc/templates/*.html $(top_srcdir)/doc/html/
+	mkdir -p $(top_srcdir)/doc/html
+	cd       $(top_srcdir)/doc/templates && $(MAKE) all
+	cp -f    $(top_srcdir)/doc/templates/*.html $(top_srcdir)/doc/html/
+	@echo    "*****************************"
+	@echo    "*** if you got lots of errors, try modifying" $(realpath $(top_srcdir)/config/Doxyfile) "***"
+	@echo    "*****************************"
 
 mostlyclean clean:
 	$(RM) *~ *.bak *#

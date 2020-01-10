@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(exiv2, 0.23, ahuggel@gmx.net)
+AC_INIT(exiv2, 0.26, ahuggel@gmx.net)
 # See http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
-EXIV2_LTVERSION=12:0:0
+EXIV2_LTVERSION=26:0:0
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE")
@@ -56,7 +56,7 @@ AM_ICONV
 # Checks for header files.
 # ---------------------------------------------------------------------------
 AC_HEADER_STDC
-AC_CHECK_HEADERS([libintl.h locale.h malloc.h stdint.h stdlib.h string.h unistd.h sys/mman.h utime.h])
+AC_CHECK_HEADERS([libintl.h locale.h malloc.h stdint.h stdlib.h string.h unistd.h sys/mman.h utime.h regex.h])
 
 # ---------------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
@@ -100,9 +100,14 @@ fi
 AC_SUBST(DEP_TRACKING,$DEP_TRACKING)
 
 AC_MSG_CHECKING([whether to enable symbol visibility support])
+visibility=yes
+# visibility support in cygwin/ming generates 1000's of warning, set off by default
+case "$host_os" in
+    *mingw* | *cygwin*) visibility=no  ;;
+esac
 AC_ARG_ENABLE(visibility,
     [  --disable-visibility    do not use symbol visibility support ],
-    VISIBILITY_SUPPORT=$enableval, VISIBILITY_SUPPORT=yes)
+    VISIBILITY_SUPPORT=$enableval, VISIBILITY_SUPPORT=$visibility)
 AC_MSG_RESULT($VISIBILITY_SUPPORT)
 if test "$VISIBILITY_SUPPORT" = "yes"; then
     # Sun Studio C++ compiler (which apparently ignores -fvisibility-inlines-hidden)
@@ -112,7 +117,7 @@ if test "$VISIBILITY_SUPPORT" = "yes"; then
     else
         # GNU g++
         AX_CXX_CHECK_FLAG(-fvisibility-inlines-hidden,[],[],[VISIBILITY_SUPPORT=yes],[VISIBILITY_SUPPORT=no])
-    	if test "$VISIBILITY_SUPPORT" = "yes"; then
+        if test "$VISIBILITY_SUPPORT" = "yes"; then
            CXXFLAGS="${CXXFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden"
         fi
     fi
@@ -146,6 +151,108 @@ AC_ARG_ENABLE(xmp,
     USE_XMP_TOOLKIT=$enableval, USE_XMP_TOOLKIT=yes)
 AC_MSG_RESULT($USE_XMP_TOOLKIT)
 
+AC_MSG_CHECKING([whether to compile with video support])
+AC_ARG_ENABLE(video,
+    [  --enable-video          compile with video support ],
+    USE_VIDEO=$enableval, USE_VIDEO=no)
+AC_MSG_RESULT($USE_VIDEO)
+ENABLE_VIDEO=
+if test "$USE_VIDEO" = "yes"; then
+    ENABLE_VIDEO=1
+    AC_DEFINE(ENABLE_VIDEO)
+fi
+AC_SUBST(ENABLE_VIDEO,$ENABLE_VIDEO)
+
+AC_MSG_CHECKING([whether to compile with webready support])
+AC_ARG_ENABLE(webready,
+    [  --enable-webready       compile Exiv2 library with webready support ],
+    ENABLE_WEBREADY=$enableval, ENABLE_WEBREADY=no)
+AC_MSG_RESULT($ENABLE_WEBREADY)
+if test "$enable_webready" = "yes"; then
+    AC_DEFINE(ENABLE_WEBREADY)
+fi
+
+if test "$enable_webready" = "yes"; then
+    # libcurl option might change flags, so we save them initially
+    _cppflags="${CPPFLAGS}"
+    _ldflags="${LDFLAGS}"
+
+    AC_ARG_WITH(curl,
+    [  --with-curl[[=DIR]]    use libcurl in DIR],[
+      if test "$withval" != "no" -a "$withval" != "yes"; then
+        CURL_DIR=$withval
+        CPPFLAGS="${CPPFLAGS} -I$withval/include"
+        LDFLAGS="${LDFLAGS} -L$withval/lib"
+      fi
+    ])
+
+    USE_CURL=
+    if test "$with_curl" != "no"; then
+        # Check for libcurl library
+        found_curl=yes
+        CURL_CPPFLAGS=
+        CURL_LDFLAGS=
+        CURL_LIBS=
+        AC_CHECK_HEADERS(curl/curl.h,
+            AC_CHECK_LIB(curl, curl_easy_init,[
+                USE_CURL=yes
+                AC_DEFINE([USE_CURL], [1], [Use libcurl library])
+                CURL_LIBS="-lcurl"
+                if test "x${CURL_DIR}" != "x"; then
+                    CURL_CPPFLAGS="-I${CURL_DIR}/include"
+                    CURL_LDFLAGS="-L${CURL_DIR}/lib"
+                fi],[found_curl=no]),[found_curl=no])
+        if test "$found_curl" = "no"; then
+            AC_MSG_ERROR(either specify a valid curl installation with --with-curl=DIR or use --without-curl)
+        fi
+        AC_SUBST(CURL_CPPFLAGS)
+        AC_SUBST(CURL_LDFLAGS)
+        AC_SUBST(CURL_LIBS)
+    fi
+    CPPFLAGS=${_cppflags}
+    LDFLAGS=${_ldflags}
+
+    # libssh option might change flags, so we save them initially
+    _cppflags="${CPPFLAGS}"
+    _ldflags="${LDFLAGS}"
+
+    AC_ARG_WITH(ssh,
+    [  --with-ssh[[=DIR]]    use libssh in DIR],[
+      if test "$withval" != "no" -a "$withval" != "yes"; then
+        SSH_DIR=$withval
+        CPPFLAGS="${CPPFLAGS} -I$withval/include"
+        LDFLAGS="${LDFLAGS} -L$withval/lib"
+      fi
+    ])
+
+    USE_SSH=
+    if test "$with_ssh" != "no"; then
+        # Check for libssh library
+        found_ssh=yes
+        SSH_CPPFLAGS=
+        SSH_LDFLAGS=
+        SSH_LIBS=
+        AC_CHECK_HEADERS(libssh/libssh.h,
+            AC_CHECK_LIB(ssh, ssh_new,[
+                USE_SSH=1
+                AC_DEFINE([USE_SSH], [1], [Use libssh library])
+                SSH_LIBS="-lssh"
+                if test "x${SSH_DIR}" != "x"; then
+                    SSH_CPPFLAGS="-I${SSH_DIR}/include"
+                    SSH_LDFLAGS="-L${SSH_DIR}/lib"
+                fi],[found_ssh=no]),[found_ssh=no])
+        if test "$found_ssh" = "no"; then
+            AC_MSG_ERROR(either specify a valid libssh installation with --with-ssh=DIR or use --without-ssh)
+        fi
+        AC_SUBST(SSH_CPPFLAGS)
+        AC_SUBST(SSH_LDFLAGS)
+        AC_SUBST(SSH_LIBS)
+    fi
+    AC_SUBST(USE_SSH,$USE_SSH)
+    CPPFLAGS=${_cppflags}
+    LDFLAGS=${_ldflags}
+fi
+
 # expat option might change flags, so we save them initially
 _cppflags="${CPPFLAGS}"
 _ldflags="${LDFLAGS}"
@@ -166,6 +273,7 @@ if test "$USE_XMP_TOOLKIT" = "yes"; then
     EXPAT_CPPFLAGS=
     EXPAT_LDFLAGS=
     EXPAT_LIBS=
+    PTHREAD_LIBS=
     if test "$with_expat" != "no"; then
         AC_CHECK_HEADERS(expat.h,
             AC_CHECK_LIB(expat, XML_ParserCreate,[
@@ -175,6 +283,7 @@ if test "$USE_XMP_TOOLKIT" = "yes"; then
                     EXPAT_CPPFLAGS="-I${EXPAT_DIR}/include"
                     EXPAT_LDFLAGS="-L${EXPAT_DIR}/lib"
                 fi],[found_expat=no]),[found_expat=no])
+        PTHREAD="-lpthread"
     fi
     if test "$with_expat" = "no" -o "$found_expat" = "no"; then
         AC_MSG_ERROR(either specify a valid expat installation with --with-expat=DIR or disable XMP support with --disable-xmp)
@@ -184,6 +293,8 @@ if test "$USE_XMP_TOOLKIT" = "yes"; then
     AC_SUBST(EXPAT_CPPFLAGS)
     AC_SUBST(EXPAT_LDFLAGS)
     AC_SUBST(EXPAT_LIBS)
+    AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_LIBS+=-lpthread])
+    AC_SUBST(PTHREAD_LIBS)
 fi
 AC_SUBST(ENABLE_XMP)
 
@@ -203,9 +314,61 @@ AC_SUBST(EXV_LIB_STATIC)
 # This must happen after all other configure checks, because
 # the "-no-undefined" flag is only for libtool and must not be
 # passed to GCC by accident.
+# version.cpp requires link to psapi/Windows and dl/Unix builds
 case "$host_os" in
 *mingw* | *cygwin*)
-    LDFLAGS="$LDFLAGS -no-undefined"
+    LDFLAGS="$LDFLAGS -no-undefined -lpsapi -lwldap32 -lws2_32" ;;
+*linux-gnu*)
+    LDFLAGS="$LDFLAGS -ldl -lpthread" ;;
+*)
+    LDFLAGS="$LDFLAGS -lpthread" ;;
+esac
+
+# 1099
+for u in gettext msginit msgmerge msgfmt msgconv msgfilter ; do
+    if test "$USE_NLS" = "yes" ; then
+        which "$u" 2>/dev/null > /dev/null
+        if test "$?" != "0" ; then
+            echo "*** utility ${u} is not on the PATH     Disabling NLS support ***"
+            USE_NLS=no
+        fi
+    fi
+done
+
+AC_DEFUN([AX_GCC_VERSION], [
+  GCC_VERSION=""
+  AX_CHECK_COMPILE_FLAG([-dumpversion],
+     [ax_gcc_version_option=yes],
+     [ax_gcc_version_option=no])
+
+  AS_IF([test "x$GCC" = "xyes"],[
+    AS_IF([test "x$ax_gcc_version_option" != "xno"],[
+      AC_CACHE_CHECK([gcc version],[ax_cv_gcc_version],[
+        ax_cv_gcc_version="`$CC -dumpversion`"
+        AS_IF([test "x$ax_cv_gcc_version" = "x"],[
+          ax_cv_gcc_version=""
+        ])
+      ])
+      GCC_VERSION=$ax_cv_gcc_version
+    ])
+  ])
+  AC_SUBST([GCC_VERSION])
+])
+
+# 1188 v0.26 uses c++98
+# 1188 v0.27 should have an option to specify versions such as c++11
+case "$host_os" in
+    *cygwin*)
+        CPPFLAGS="$CPPFLAGS -std=gnu++98"  # cygwin requires gnu++98 to support snprintf
+    ;;
+    *ming*)
+        CPPFLAGS="$CPPFLAGS"               # mingw doesn't link pthreads if you specify -std !!
+    ;;
+    *)
+        CPPFLAGS="$CPPFLAGS -std=c++98"
+        if [[ ! -z "$GCC_VERSION" ]]; then
+            if [[ "$GCC_VERSION" -ge 6 ]]; then CPPFLAGS="$CPPFLAGS -std=gnu++98" ; fi  # // not GCC 6
+        fi
     ;;
 esac
 
@@ -253,8 +416,8 @@ yes) echo "-- Native language support........ YES" ;;
 *)   echo "-- Native language support........ NO"
      echo ""
      echo "gettext is required for native language support. Make sure the"
-     echo "gettext header files are installed. You can get gettext from"
-     echo "http://www.gnu.org/software/gettext/"
+     echo "gettext header files and utilities are installed. "
+     echo "You can get gettext from http://www.gnu.org/software/gettext/"
      echo "" ;;
 esac
 
@@ -274,5 +437,43 @@ yes) echo "-- XMP metadata support........... YES" ;;
      echo "" ;;
 esac
 
+case "x$ENABLE_VIDEO" in
+x1)  echo "-- Video support.................. YES" ;;
+*)   echo "-- Video support.................. NO"
+esac
+
+if test "$enable_webready" = "yes"; then
+    echo  "-- Webready support............... YES"
+else
+    echo  "-- Webready support............... NO"
+fi
+
+if test "$enable_webready" = "yes"; then
+case "$USE_CURL" in
+yes) echo "-- Using Lib Curl................. YES" ;;
+*)   echo "-- Using Lib Curl................. NO"
+     echo ""
+     echo "Libcurl is required for HttpIo in basicIo.cpp. Make sure the Curl header"
+     echo "files are installed and use --with-curl=DIR if it is in a"
+     echo "non-standard location. You can get Curl from"
+     echo "http://curl.haxx.se/libcurl/"
+     echo "" ;;
+esac
+
+case "x$USE_SSH" in
+x1)  echo "-- Using Lib SSH.................. YES" ;;
+*)   echo "-- Using Lib SSH.................. NO"
+     echo ""
+     echo "Libssh is required for SshIo in basicIo.cpp. Make sure the libssh header"
+     echo "files are installed and use --with-ssh=DIR if it is in a"
+     echo "non-standard location. You can get libssh from"
+     echo "http://www.libssh.org/get-it/"
+     echo "" ;;
+esac
+fi
+
 echo "------------------------------------------------------------------"
 echo ""
+
+# That's all Folks!
+##

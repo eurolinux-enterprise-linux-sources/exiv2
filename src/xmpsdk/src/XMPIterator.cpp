@@ -46,7 +46,7 @@ static XMP_Node * sDummySchema = 0;	// ! Used for some ugliness with aliases.
 static void
 AddSchemaProps ( IterInfo & info, IterNode & iterSchema, const XMP_Node * xmpSchema )
 {
-	info = info;	// Avoid unused parameter warning.
+	UNUSED(info);
 	#if TraceIterators
 		printf ( "    Adding properties of %s\n", xmpSchema->name.c_str() );
 	#endif
@@ -241,7 +241,7 @@ AdvanceIterPos ( IterInfo & info )
 		} else {
 			
 			// -------------------------------------------------------------------------------------------
-			// Decide what to do with this iteration node based on its state. Don't use a switch statment,
+			// Decide what to do with this iteration node based on its state. Don't use a switch statement,
 			// some of the cases want to break from the loop. A break in a switch just exits the case.
 			
 			#if TraceIterators
@@ -399,7 +399,7 @@ XMPIterator::Terminate() RELEASE_NO_THROW
 void
 XMPIterator::Unlock	( XMP_OptionBits options )
 {
-	options = options;	// Avoid unused parameter warning.
+	UNUSED(options);
 
 	XMPMeta::Unlock ( 0 );
 	
@@ -727,7 +727,7 @@ XMPIterator::Skip ( XMP_OptionBits iterOptions )
 void
 XMPIterator::UnlockIter	( XMP_OptionBits options )
 {
-	options = options;	// Avoid unused parameter warning.
+	UNUSED(options);
 
 	XMPMeta::Unlock ( 0 );
 	

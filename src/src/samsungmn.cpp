@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,13 +20,13 @@
  */
 /*
   File:      samsungmn.cpp
-  Version:   $Rev: 2701 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   27-Sep-10, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: samsungmn.cpp 2701 2012-04-13 14:08:56Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: samsungmn.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -50,14 +50,24 @@ namespace Exiv2 {
 
     //! LensType, tag 0xa003
     extern const TagDetails samsung2LensType[] = {
-        { 0, N_("Built-in")                              },
-        { 1, N_("Samsung 30mm F2 Pancake")               },
-        { 2, N_("Samsung Zoom 18-55mm F3.5-5.6 OIS")     },
-        { 3, N_("Samsung Zoom 50-200mm F4-5.6 ED OIS")   },
-        { 4, N_("Samsung 20-50mm F3.5-5.6 Compact Zoom") },
-        { 5, N_("Samsung 20mm F2.8 Pancake")             },
-        { 7, N_("Samsung 60mm F2.8 Macro ED OIS SSA")    },
-        { 8, N_("Samsung 16mm F2.4 Ultra Wide Pancake")  }
+        {  0, N_("Built-in")                                      },
+        {  1, "Samsung NX 30mm F2 Pancake"                    },
+        {  2, "Samsung NX 18-55mm F3.5-5.6 OIS"               },
+        {  3, "Samsung NX 50-200mm F4-5.6 ED OIS"             },
+        {  4, "Samsung NX 20-50mm F3.5-5.6 ED"                },
+        {  5, "Samsung NX 20mm F2.8 Pancake"                  },
+        {  6, "Samsung NX 18-200mm F3.5-6.3 ED OIS"           },
+        {  7, "Samsung NX 60mm F2.8 Macro ED OIS SSA"         },
+        {  8, "Samsung NX 16mm F2.4 Pancake"                  },
+        {  9, "Samsung NX 85mm F1.4 ED SSA"                   },
+        { 10, "Samsung NX 45mm F1.8"                          },
+        { 11, "Samsung NX 45mm F1.8 2D/3D"                    },
+        { 12, "Samsung NX 12-24mm F4-5.6 ED"                  },
+        { 13, "Samsung NX 16-50mm F2-2.8 S ED OIS"            },
+        { 14, "Samsung NX 10mm F3.5 Fisheye"                  },
+        { 15, "Samsung NX 16-50mm F3.5-5.6 Power Zoom ED OIS" },
+        { 20, "Samsung NX 50-150mm F2.8 S ED OIS"             },
+        { 21, "Samsung NX 300mm F2.8 ED OIS"                  }
     };
 
     //! ColorSpace, tag 0xa011
@@ -84,6 +94,7 @@ namespace Exiv2 {
     //! Print the 35mm focal length
     std::ostream& printFocalLength35(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags f( os.flags() );
         if (value.count() != 1 || value.typeId() != unsignedLong) {
             return os << value;
         }
@@ -97,6 +108,7 @@ namespace Exiv2 {
             os << std::fixed << std::setprecision(1) << length / 10.0 << " mm";
             os.copyfmt(oss);
         }
+        os.flags(f);
         return os;
     }
 
@@ -157,6 +169,20 @@ namespace Exiv2 {
         { 11, N_("Custom3")   }
     };
 
+    //! Print the PictureWizard Color tag value
+    std::ostream& printPwColor(std::ostream& os, const Value& value, const ExifData*)
+    {
+        if (value.count() != 1 || value.typeId() != unsignedShort) {
+            return os << value;
+        }
+        // Special case where no color modification is done
+        if (value.toLong() == 65535) {
+            return os << _("Neutral");
+        }
+        // Output seems to represent Hue in degrees
+        return os << value.toLong();
+    }
+
     //! Print the tag value minus 4
     std::ostream& printValueMinus4(std::ostream& os, const Value& value, const ExifData*)
     {
@@ -169,7 +195,7 @@ namespace Exiv2 {
     // Samsung PictureWizard Tag Info
     const TagInfo Samsung2MakerNote::tagInfoPw_[] = {
         TagInfo(0x0000, "Mode", N_("Mode"), N_("Mode"), samsungPwId, makerTags, unsignedShort, 1, EXV_PRINT_TAG(samsungPwMode)),
-        TagInfo(0x0001, "Color", N_("Color"), N_("Color"), samsungPwId, makerTags, unsignedShort, 1, printValue),
+        TagInfo(0x0001, "Color", N_("Color"), N_("Color"), samsungPwId, makerTags, unsignedShort, 1, printPwColor),
         TagInfo(0x0002, "Saturation", N_("Saturation"), N_("Saturation"), samsungPwId, makerTags, unsignedShort, 1, printValueMinus4),
         TagInfo(0x0003, "Sharpness", N_("Sharpness"), N_("Sharpness"), samsungPwId, makerTags, unsignedShort, 1, printValueMinus4),
         TagInfo(0x0004, "Contrast", N_("Contrast"), N_("Contrast"), samsungPwId, makerTags, unsignedShort, 1, printValueMinus4),

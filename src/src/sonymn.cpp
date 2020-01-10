@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,13 +20,13 @@
  */
 /*
   File:      sonymn.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   18-Apr-05, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: sonymn.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: sonymn.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -64,28 +64,79 @@ namespace Exiv2 {
 
     //! Lookup table to translate Sony model ID values to readable labels
     extern const TagDetails sonyModelId[] = {
-        { 2,   "DSC-R1"    },
-        { 256, "DSLR-A100" },
-        { 257, "DSLR-A900" },
-        { 258, "DSLR-A700" },
-        { 259, "DSLR-A200" },
-        { 260, "DSLR-A350" },
-        { 261, "DSLR-A300" },
-        { 263, "DSLR-A380" },
-        { 264, "DSLR-A330" },
-        { 265, "DSLR-A230" },
-        { 269, "DSLR-A850" },
-        { 273, "DSLR-A550" },
-        { 274, "DSLR-A500" },
-        { 275, "DSLR-A450" },
-        { 278, "NEX-5"     },
-        { 279, "NEX-3"     }
+        { 2, "DSC-R1"                   },
+        { 256, "DSLR-A100"              },
+        { 257, "DSLR-A900"              },
+        { 258, "DSLR-A700"              },
+        { 259, "DSLR-A200"              },
+        { 260, "DSLR-A350"              },
+        { 261, "DSLR-A300"              },
+        { 262, "DSLR-A900 (APS-C mode)" },
+        { 263, "DSLR-A380/A390"         },
+        { 264, "DSLR-A330"              },
+        { 265, "DSLR-A230"              },
+        { 266, "DSLR-A290"              },
+        { 269, "DSLR-A850"              },
+        { 270, "DSLR-A850 (APS-C mode)" },
+        { 273, "DSLR-A550"              },
+        { 274, "DSLR-A500"              },
+        { 275, "DSLR-A450"              },
+        { 278, "NEX-5"                  },
+        { 279, "NEX-3"                  },
+        { 280, "SLT-A33"                },
+        { 281, "SLT-A55 / SLT-A55V"     },
+        { 282, "DSLR-A560"              },
+        { 283, "DSLR-A580"              },
+        { 284, "NEX-C3"                 },
+        { 285, "SLT-A35"                },
+        { 286, "SLT-A65 / SLT-A65V"     },
+        { 287, "SLT-A77 / SLT-A77V"     },
+        { 288, "NEX-5N"                 },
+        { 289, "NEX-7"                  },
+        { 290, "NEX-VG20E"              },
+        { 291, "SLT-A37"                },
+        { 292, "SLT-A57"                },
+        { 293, "NEX-F3"                 },
+        { 294, "SLT-A99 / SLT-A99V"     },
+        { 295, "NEX-6"                  },
+        { 296, "NEX-5R"                 },
+        { 297, "DSC-RX100"              },
+        { 298, "DSC-RX1"                },
+        { 299, "NEX-VG900"              },
+        { 300, "NEX-VG30E"              },
+        { 302, "ILCE-3000 / ILCE-3500"  },
+        { 303, "SLT-A58"                },
+        { 305, "NEX-3N"                 },
+        { 306, "ILCE-7"                 },
+        { 307, "NEX-5T"                 },
+        { 308, "DSC-RX100M2"            },
+        { 309, "DSC-RX10"               },
+        { 310, "DSC-RX1R"               },
+        { 311, "ILCE-7R"                },
+        { 312, "ILCE-6000"              },
+        { 313, "ILCE-5000"              },
+        { 317, "DSC-RX100M3"            },
+        { 318, "ILCE-7S"                },
+        { 319, "ILCA-77M2"              },
+        { 339, "ILCE-5100"              },
+        { 340, "ILCE-7M2"               },
+        { 341, "DSC-RX100M4"            },
+        { 342, "DSC-RX10M2"             },
+        { 344, "DSC-RX1RM2"             },
+        { 346, "ILCE-QX1"               },
+        { 347, "ILCE-7RM2"              },
+        { 350, "ILCE-7SM2"              },
+        { 353, "ICLA-68"                },
+        { 354, "ILCA-99M2"              },
+        { 355, "DSC-RX10M3"             },
+        { 356, "DSC-RX100M5"            },
+        { 357, "ILCE-6300"              }
     };
 
     //! Lookup table to translate Sony dynamic range optimizer values to readable labels
     extern const TagDetails print0xb025[] = {
         { 0,  N_("Off")           },
-        { 1,  N_("Standard ")     },
+        { 1,  N_("Standard")      },
         { 2,  N_("Advanced Auto") },
         { 3,  N_("Auto")          },
         { 8,  N_("Advanced Lv1")  },
@@ -105,35 +156,42 @@ namespace Exiv2 {
         { 0,     N_("Auto")                     },
         { 1,     N_("Portrait")                 },
         { 2,     N_("Beach")                    },
+        { 3,     N_("Sports")                   },
         { 4,     N_("Snow")                     },
-        { 5,     N_("Landscape ")               },
+        { 5,     N_("Landscape")                },
         { 6,     N_("Program")                  },
         { 7,     N_("Aperture priority")        },
         { 8,     N_("Shutter priority")         },
         { 9,     N_("Night Scene / Twilight")   },
         { 10,    N_("Hi-Speed Shutter")         },
         { 11,    N_("Twilight Portrait")        },
-        { 12,    N_("Soft Snap")                },
+        { 12,    N_("Soft Snap / Portrait")     },
         { 13,    N_("Fireworks")                },
         { 14,    N_("Smile Shutter")            },
         { 15,    N_("Manual")                   },
         { 18,    N_("High Sensitivity")         },
+        { 19,    N_("Macro")                    },
         { 20,    N_("Advanced Sports Shooting") },
         { 29,    N_("Underwater")               },
-        { 33,    N_("Gourmet")                  },
-        { 34,    N_("Panorama")                 },
-        { 35,    N_("Handheld Twilight")        },
+        { 33,    N_("Food")                     },
+        { 34,    N_("Sweep Panorama")           },
+        { 35,    N_("Handheld Night Shot")      },
         { 36,    N_("Anti Motion Blur")         },
         { 37,    N_("Pet")                      },
         { 38,    N_("Backlight Correction HDR") },
+        { 39,    N_("Superior Auto")            },
+        { 40,    N_("Background Defocus")       },
+        { 41,    N_("Soft Skin")                },
+        { 42,    N_("3D Image")                 },
         { 65535, N_("n/a")                      }
     };
 
     //! Lookup table to translate Sony JPEG Quality values to readable labels
     extern const TagDetails sonyJPEGQuality[] = {
-        { 0,     N_("Normal") },
-        { 1,     N_("Fine")   },
-        { 65535, N_("n/a")    }
+        { 0,     N_("Normal")       },
+        { 1,     N_("Fine")         },
+        { 2,     N_("Extra Fine")   },
+        { 65535, N_("n/a")          }
     };
 
     //! Lookup table to translate Sony anti-blur values to readable labels
@@ -164,9 +222,11 @@ namespace Exiv2 {
         { 4,  N_("Manual")                     },
         { 5,  N_("Daylight")                   },
         { 6,  N_("Cloudy")                     },
-        { 7,  N_("White Flourescent")          },
-        { 8,  N_("Cool White Flourescent")     },
-        { 9,  N_("Day White Flourescent")      },
+        { 7,  N_("White Fluorescent")          },
+        { 8,  N_("Cool White Fluorescent")     },
+        { 9,  N_("Day White Fluorescent")      },
+        { 10, N_("Incandescent2")              },
+        { 11, N_("Warm White Fluorescent")     },
         { 14, N_("Incandescent")               },
         { 15, N_("Flash")                      },
         { 17, N_("Underwater 1 (Blue Water)")  },
@@ -254,6 +314,9 @@ namespace Exiv2 {
             else if (val == "3000") os << "ARW 2.0";
             else if (val == "3100") os << "ARW 2.1";
             else if (val == "3200") os << "ARW 2.2";
+            else if (val == "3300") os << "ARW 2.3";
+            else if (val == "3310") os << "ARW 2.3.1";
+            else if (val == "3320") os << "ARW 2.3.2";
             else                    os << "(" << value << ")";
         }
         return os;
@@ -412,7 +475,7 @@ namespace Exiv2 {
                 N_("Release Mode"),
                 sony1Id, makerTags, unsignedShort, -1, EXV_PRINT_TAG(sonyReleaseMode)),
         TagInfo(0xB04A, "SequenceNumber", N_("Sequence Number"),
-                N_("Shot number in continous burst mode"),
+                N_("Shot number in continuous burst mode"),
                 sony1Id, makerTags, unsignedShort, -1, EXV_PRINT_TAG(sonySequenceNumber)),
         TagInfo(0xB04B, "AntiBlur", N_("Anti-Blur"),
                 N_("Anti-Blur"),
@@ -444,15 +507,20 @@ namespace Exiv2 {
 
     //! Lookup table to translate Sony camera settings drive mode values to readable labels
     extern const TagDetails sonyDriveModeStd[] = {
-        { 1,  N_("Single Frame")                     },
-        { 2,  N_("Continuous High")                  },
-        { 4,  N_("Self-timer 10 sec")                },
-        { 5,  N_("Self-timer 2 sec")                 },
-        { 7,  N_("Continuous Bracketing")            },
-        { 12, N_("Continuous Low")                   },
-        { 18, N_("White Balance Bracketing Low")     },
-        { 19, N_("D-Range Optimizer Bracketing Low") },
-        { 19, N_("D-Range Optimizer Bracketing Low") } // To silence compiler warning
+        { 0x01, N_("Single Frame")                      },
+        { 0x02, N_("Continuous High")                   },
+        { 0x04, N_("Self-timer 10 sec")                 },
+        { 0x05, N_("Self-timer 2 sec, Mirror Lock-up")  },
+        { 0x06, N_("Single-frame Bracketing")           },
+        { 0x07, N_("Continuous Bracketing")             },
+        { 0x0a, N_("Remote Commander")                  },
+        { 0x0b, N_("Mirror Lock-up")                    },
+        { 0x12, N_("Continuous Low")                    },
+        { 0x18, N_("White Balance Bracketing Low")      },
+        { 0x19, N_("D-Range Optimizer Bracketing Low")  },
+        { 0x28, N_("White Balance Bracketing High")     },
+        { 0x29, N_("D-Range Optimizer Bracketing High") },
+        { 0x29, N_("D-Range Optimizer Bracketing High") } // To silence compiler warning
     };
 
     //! Lookup table to translate Sony camera settings focus mode values to readable labels
@@ -502,13 +570,21 @@ namespace Exiv2 {
 
     //! Lookup table to translate Sony camera settings image style values to readable labels
     extern const TagDetails sonyImageStyle[] = {
-        { 1,    N_("Standard")      },
-        { 2,    N_("Vivid")         },
-        { 9,    N_("Adobe RGB")     },
-        { 11,   N_("Neutral")       },
-        { 129,  N_("StyleBox1")     },
-        { 130,  N_("StyleBox1")     },
-        { 131,  N_("StyleBox1")     }
+        { 1,    N_("Standard")            },
+        { 2,    N_("Vivid")               },
+        { 3,    N_("Portrait")            },
+        { 4,    N_("Landscape")           },
+        { 5,    N_("Sunset")              },
+        { 7,    N_("Night View/Portrait") },
+        { 8,    N_("B&W")                 },
+        { 9,    N_("Adobe RGB")           },
+        { 11,   N_("Neutral")             },
+        { 129,  N_("StyleBox1")           },
+        { 130,  N_("StyleBox2")           },
+        { 131,  N_("StyleBox3")           },
+        { 132,  N_("StyleBox4")           },
+        { 133,  N_("StyleBox5")           },
+        { 134,  N_("StyleBox6")           }
     };
 
     //! Lookup table to translate Sony camera settings exposure program values to readable labels

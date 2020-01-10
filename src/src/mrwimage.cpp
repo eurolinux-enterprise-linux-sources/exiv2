@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,22 +20,17 @@
  */
 /*
   File:      mrwimage.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   13-May-06, ahu: created
   Credits:   See header file
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: mrwimage.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: mrwimage.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "mrwimage.hpp"
 #include "tiffimage.hpp"

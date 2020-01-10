@@ -1,9 +1,10 @@
 // ***************************************************************** -*- C++ -*-
-// werror-test.cpp, $Rev: 2286 $
+// werror-test.cpp, $Rev: 3513 $
 // Simple tests for the wide-string error class WError
 
-#include <iostream>
 #include <exiv2/exiv2.hpp>
+
+#include <iostream>
 
 int main()
 {

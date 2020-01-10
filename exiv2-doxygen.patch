@@ -1,0 +1,21 @@
+diff -up exiv2-trunk/config/Doxyfile.doxygen exiv2-trunk/config/Doxyfile
+--- exiv2-trunk/config/Doxyfile.doxygen	2017-05-02 09:17:33.631909015 -0500
++++ exiv2-trunk/config/Doxyfile	2017-05-02 09:18:03.019200824 -0500
+@@ -1688,7 +1688,7 @@ HIDE_UNDOC_RELATIONS   = YES
+ # toolkit from AT&T and Lucent Bell Labs. The other options in this section
+ # have no effect if this option is set to NO (the default)
+ 
+-HAVE_DOT               = YES
++#HAVE_DOT               = YES
+ 
+ # The DOT_NUM_THREADS specifies the number of dot invocations doxygen is
+ # allowed to run in parallel. When set to 0 (the default) doxygen will
+@@ -1705,7 +1705,7 @@ DOT_NUM_THREADS        = 0
+ # the DOTFONTPATH environment variable or by setting DOT_FONTPATH to the
+ # directory containing the font.
+ 
+-DOT_FONTNAME           = Arial
++#DOT_FONTNAME           = Arial
+ 
+ # The DOT_FONTSIZE tag can be used to set the size of the font of dot graphs.
+ # The default size is 10pt.

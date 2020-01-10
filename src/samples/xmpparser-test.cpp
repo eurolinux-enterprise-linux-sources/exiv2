@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// xmpparser-test.cpp, $Rev: 2286 $
+// xmpparser-test.cpp, $Rev: 3090 $
 // Read an XMP packet from a file, parse and re-serialize it.
 
 #include <exiv2/exiv2.hpp>

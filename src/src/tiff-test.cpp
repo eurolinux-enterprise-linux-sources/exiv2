@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// tiff-test.cpp, $Rev: 1512 $
+// tiff-test.cpp, $Rev: 4544 $
 // TIFF writer tests.
 
 #include "tiffimage.hpp"

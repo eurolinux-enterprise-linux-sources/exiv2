@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// mrwthumb.cpp, $Rev: 1532 $
+// mrwthumb.cpp, $Rev: 4544 $
 // Sample program to extract a Minolta thumbnail from the makernote
 
 #include "image.hpp"

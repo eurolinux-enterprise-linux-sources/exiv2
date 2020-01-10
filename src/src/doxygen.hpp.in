@@ -2,7 +2,7 @@
 /*!
   @file    doxygen.hpp
   @brief   Additional documentation, this file contains no source code
-  @version $Rev: 2681 $
+  @version $Rev: 4742 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    07-Feb-04, ahu: created
@@ -69,36 +69,46 @@
   - <a href="tags-xmp-crs.html">crs schema</a>
   - <a href="tags-xmp-tiff.html">tiff schema</a>
   - <a href="tags-xmp-exif.html">exif schema</a>
+  - <a href="tags-xmp-exifEX.html">exifEX schema</a>
   - <a href="tags-xmp-aux.html">aux schema</a>
   - <a href="tags-xmp-iptc.html">Iptc4xmpCore schema</a>
   - <a href="tags-xmp-iptcExt.html">Iptc4xmpExt schema</a>
   - <a href="tags-xmp-plus.html">PLUS schema</a>
+  - <a href="tags-xmp-mwg-rs.html">Metadata Working Group Regions schema</a>
+  - <a href="tags-xmp-mwg-kw.html">Metadata Working Group Hierarchical Keywords schema</a>
+  - <a href="tags-xmp-dwc.html">Darwin Core schema</a>
+  - <a href="tags-xmp-dcterms.html">Dublin Core Terms schema</a>
   - <a href="tags-xmp-digiKam.html">digiKam schema</a>
   - <a href="tags-xmp-kipi.html">KDE Image Program Interface schema</a>
-  - <a href="tags-xmp-MicrosoftPhoto.html">MicrosoftPhoto schema</a>
-  - <a href="tags-xmp-mediapro.html">iView Media Pro schema</a>
-  - <a href="tags-xmp-expressionmedia.html">Microsoft Expression Media schema</a>
+  - <a href="tags-xmp-GPano.html">GPano schema</a>
+  - <a href="tags-xmp-lr.html">lightroom schema</a>
   - <a href="tags-xmp-MP.html">Microsoft Photo 1.2 schema</a>
   - <a href="tags-xmp-MPRI.html">Microsoft Photo RegionInfo schema</a>
   - <a href="tags-xmp-MPReg.html">Microsoft Photo Region schema</a>
-  - <a href="tags-xmp-mwg-rs.html">Metadata Working Group Regions schema</a>
+
+  - <a href="tags-xmp-acdsee.html">acdsee</a>
+  - <a href="tags-xmp-mediapro.html">iView Media Pro schema</a>
+  - <a href="tags-xmp-expressionmedia.html">Microsoft Expression Media schema</a>
+  - <a href="tags-xmp-MicrosoftPhoto.html">MicrosoftPhoto schema</a>
+
+
 
   @section formats File Formats
 
-  <P>See the <A HREF="http://dev.exiv2.org/wiki/exiv2/Supported_image_formats">list of supported image formats</A>
+  <P>See the <A HREF="http://dev.exiv2.org/projects/exiv2/wiki/Supported_image_formats">list of supported image formats</A>
   in the Wiki and the <A HREF="crw-mapping.html">Canon CRW mapping</A>.</P>
 
   @section supp Support
 
   <p>All project resources are accessible from the
-  <A HREF="http://dev.exiv2.org/wiki/exiv2">project website</A>.</p>
+  <A HREF="http://dev.exiv2.org/projects/exiv2/wiki">project website</A>.</p>
 
   <p>Please send feedback or queries to the %Exiv2 forum. For new bug reports
   and feature requests, please open an issue.</p>
 
   @section license License
 
-  <P>Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net></P>
+  <P>Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net></P>
 
   <P>%Exiv2 is free software; you can redistribute it and/or modify it under the
   terms of the <a href="gpl-license.html">GNU General Public License</a> as

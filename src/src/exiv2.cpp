@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -22,21 +22,16 @@
   Abstract:  Command line program to display and manipulate image metadata.
 
   File:      exiv2.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   10-Dec-03, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: exiv2.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: exiv2.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "exiv2app.hpp"
 #include "actions.hpp"
@@ -45,13 +40,17 @@ EXIV2_RCSID("@(#) $Id: exiv2.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
 #include "i18n.h"      // NLS support.
 #include "xmp.hpp"
 
-#include <string>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <cstring>
 #include <cassert>
 #include <cctype>
+
+#if EXV_HAVE_REGEX
+#include <regex.h>
+#endif
+
 
 // *****************************************************************************
 // local declarations
@@ -147,7 +146,7 @@ int main(int argc, char* const argv[])
         return 0;
     }
     if (params.version_) {
-        params.version();
+        params.version(params.verbose_);
         return 0;
     }
 
@@ -204,12 +203,13 @@ void Params::cleanup()
     instance_ = 0;
 }
 
-void Params::version(std::ostream& os) const
+void Params::version(bool verbose,std::ostream& os) const
 {
     bool  b64    = sizeof(void*)==8;
     const char* sBuild = b64 ? "(64 bit build)" : "(32 bit build)" ;
-    os << EXV_PACKAGE_STRING << " " << Exiv2::versionNumberHexString() << " " << sBuild << "\n"
-       << _("Copyright (C) 2004-2012 Andreas Huggel.\n")
+    os << EXV_PACKAGE_STRING << " " << Exiv2::versionNumberHexString() << " " << sBuild << "\n";
+    if ( Params::instance().greps_.empty() ) {
+    os << _("Copyright (C) 2004-2017 Andreas Huggel.\n")
        << "\n"
        << _("This program is free software; you can redistribute it and/or\n"
             "modify it under the terms of the GNU General Public License\n"
@@ -225,6 +225,9 @@ void Params::version(std::ostream& os) const
             "License along with this program; if not, write to the Free\n"
             "Software Foundation, Inc., 51 Franklin Street, Fifth Floor,\n"
             "Boston, MA 02110-1301 USA\n");
+    }
+
+    if ( verbose ) Exiv2::dumpLibraryInfo(os,Params::instance().greps_);
 }
 
 void Params::usage(std::ostream& os) const
@@ -232,6 +235,25 @@ void Params::usage(std::ostream& os) const
     os << _("Usage:") << " " << progname()
        << " " << _("[ options ] [ action ] file ...\n\n")
        << _("Manipulate the Exif metadata of images.\n");
+}
+
+std::string Params::printTarget(std::string before,int target,bool bPrint,std::ostream& out)
+{
+    std::string t;
+    if ( target & Params::ctExif       ) t+= 'e';
+    if ( target & Params::ctXmpSidecar ) t+= 'X';
+    if ( target & Params::ctXmpRaw     ) t+= target & Params::ctXmpSidecar ? 'X' : 'R' ;
+    if ( target & Params::ctIptc       ) t+= 'i';
+    if ( target & Params::ctIccProfile ) t+= 'C';
+    if ( target & Params::ctIptcRaw    ) t+= 'I';
+    if ( target & Params::ctXmp        ) t+= 'x';
+    if ( target & Params::ctComment    ) t+= 'c';
+    if ( target & Params::ctThumb      ) t+= 't';
+    if ( target & Params::ctPreview    ) t+= 'p';
+    if ( target & Params::ctStdInOut   ) t+= '-';
+
+    if ( bPrint ) out << before << " :" << t << std::endl;
+    return t;
 }
 
 void Params::help(std::ostream& os) const
@@ -264,6 +286,7 @@ void Params::help(std::ostream& os) const
        << _("   -b      Show large binary values.\n")
        << _("   -u      Show unknown tags.\n")
        << _("   -g key  Only output info for this key (grep).\n")
+       << _("   -K key  Only output info for this key (exact match).\n")
        << _("   -n enc  Charset to use to decode UNICODE Exif user comments.\n")
        << _("   -k      Preserve file timestamps (keep).\n")
        << _("   -t      Also set the file timestamp in 'rename' action (overrides -k).\n")
@@ -279,6 +302,7 @@ void Params::help(std::ostream& os) const
        << _("   -p mode Print mode for the 'print' action. Possible modes are:\n")
        << _("             s : print a summary of the Exif metadata (the default)\n")
        << _("             a : print Exif, IPTC and XMP metadata (shortcut for -Pkyct)\n")
+       << _("             e : print Exif metadata (shortcut for -PEkycv)\n")
        << _("             t : interpreted (translated) Exif data (-PEkyct)\n")
        << _("             v : plain Exif data values (-PExgnycv)\n")
        << _("             h : hexdump of the Exif data (-PExgnycsh)\n")
@@ -286,6 +310,10 @@ void Params::help(std::ostream& os) const
        << _("             x : XMP properties (-PXkyct)\n")
        << _("             c : JPEG comment\n")
        << _("             p : list available previews\n")
+       << _("             C : print ICC profile embedded in image\n")
+       << _("             R : recursive print structure of image\n")
+       << _("             S : print structure of image\n")
+       << _("             X : extract XMP from image\n")
        << _("   -P flgs Print flags for fine control of tag lists ('print' action):\n")
        << _("             E : include Exif tags in the list\n")
        << _("             I : IPTC datasets\n")
@@ -348,7 +376,8 @@ int Params::option(int opt, const std::string& optarg, int optopt)
     case 'u': unknown_ = false; break;
     case 'f': force_ = true; fileExistsPolicy_ = overwritePolicy; break;
     case 'F': force_ = true; fileExistsPolicy_ = renamePolicy; break;
-    case 'g': keys_.push_back(optarg); printMode_ = pmList; break;
+    case 'g': rc = evalGrep(optarg); break;
+    case 'K': rc = evalKey(optarg); printMode_ = pmList; break;
     case 'n': charset_ = optarg; break;
     case 'r': rc = evalRename(opt, optarg); break;
     case 't': rc = evalRename(opt, optarg); break;
@@ -361,6 +390,7 @@ int Params::option(int opt, const std::string& optarg, int optopt)
     case 'P': rc = evalPrintFlags(optarg); break;
     case 'd': rc = evalDelete(optarg); break;
     case 'e': rc = evalExtract(optarg); break;
+    case 'C': rc = evalExtract(optarg); break;
     case 'i': rc = evalInsert(optarg); break;
     case 'c': rc = evalModify(opt, optarg); break;
     case 'm': rc = evalModify(opt, optarg); break;
@@ -405,6 +435,60 @@ int Params::setLogLevel(const std::string& optarg)
     }
     return rc;
 } // Params::setLogLevel
+
+// http://stackoverflow.com/questions/874134/find-if-string-ends-with-another-string-in-c
+static inline bool ends_with(std::string const & value, std::string const & ending,std::string& stub)
+{
+    if (ending.size() > value.size()) return false;
+    bool bResult = std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    stub         = bResult ? value.substr(0,value.length() - ending.length()) : value;
+    return bResult ;
+}
+
+int Params::evalGrep( const std::string& optarg)
+{
+    int result=0;
+    std::string pattern;
+    std::string ignoreCase("/i");
+    bool bIgnoreCase = ends_with(optarg,ignoreCase,pattern);
+#if __cplusplus >= CPLUSPLUS11
+    greps_.push_back( std::regex(pattern, bIgnoreCase ? std::regex::icase|std::regex::extended : std::regex::extended) );
+#else
+#if EXV_HAVE_REGEX
+    // try to compile a reg-exp from the input argument and store it in the vector
+    const size_t i = greps_.size();
+    greps_.resize(i + 1);
+    regex_t *pRegex = &greps_[i];
+    int errcode = regcomp( pRegex, pattern.c_str(), bIgnoreCase ? REG_NOSUB|REG_ICASE : REG_NOSUB);
+
+    // there was an error compiling the regexp
+    if( errcode ) {
+        size_t length = regerror (errcode, pRegex, NULL, 0);
+        char *buffer = new char[ length];
+        regerror (errcode, pRegex, buffer, length);
+        std::cerr << progname()
+              << ": " << _("Option") << " -g: "
+              << _("Invalid regexp") << " \"" << optarg << "\": " << buffer << "\n";
+
+        // free the memory and drop the regexp
+        delete[] buffer;
+        regfree( pRegex);
+        greps_.resize(i);
+        result=1;
+    }
+#else
+    greps_.push_back(Exiv2_grep_key_t(pattern,bIgnoreCase));
+#endif
+#endif
+    return result;
+} // Params::evalGrep
+
+int Params::evalKey( const std::string& optarg)
+{
+    int result=0;
+    keys_.push_back(optarg);
+    return result;
+} // Params::evalKey
 
 int Params::evalRename(int opt, const std::string& optarg)
 {
@@ -509,13 +593,18 @@ int Params::evalPrint(const std::string& optarg)
         switch (optarg[0]) {
         case 's': action_ = Action::print; printMode_ = pmSummary; break;
         case 'a': rc = evalPrintFlags("kyct"); break;
+        case 'e': rc = evalPrintFlags("Ekycv"); break;
         case 't': rc = evalPrintFlags("Ekyct"); break;
         case 'v': rc = evalPrintFlags("Exgnycv"); break;
         case 'h': rc = evalPrintFlags("Exgnycsh"); break;
         case 'i': rc = evalPrintFlags("Ikyct"); break;
         case 'x': rc = evalPrintFlags("Xkyct"); break;
-        case 'c': action_ = Action::print; printMode_ = pmComment; break;
-        case 'p': action_ = Action::print; printMode_ = pmPreview; break;
+        case 'c': action_ = Action::print; printMode_ = pmComment    ; break;
+        case 'p': action_ = Action::print; printMode_ = pmPreview    ; break;
+        case 'C': action_ = Action::print; printMode_ = pmIccProfile ; break;
+        case 'R': action_ = Action::print; printMode_ = pmRecursive  ; break;
+        case 'S': action_ = Action::print; printMode_ = pmStructure  ; break;
+        case 'X': action_ = Action::print; printMode_ = pmXMP        ; break;
         default:
             std::cerr << progname() << ": " << _("Unrecognized print mode") << " `"
                       << optarg << "'\n";
@@ -559,6 +648,7 @@ int Params::evalPrintFlags(const std::string& optarg)
             case 'v': printItems_ |= prValue; break;
             case 't': printItems_ |= prTrans; break;
             case 'h': printItems_ |= prHex;   break;
+            case 'V': printItems_ |= prSet|prValue;break;
             default:
                 std::cerr << progname() << ": " << _("Unrecognized print item") << " `"
                           << optarg[i] << "'\n";
@@ -790,8 +880,135 @@ int Params::nonoption(const std::string& argv)
     return rc;
 } // Params::nonoption
 
-int Params::getopt(int argc, char* const argv[])
+static int readFileToBuf(FILE* f,Exiv2::DataBuf& buf)
 {
+    const int buff_size = 4*1028;
+    Exiv2::byte* bytes  = (Exiv2::byte*)::malloc(buff_size);
+    int       nBytes    = 0 ;
+    bool      more      = bytes != NULL;
+    while   ( more ) {
+        char buff[buff_size];
+        int  n     = (int) fread(buff,1,buff_size,f);
+        more       = n > 0 ;
+        if ( more ) {
+            bytes      = (Exiv2::byte*) realloc(bytes,nBytes+n);
+            memcpy(bytes+nBytes,buff,n);
+            nBytes    += n ;
+        }
+    }
+
+    if ( nBytes ) {
+        buf.alloc(nBytes);
+        memcpy(buf.pData_,(const void*)bytes,nBytes);
+    }
+    if ( bytes != NULL ) ::free(bytes) ;
+    return nBytes;
+}
+
+//#define DEBUG
+void Params::getStdin(Exiv2::DataBuf& buf)
+{
+    // copy stdin to stdinBuf
+    if ( stdinBuf.size_ == 0 ) {
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW__) || defined(_MSC_VER)
+        DWORD fdwMode;
+        _setmode(fileno(stdin), O_BINARY);
+        Sleep(300);
+        if ( !GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &fdwMode) ) { // failed: stdin has bytes!
+#else
+        // http://stackoverflow.com/questions/34479795/make-c-not-wait-for-user-input/34479916#34479916
+        fd_set                readfds;
+        FD_ZERO             (&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        struct timeval timeout =  {1,0}; // yes: set timeout seconds,microseconds
+
+        // if we have something in the pipe, read it
+        if (select(1, &readfds, NULL, NULL, &timeout)) {
+#endif
+#ifdef DEBUG
+            std::cerr << "stdin has data" << std::endl;
+#endif
+            readFileToBuf(stdin,stdinBuf);
+        }
+#ifdef DEBUG
+        // this is only used to simulate reading from stdin when debugging
+        // to simulate exiv2 -pX foo.jpg                | exiv2 -iXX- bar.jpg
+        //             exiv2 -pX foo.jpg > ~/temp/stdin ; exiv2 -iXX- bar.jpg
+        if ( stdinBuf.size_ == 0 ) {
+            const char* path = "/Users/rmills/temp/stdin";
+            FILE* f = fopen(path,"rb");
+            if  ( f ) {
+                readFileToBuf(f,stdinBuf);
+                fclose(f);
+                std::cerr << "read stdin from " << path << std::endl;
+            }
+        }
+#endif
+#ifdef DEBUG
+            std::cerr << "getStdin stdinBuf.size_ = " << stdinBuf.size_ << std::endl;
+#endif
+    }
+
+    // copy stdinBuf to buf
+    if ( stdinBuf.size_ ) {
+        buf.alloc(stdinBuf.size_);
+        memcpy(buf.pData_,stdinBuf.pData_,buf.size_);
+    }
+#ifdef DEBUG
+    std::cerr << "getStdin stdinBuf.size_ = " << stdinBuf.size_ << std::endl;
+#endif
+
+} // Params::getStdin()
+
+typedef std::map<std::string,std::string> long_t;
+
+int Params::getopt(int argc, char* const Argv[])
+{
+    char** argv = new char* [argc+1];
+    argv[argc] = NULL;
+    long_t longs;
+
+    longs["--adjust"   ] = "-a";
+    longs["--binary"   ] = "-b";
+    longs["--comment"  ] = "-c";
+    longs["--delete"   ] = "-d";
+    longs["--days"     ] = "-D";
+    longs["--force"    ] = "-f";
+    longs["--Force"    ] = "-F";
+    longs["--grep"     ] = "-g";
+    longs["--help"     ] = "-h";
+    longs["--insert"   ] = "-i";
+    longs["--keep"     ] = "-k";
+    longs["--key"      ] = "-K";
+    longs["--location" ] = "-l";
+    longs["--modify"   ] = "-m";
+    longs["--Modify"   ] = "-M";
+    longs["--encode"   ] = "-n";
+    longs["--months"   ] = "-O";
+    longs["--print"    ] = "-p";
+    longs["--Print"    ] = "-P";
+    longs["--quiet"    ] = "-q";
+    longs["--log"      ] = "-Q";
+    longs["--rename"   ] = "-r";
+    longs["--suffix"   ] = "-S";
+    longs["--timestamp"] = "-t";
+    longs["--Timestamp"] = "-T";
+    longs["--unknown"  ] = "-u";
+    longs["--verbose"  ] = "-v";
+    longs["--Version"  ] = "-V";
+    longs["--version"  ] = "-V";
+    longs["--years"    ] = "-Y";
+
+    for ( int i = 0 ; i < argc ; i++ ) {
+        std::string* arg = new std::string(Argv[i]);
+        if (longs.find(*arg) != longs.end() ) {
+            argv[i] = ::strdup(longs[*arg].c_str());
+        } else {
+            argv[i] = ::strdup(Argv[i]);
+        }
+        delete arg;
+    }
+
     int rc = Util::Getopt::getopt(argc, argv, optstring_);
     // Further consistency checks
     if (help_ || version_) return 0;
@@ -858,6 +1075,11 @@ int Params::getopt(int argc, char* const argv[])
                   << _("-T option can only be used with rename action\n");
         rc = 1;
     }
+
+    // cleanup the argument vector
+    for ( int i = 0 ; i < argc ; i++ ) ::free((void*)argv[i]);
+    delete [] argv;
+
     return rc;
 } // Params::getopt
 
@@ -908,8 +1130,10 @@ namespace {
     int parseCommonTargets(const std::string& optarg,
                            const std::string& action)
     {
-        int rc = 0;
+        int rc     = 0;
         int target = 0;
+        int all    = Params::ctExif | Params::ctIptc | Params::ctComment | Params::ctXmp;
+        int extra  = Params::ctXmpSidecar|Params::ctExif|Params::ctIptc|Params::ctXmp;
         for (size_t i = 0; rc == 0 && i < optarg.size(); ++i) {
             switch (optarg[i]) {
             case 'e': target |= Params::ctExif; break;
@@ -917,14 +1141,17 @@ namespace {
             case 'x': target |= Params::ctXmp; break;
             case 'c': target |= Params::ctComment; break;
             case 't': target |= Params::ctThumb; break;
-            case 'a': target |=   Params::ctExif
-                                | Params::ctIptc
-                                | Params::ctComment
-                                | Params::ctXmp; break;
-            case 'X':
-                target |= Params::ctXmpSidecar;
-                if (optarg == "X") target |= Params::ctExif | Params::ctIptc | Params::ctXmp;
-                break;
+            case 'C': target |= Params::ctIccProfile; break;
+            case 'I': target |= Params::ctIptcRaw;break;
+            case '-': target |= Params::ctStdInOut;break;
+            case 'a': target |= all ; break;
+            case 'X': target |= extra ; // -eX
+                 if ( i > 0 ) { // -eXX or -iXX
+                    target |=  Params::ctXmpRaw ;
+                    target &= ~extra; // turn off those bits
+                 }
+            break;
+
             case 'p':
             {
                 if (strcmp(action.c_str(), "extract") == 0) {
@@ -992,14 +1219,15 @@ namespace {
         for ( ; filename != end; ++filename) {
             try {
                 std::ifstream file(filename->c_str());
-                if (!file) {
+                bool bStdin = filename->compare("-")== 0;
+                if (!file && !bStdin) {
                     std::cerr << *filename << ": "
                               << _("Failed to open command file for reading\n");
                     return false;
                 }
                 int num = 0;
                 std::string line;
-                while (std::getline(file, line)) {
+                while (bStdin?std::getline(std::cin, line):std::getline(file, line)) {
                     ModifyCmd modifyCmd;
                     if (parseLine(modifyCmd, line, ++num)) {
                         modifyCmds.push_back(modifyCmd);
@@ -1032,8 +1260,30 @@ namespace {
         catch (const Exiv2::AnyError& error) {
             std::cerr << _("-M option") << " " << error << "\n";
             return false;
-	}
+        }
     } // parseCmdLines
+
+#if defined(_MSC_VER) || defined(__MINGW__)
+    static std::string formatArg(const char* arg)
+    {
+        std::string result = "";
+        char        b  = ' ' ;
+        char        e  = '\\'; std::string E = std::string("\\");
+        char        q  = '\''; std::string Q = std::string("'" );
+        bool        qt = false;
+        char* a    = (char*) arg;
+        while  ( *a ) {
+            if ( *a == b || *a == e || *a == q ) qt = true;
+            if ( *a == q ) result += E;
+            if ( *a == e ) result += E;
+            result += std::string(a,1);
+            a++ ;
+        }
+        if (qt) result = Q + result + Q;
+
+        return result;
+    }
+#endif
 
     bool parseLine(ModifyCmd& modifyCmd, const std::string& line, int num)
     {
@@ -1050,8 +1300,12 @@ namespace {
         if (   cmdStart == std::string::npos
             || cmdEnd == std::string::npos
             || keyStart == std::string::npos) {
+            std::string cmdLine ;
+#if defined(_MSC_VER) || defined(__MINGW__)
+            for ( int i = 1 ; i < __argc ; i++ ) { cmdLine += std::string(" ") + formatArg(__argv[i]) ; }
+#endif
             throw Exiv2::Error(1, Exiv2::toString(num)
-                               + ": " + _("Invalid command line"));
+                               + ": " + _("Invalid command line:") + cmdLine);
         }
 
         std::string cmd(line.substr(cmdStart, cmdEnd-cmdStart));
@@ -1163,7 +1417,7 @@ namespace {
         return cmdIdAndString[i].cmdId_;
     }
 
-    std::string parseEscapes(const std::string& input) 
+    std::string parseEscapes(const std::string& input)
     {
         std::string result = "";
         for (unsigned int i = 0; i < input.length(); ++i) {
@@ -1240,4 +1494,4 @@ namespace {
     }
 
 }
-        
+

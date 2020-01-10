@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// xmpdump.cpp, $Rev: 1512 $
+// xmpdump.cpp, $Rev: 4544 $
 // Sample program to dump the XMP packet of an image
 
 #include "image.hpp"

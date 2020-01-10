@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,7 +20,7 @@
  */
 /*
   File:      convert.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4764 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
              Vladimir Nadvornik (vn) <nadvornik@suse.cz>
   History:   17-Mar-08, ahu: created basic converter framework
@@ -28,7 +28,7 @@
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: convert.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: convert.cpp 4764 2017-04-23 19:29:19Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -66,6 +66,10 @@ EXIV2_RCSID("@(#) $Id: convert.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
 # include <XMPSDK.hpp>
 # include <MD5.h>
 #endif // EXV_HAVE_XMP_TOOLKIT
+
+#ifndef UNUSED
+#define UNUSED(x) (void)(x)
+#endif
 
 // *****************************************************************************
 // local declarations
@@ -143,6 +147,12 @@ namespace Exiv2 {
 
         //! @name Conversion functions (manipulators)
         //@{
+        /*!
+          @brief Do nothing conversion function.
+
+          Use when, for example, a one-way conversion is needed.
+         */
+        void cnvNone(const char*, const char*);
         /*!
           @brief Simple Exif to XMP conversion function.
 
@@ -322,12 +332,13 @@ namespace Exiv2 {
         { mdExif, "Exif.Image.PrimaryChromaticities",     "Xmp.tiff.PrimaryChromaticities",     &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.YCbCrCoefficients",         "Xmp.tiff.YCbCrCoefficients",         &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.ReferenceBlackWhite",       "Xmp.tiff.ReferenceBlackWhite",       &Converter::cnvExifValue, &Converter::cnvXmpValue },
-        { mdExif, "Exif.Image.DateTime",                  "Xmp.tiff.DateTime",                  &Converter::cnvExifDate , &Converter::cnvXmpDate  },
+        { mdExif, "Exif.Image.DateTime",                  "Xmp.xmp.ModifyDate",                 &Converter::cnvExifDate , &Converter::cnvXmpDate  }, // MWG Guidelines
         { mdExif, "Exif.Image.ImageDescription",          "Xmp.dc.description",                 &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.Make",                      "Xmp.tiff.Make",                      &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.Model",                     "Xmp.tiff.Model",                     &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.Software",                  "Xmp.tiff.Software",                  &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.Artist",                    "Xmp.dc.creator",                     &Converter::cnvExifValue, &Converter::cnvXmpValue },
+        { mdExif, "Exif.Image.Rating",                    "Xmp.xmp.Rating",                     &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Image.Copyright",                 "Xmp.dc.rights",                      &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Photo.ExifVersion",               "Xmp.exif.ExifVersion",               &Converter::cnvExifVersion, &Converter::cnvXmpVersion },
         { mdExif, "Exif.Photo.FlashpixVersion",           "Xmp.exif.FlashpixVersion",           &Converter::cnvExifVersion, &Converter::cnvXmpVersion },
@@ -338,8 +349,8 @@ namespace Exiv2 {
         { mdExif, "Exif.Photo.PixelYDimension",           "Xmp.exif.PixelYDimension",           &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Photo.UserComment",               "Xmp.exif.UserComment",               &Converter::cnvExifComment, &Converter::cnvXmpComment },
         { mdExif, "Exif.Photo.RelatedSoundFile",          "Xmp.exif.RelatedSoundFile",          &Converter::cnvExifValue, &Converter::cnvXmpValue },
-        { mdExif, "Exif.Photo.DateTimeOriginal",          "Xmp.exif.DateTimeOriginal",          &Converter::cnvExifDate,  &Converter::cnvXmpDate  },
-        { mdExif, "Exif.Photo.DateTimeDigitized",         "Xmp.exif.DateTimeDigitized",         &Converter::cnvExifDate,  &Converter::cnvXmpDate  },
+        { mdExif, "Exif.Photo.DateTimeOriginal",          "Xmp.photoshop.DateCreated",          &Converter::cnvExifDate,  &Converter::cnvXmpDate  }, // MWG Guidelines
+        { mdExif, "Exif.Photo.DateTimeDigitized",         "Xmp.xmp.CreateDate",                 &Converter::cnvExifDate,  &Converter::cnvXmpDate  }, // MWG Guidelines
         { mdExif, "Exif.Photo.ExposureTime",              "Xmp.exif.ExposureTime",              &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Photo.FNumber",                   "Xmp.exif.FNumber",                   &Converter::cnvExifValue, &Converter::cnvXmpValue },
         { mdExif, "Exif.Photo.ExposureProgram",           "Xmp.exif.ExposureProgram",           &Converter::cnvExifValue, &Converter::cnvXmpValue },
@@ -415,7 +426,8 @@ namespace Exiv2 {
         { mdIptc, "Iptc.Application2.Keywords",           "Xmp.dc.subject",                     &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
         { mdIptc, "Iptc.Application2.SubLocation",        "Xmp.iptc.Location",                  &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
         { mdIptc, "Iptc.Application2.SpecialInstructions","Xmp.photoshop.Instructions",         &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
-        { mdIptc, "Iptc.Application2.DateCreated",        "Xmp.photoshop.DateCreated",          &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
+        { mdIptc, "Iptc.Application2.DateCreated",        "Xmp.photoshop.DateCreated",          &Converter::cnvNone, &Converter::cnvXmpValueToIptc }, // FIXME to IPTC Date and IPTC Time
+        { mdIptc, "Iptc.Application2.DigitizationDate",   "Xmp.xmp.CreateDate",                 &Converter::cnvNone, &Converter::cnvXmpValueToIptc }, // FIXME to IPTC Date and IPTC Time
         { mdIptc, "Iptc.Application2.Byline",             "Xmp.dc.creator",                     &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
         { mdIptc, "Iptc.Application2.BylineTitle",        "Xmp.photoshop.AuthorsPosition",      &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
         { mdIptc, "Iptc.Application2.City",               "Xmp.photoshop.City",                 &Converter::cnvIptcValue, &Converter::cnvXmpValueToIptc },
@@ -462,6 +474,11 @@ namespace Exiv2 {
                 EXV_CALL_MEMBER_FN(*this, c.key2ToKey1_)(c.key2_, c.key1_);
             }
         }
+    }
+
+    void Converter::cnvNone(const char*, const char*)
+    {
+        return;
     }
 
     bool Converter::prepareExifTarget(const char* to, bool force)
@@ -1158,9 +1175,9 @@ namespace Exiv2 {
         if (erase_) xmpData_->erase(pos);
     }
 
+#ifdef EXV_HAVE_XMP_TOOLKIT
     std::string Converter::computeExifDigest(bool tiff)
     {
-#ifdef EXV_HAVE_XMP_TOOLKIT
         std::ostringstream res;
         MD5_CTX    context;
         unsigned char digest[16];
@@ -1189,10 +1206,14 @@ namespace Exiv2 {
             res << static_cast<int>(digest[i]);
         }
         return res.str();
-#else
-        return std::string("");
-#endif
     }
+#else
+    std::string Converter::computeExifDigest(bool)
+    {
+        return std::string("");
+    }
+#endif
+
 
     void Converter::writeExifDigest()
     {
@@ -1342,6 +1363,7 @@ namespace Exiv2 {
 # endif
 #endif
         return ret;
+        UNUSED(str);
     }
 }                                       // namespace Exiv2
 
@@ -1469,7 +1491,7 @@ namespace {
     }
 
     typedef bool (*ConvFct)(std::string& str);
-    
+
     struct ConvFctList {
         bool operator==(std::pair<const char*, const char*> fromTo) const
             { return 0 == strcmp(from_, fromTo.first) && 0 == strcmp(to_, fromTo.second); }

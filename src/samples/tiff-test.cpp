@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// tiff-test.cpp, $Rev: 2286 $
+// tiff-test.cpp, $Rev: 3090 $
 // First and very simple TIFF write test.
 
 #include <exiv2/exiv2.hpp>
@@ -58,7 +58,7 @@ void mini1(const char* path)
     assert(wm == wmIntrusive);
     std::cout << "Test 3: Wrote non-empty Exif data without original binary data:\n";
     exifData.clear();
-    ByteOrder bo = ExifParser::decode(exifData, &blob[0], blob.size());
+    ByteOrder bo = ExifParser::decode(exifData, &blob[0], (uint32_t) blob.size());
     assert(bo == bigEndian);
     print(exifData);
 }

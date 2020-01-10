@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// addmoddel.cpp, $Rev: 2286 $
+// addmoddel.cpp, $Rev: 3353 $
 // Sample program showing how to add, modify and delete Exif metadata.
 
 #include <exiv2/exiv2.hpp>
@@ -63,7 +63,7 @@ try {
     std::string date = tag.toString();
     date.replace(0, 4, "2000");
     tag.setValue(date);
-    std::cout << "Modified key \"" << key
+    std::cout << "Modified key \"" << tag.key()
               << "\", new value \"" << tag.value() << "\"\n";
 
     // Alternatively, we can use findKey()

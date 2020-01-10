@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,22 +20,17 @@
  */
 /*
   File:      rw2image.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4736 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   06-Jan-09, ahu: created
 
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: rw2image.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: rw2image.cpp 4736 2017-03-15 21:30:55Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "rw2image.hpp"
 #include "rw2image_int.hpp"
@@ -105,6 +100,21 @@ namespace Exiv2 {
         throw(Error(32, "Image comment", "RW2"));
     }
 
+    void Rw2Image::printStructure(std::ostream& out, PrintStructureOption option, int depth) {
+        std::cout << "RW2 IMAGE" << std::endl;
+        if (io_->open() != 0) throw Error(9, io_->path(), strError());
+        // Ensure that this is the correct image type
+        if ( imageType() == ImageType::none )
+            if (!isRw2Type(*io_, false)) {
+                if (io_->error() || io_->eof()) throw Error(14);
+                throw Error(15);
+            }
+
+        io_->seek(0,BasicIo::beg);
+
+        printTiffStructure(io(),out,option,depth-1);
+    } // Rw2Image::printStructure
+
     void Rw2Image::readMetadata()
     {
 #ifdef DEBUG
@@ -120,6 +130,8 @@ namespace Exiv2 {
             throw Error(3, "RW2");
         }
         clearMetadata();
+        std::ofstream devnull;
+        printStructure(devnull, kpsRecursive, 0);
         ByteOrder bo = Rw2Parser::decode(exifData_,
                                          iptcData_,
                                          xmpData_,

@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,24 +20,18 @@
  */
 /*
   File:      psdimage.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Marco Piovanelli, Ovolab (marco)
              Michael Ulbrich (mul)
   History:   05-Mar-2007, marco: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: psdimage.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: psdimage.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-//#define DEBUG 1
-
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
+
 #include "psdimage.hpp"
 #include "jpgimage.hpp"
 #include "image.hpp"
@@ -201,7 +195,7 @@ namespace Exiv2 {
             throw Error(3, "Photoshop");
         }
 
-        // after the color data section, comes a list of resource blocks, preceeded by the total byte size
+        // after the color data section, comes a list of resource blocks, preceded by the total byte size
         if (io_->read(buf, 4) != 4)
         {
             throw Error(3, "Photoshop");
@@ -354,7 +348,7 @@ namespace Exiv2 {
             throw Error(9, io_->path(), strError());
         }
         IoCloser closer(*io_);
-        BasicIo::AutoPtr tempIo(io_->temporary()); // may throw
+        BasicIo::AutoPtr tempIo(new MemIo);
         assert (tempIo.get() != 0);
 
         doWriteMetadata(*tempIo); // may throw
@@ -545,6 +539,10 @@ namespace Exiv2 {
             newResLength += writeXmpData(xmpData_, outIo);
             xmpDone = true;
         }
+
+        // Populate the fake data, only make sense for remoteio, httpio and sshio.
+        // it avoids allocating memory for parts of the file that contain image-date.
+        io_->populateFakeData();
 
         // Copy remaining data
         long readSize = 0;

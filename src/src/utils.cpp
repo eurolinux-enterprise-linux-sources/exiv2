@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,35 +20,34 @@
  */
 /*
   File:      utils.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   08-Dec-03, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: utils.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: utils.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "utils.hpp"
 
 // + standard includes
-#include <sys/types.h>
-#include <sys/stat.h>
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW__)
 # include "getopt_win32.h"
+#endif
+
+#if defined(_MSC_VER)
 # define S_ISREG(m)      (((m) & S_IFMT) == S_IFREG)
 #endif
+
 #ifdef EXV_HAVE_UNISTD_H
 # include <unistd.h>                     // for getopt(), stat()
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <climits>
 #include <cerrno>
 #include <cstdlib>

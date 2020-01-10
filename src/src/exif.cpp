@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,22 +20,17 @@
  */
 /*
   File:      exif.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   26-Jan-04, ahu: created
              11-Feb-04, ahu: isolated as a component
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: exif.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: exif.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "exif.hpp"
 #include "metadatum.hpp"
@@ -752,6 +747,11 @@ namespace Exiv2 {
             { pttLen, "Exif.Pentax.PreviewLength"                     },
             { pttTag, "Exif.Pentax.PreviewOffset"                     },
             { pttTag, "Exif.Pentax.PreviewResolution"                 },
+            { pttLen, "Exif.PentaxDng.PreviewLength"                  },
+            { pttTag, "Exif.PentaxDng.PreviewOffset"                  },
+            { pttTag, "Exif.PentaxDng.PreviewResolution"              },
+            { pttLen, "Exif.SamsungPreview.JPEGInterchangeFormatLength" },
+            { pttIfd, "SamsungPreview"                                },
             { pttLen, "Exif.Thumbnail.StripByteCounts"                },
             { pttIfd, "Thumbnail"                                     },
             { pttLen, "Exif.Thumbnail.JPEGInterchangeFormatLength"    },
@@ -823,7 +823,7 @@ namespace Exiv2 {
         append(blob, mio2.mmap(), mio2.size());
 #ifdef DEBUG
         if (wm == wmIntrusive) {
-            std::cerr << "SIZE OF EXIF DATA IS " << std::dec << io.size() << " BYTES\n";
+            std::cerr << "SIZE OF EXIF DATA IS " << std::dec << mio2.size() << " BYTES\n";
         }
         else {
             std::cerr << "SIZE DOESN'T MATTER, NON-INTRUSIVE WRITING USED\n";

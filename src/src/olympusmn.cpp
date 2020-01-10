@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,7 +20,7 @@
  */
 /*
   File:      olympusmn.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Will Stokes (wuz) <wstokes@gmail.com>
              Andreas Huggel (ahu) <ahuggel@gmx.net>
              Gilles Caulier (gc) <caulier dot gilles at gmail dot com>
@@ -31,7 +31,7 @@
 
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: olympusmn.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: olympusmn.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -40,6 +40,7 @@ EXIV2_RCSID("@(#) $Id: olympusmn.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
 #include "value.hpp"
 #include "image.hpp"
 #include "tags_int.hpp"
+#include "makernote_int.hpp"
 #include "i18n.h"                // NLS support.
 
 // + standard includes
@@ -253,7 +254,7 @@ namespace Exiv2 {
                 N_("Scene mode"),
                 olympusCsId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(olympusSceneMode)),
         TagInfo(0x0404, "Firmware", N_("Firmware"),
-                N_("Firmwarer"),
+                N_("Firmware"),
                 olympusId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0e00, "PrintIM", N_("Print IM"),
                 N_("PrintIM information"),
@@ -340,7 +341,7 @@ namespace Exiv2 {
                 N_("Blue balance"),
                 olympusId, makerTags, unsignedShort, -1, printValue),
         TagInfo(0x1019, "ColorMatrixNumber", N_("Color Matrix Number"),
-                N_("Color matrix mumber"),
+                N_("Color matrix number"),
                 olympusId, makerTags, unsignedShort, -1, printValue),
         TagInfo(0x101a, "SerialNumber2", N_("Serial Number 2"),
                 N_("Serial number 2"),
@@ -563,22 +564,28 @@ namespace Exiv2 {
     //! WhiteBalance, tag 0x0500
     extern const TagDetails olympusWhiteBalance[] = {
         {   0, N_("Auto")                              },
+        {   1, N_("Auto (Keep Warm Color Off")         },
         {  16, N_("7500K (Fine Weather with Shade)")   },
         {  17, N_("6000K (Cloudy)")                    },
         {  18, N_("5300K (Fine Weather)")              },
         {  20, N_("3000K (Tungsten light)")            },
         {  21, N_("3600K (Tungsten light-like)")       },
+        {  22, N_("Auto Setup")                        },
+        {  23, N_("5500K (Flash)")                     },
         {  33, N_("6600K (Daylight fluorescent)")      },
         {  34, N_("4500K (Neutral white fluorescent)") },
         {  35, N_("4000K (Cool white fluorescent)")    },
+        {  36, N_("White Fluorescent")                 },
         {  48, N_("3600K (Tungsten light-like)")       },
-        { 256, N_("Custom WB 1")                       },
-        { 257, N_("Custom WB 2")                       },
-        { 258, N_("Custom WB 3")                       },
-        { 259, N_("Custom WB 4")                       },
-        { 512, N_("Custom WB 5400K")                   },
-        { 513, N_("Custom WB 2900K")                   },
-        { 514, N_("Custom WB 8000K")                   }
+        {  67, N_("Underwater")                        },
+        { 256, N_("One Touch WB 1")                    },
+        { 257, N_("One Touch WB 2")                    },
+        { 258, N_("One Touch WB 3")                    },
+        { 259, N_("One Touch WB 4")                    },
+        { 512, N_("Custom WB 1")                       },
+        { 513, N_("Custom WB 2")                       },
+        { 514, N_("Custom WB 3")                       },
+        { 515, N_("Custom WB 4")                       }
     };
 
     //! ModifiedSaturation, tag 0x0504
@@ -607,12 +614,21 @@ namespace Exiv2 {
 
     //! PictureMode, tag 0x0520
     extern const TagDetails olympusPictureMode[] = {
-        {   1, N_("Vivid")    },
-        {   2, N_("Natural")  },
-        {   3, N_("Muted")    },
-        {   4, N_("Portrait") },
-        { 256, N_("Monotone") },
-        { 512, N_("Sepia")    }
+        {   1, N_("Vivid")                },
+        {   2, N_("Natural")              },
+        {   3, N_("Muted")                },
+        {   4, N_("Portrait")             },
+        {   5, N_("i-Enhance")            },
+        {   6, N_("e-Portrait")           },
+        {   7, N_("Color Creator")        },
+        {   9, N_("Color Profile 1")      },
+        {  10, N_("Color Profile 2")      },
+        {  11, N_("Color Profile 3")      },
+        {  12, N_("Monochrome Profile 1") },
+        {  13, N_("Monochrome Profile 2") },
+        {  14, N_("Monochrome Profile 3") },
+        { 256, N_("Monotone")             },
+        { 512, N_("Sepia")                }
     };
 
     //! PictureModeBWFilter, tag 0x0525
@@ -732,7 +748,9 @@ namespace Exiv2 {
         { 5, "FL-36"    },
         { 6, "FL-50R"   },
         { 7, "FL-36R"   },
-        { 7, "FL-36R"   }                       // To silence compiler warning
+        { 9, "FL-14"    },
+        {11, "FL-600R"  },
+        {11, "FL-600R"  }                       // To silence compiler warning
     };
 
     const TagInfo OlympusMakerNote::tagInfoEq_[] = {
@@ -756,6 +774,7 @@ namespace Exiv2 {
         TagInfo(0x0302, "ExtenderSerialNumber", N_("Extender Serial Number"), N_("Extender serial number"), olympusEqId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0303, "ExtenderModel", N_("Extender Model"), N_("Extender model"), olympusEqId, makerTags, asciiString, -1, printValue),
         TagInfo(0x0304, "ExtenderFirmwareVersion", N_("Extender Firmware Version"), N_("Extender firmwareversion"), olympusEqId, makerTags, unsignedLong, -1, printValue),
+        TagInfo(0x0403, "ConversionLens", N_("Conversion Lens"), N_("Conversion lens"), olympusEqId, makerTags, asciiString, -1, printValue),
         TagInfo(0x1000, "FlashType", N_("Flash Type"), N_("Flash type"), olympusEqId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(olympusEqFlashType)),
         TagInfo(0x1001, "FlashModel", N_("Flash Model"), N_("Flash model"), olympusEqId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(olympusEqFlashModel)),
         TagInfo(0x1002, "FlashFirmwareVersion", N_("Flash Firmware Version"), N_("Flash firmware version"), olympusEqId, makerTags, unsignedLong, -1, printValue),
@@ -916,15 +935,15 @@ namespace Exiv2 {
 
     //! OlympusIp olympusIpAspectRatio, tag 0x101c
     extern const TagDetails olympusIpAspectRatio[] = {
-        { 1, N_("4:3")  },
-        { 2, N_("3:2")  },
-        { 3, N_("16:9") },
-        { 4, N_("6:6")  },
-        { 5, N_("5:4")  },
-        { 6, N_("7:6")  },
-        { 7, N_("6:5")  },
-        { 8, N_("7:5")  },
-        { 9, N_("3:4")  }
+        { 1, "4:3"  },
+        { 2, "3:2"  },
+        { 3, "16:9" },
+        { 4, "6:6"  },
+        { 5, "5:4"  },
+        { 6, "7:6"  },
+        { 7, "6:5"  },
+        { 8, "7:5"  },
+        { 9, "3:4"  }
     };
 
     const TagInfo OlympusMakerNote::tagInfoIp_[] = {
@@ -1004,7 +1023,7 @@ namespace Exiv2 {
         TagInfo(0x0301, "FocusStepCount", N_("Focus Step Count"), N_("Focus step count"), olympusFiId, makerTags, unsignedShort, -1, printValue),
         TagInfo(0x0303, "FocusStepInfinity", N_("Focus Step Infinity"), N_("Focus step infinity"), olympusFiId, makerTags, unsignedShort, -1, printValue),
         TagInfo(0x0304, "FocusStepNear", N_("Focus Step Near"), N_("Focus step near"), olympusFiId, makerTags, unsignedShort, -1, printValue),
-        TagInfo(0x0305, "FocusDistance", N_("Focus Distance"), N_("Focus distance"), olympusFiId, makerTags, unsignedRational, -1, printValue),
+        TagInfo(0x0305, "FocusDistance", N_("Focus Distance"), N_("Focus distance"), olympusFiId, makerTags, unsignedRational, -1, print0x0305),
         TagInfo(0x0308, "AFPoint", N_("AF Point"), N_("AF point"), olympusFiId, makerTags, unsignedShort, -1, print0x0308),
         TagInfo(0x1201, "ExternalFlash", N_("External Flash"), N_("External flash"), olympusFiId, makerTags, unsignedShort, -1, EXV_PRINT_TAG(olympusOffOn)),
         TagInfo(0x1203, "ExternalFlashGuideNumber", N_("External Flash Guide Number"), N_("External flash guide number"), olympusFiId, makerTags, signedRational, -1, printValue),
@@ -1173,6 +1192,7 @@ namespace Exiv2 {
 
     std::ostream& OlympusMakerNote::print0x0204(std::ostream& os, const Value& value, const ExifData*)
     {
+        std::ios::fmtflags of( os.flags() );
         if (   value.count() == 0
             || value.toRational().second == 0) {
             return os << "(" << value << ")";
@@ -1183,28 +1203,35 @@ namespace Exiv2 {
         oss.copyfmt(os);
         os << std::fixed << std::setprecision(1) << f << "x";
         os.copyfmt(oss);
+        os.flags(of);
         return os;
     } // OlympusMakerNote::print0x0204
 
     std::ostream& OlympusMakerNote::print0x1015(std::ostream& os, const Value& value, const ExifData*)
     {
-        if (value.count() != 2 || value.typeId() != unsignedShort) {
+        if (value.typeId() != unsignedShort) {
             return os << value;
         }
-        short l0 = (short)value.toLong(0);
-        if (l0 != 1) {
-            os << _("Auto");
+        if (value.count() == 1) {
+            short l0 = (short)value.toLong(0);
+            if (l0 == 1) {
+                os << _("Auto");
+            }
+            else {
+                return os << value;
+            }
         }
-        else {
+        else if (value.count() == 2) {
+            short l0 = (short)value.toLong(0);
             short l1 = (short)value.toLong(1);
-            if (l1 != 1) {
-                switch (l0) {
+            if (l0 == 1) {
+                switch (l1) {
                 case 0: os << _("Auto"); break;
-                default: os << _("Auto") << " (" << l0 << ")"; break;
+                default: os << _("Auto") << " (" << l1 << ")"; break;
                 }
             }
-            else if (l1 != 2) {
-                switch (l0) {
+            else if (l0 == 2) {
+                switch (l1) {
                 case 2: os << _("3000 Kelvin"); break;
                 case 3: os << _("3700 Kelvin"); break;
                 case 4: os << _("4000 Kelvin"); break;
@@ -1215,8 +1242,8 @@ namespace Exiv2 {
                 default: os << value; break;
                 }
             }
-            else if (l1 != 3) {
-                switch (l0) {
+            else if (l0 == 3) {
+                switch (l1) {
                 case 0: os << _("One-touch"); break;
                 default: os << value; break;
                 }
@@ -1225,69 +1252,140 @@ namespace Exiv2 {
                 return os << value;
             }
         }
+        else {
+            return os << value;
+        }
         return os;
     } // OlympusMakerNote::print0x1015
 
     //! OlympusEq LensType, tag 0x201
     std::ostream& OlympusMakerNote::print0x0201(std::ostream& os, const Value& value, const ExifData*)
     {
+    	// #1034
+		const std::string undefined("undefined") ;
+		const std::string section  ("olympus");
+		if ( Internal::readExiv2Config(section,value.toString(),undefined) != undefined ) {
+			return os << Internal::readExiv2Config(section,value.toString(),undefined);
+		}
+
         // 6 numbers: 0. Make, 1. Unknown, 2. Model, 3. Sub-model, 4-5. Unknown.
         // Only the Make, Model and Sub-model are used to determine the lens model
         static struct {
             byte val[3];
             const char *label;
         } lensTypes[] = {
-            { { 0,  0,  0 }, N_("None")                                            },
-            { { 0,  1,  0 }, N_("Olympus Zuiko Digital ED 50mm F2.0 Macro")        },
-            { { 0,  1,  1 }, N_("Olympus Zuiko Digital 40-150mm F3.5-4.5")         },
-            { { 0,  1, 16 }, N_("Olympus Zuiko Digital ED 14-42mm F3.5-5.6")       },
-            { { 0,  2,  0 }, N_("Olympus Zuiko Digital ED 150mm F2.0")             },
-            { { 0,  2, 16 }, N_("Olympus Zuiko Digital 17mm F2.8 Pancake")         },
-            { { 0,  3,  0 }, N_("Olympus Zuiko Digital ED 300mm F2.8")             },
-            { { 0,  5,  0 }, N_("Olympus Zuiko Digital 14-54mm F2.8-3.5")          },
-            { { 0,  5,  1 }, N_("Olympus Zuiko Digital Pro ED 90-250mm F2.8")      },
-            { { 0,  6,  0 }, N_("Olympus Zuiko Digital ED 50-200mm F2.8-3.5")      },
-            { { 0,  6,  1 }, N_("Olympus Zuiko Digital ED 8mm F3.5 Fisheye")       },
-            { { 0,  7,  0 }, N_("Olympus Zuiko Digital 11-22mm F2.8-3.5")          },
-            { { 0,  7,  1 }, N_("Olympus Zuiko Digital 18-180mm F3.5-6.3")         },
-            { { 0,  8,  1 }, N_("Olympus Zuiko Digital 70-300mm F4.0-5.6")         },
-            { { 0, 21,  0 }, N_("Olympus Zuiko Digital ED 7-14mm F4.0")            },
-            { { 0, 23,  0 }, N_("Olympus Zuiko Digital Pro ED 35-100mm F2.0")      },
-            { { 0, 24,  0 }, N_("Olympus Zuiko Digital 14-45mm F3.5-5.6")          },
-            { { 0, 32,  0 }, N_("Olympus Zuiko Digital 35mm F3.5 Macro")           },
-            { { 0, 34,  0 }, N_("Olympus Zuiko Digital 17.5-45mm F3.5-5.6")        },
-            { { 0, 35,  0 }, N_("Olympus Zuiko Digital ED 14-42mm F3.5-5.6")       },
-            { { 0, 36,  0 }, N_("Olympus Zuiko Digital ED 40-150mm F4.0-5.6")      },
-            { { 0, 48,  0 }, N_("Olympus Zuiko Digital ED 50-200mm F2.8-3.5 SWD")  },
-            { { 0, 49,  0 }, N_("Olympus Zuiko Digital ED 12-60mm F2.8-4.0 SWD")   },
-            { { 0, 50,  0 }, N_("Olympus Zuiko Digital ED 14-35mm F2.0 SWD")       },
-            { { 0, 51,  0 }, N_("Olympus Zuiko Digital 25mm F2.8")                 },
-            { { 0, 52,  0 }, N_("Olympus Zuiko Digital ED 9-18mm F4.0-5.6")        },
-            { { 0, 53,  0 }, N_("Olympus Zuiko Digital 14-54mm F2.8-3.5 II")       },
-            { { 1,  1,  0 }, N_("Sigma 18-50mm F3.5-5.6")                          },
-            { { 1,  2,  0 }, N_("Sigma 55-200mm F4.0-5.6 DC")                      },
-            { { 1,  3,  0 }, N_("Sigma 18-125mm F3.5-5.6 DC")                      },
-            { { 1,  4,  0 }, N_("Sigma 18-125mm F3.5-5.6")                         },
-            { { 1,  5,  0 }, N_("Sigma 30mm F1.4")                                 },
-            { { 1,  6,  0 }, N_("Sigma 50-500mm F4.0-6.3 EX DG APO HSM RF")        },
-            { { 1,  7,  0 }, N_("Sigma 105mm F2.8 DG")                             },
-            { { 1,  8,  0 }, N_("Sigma 150mm F2.8 DG HSM")                         },
-            { { 1, 16,  0 }, N_("Sigma 24mm F1.8 EX DG Aspherical Macro")          },
-            { { 1, 17,  0 }, N_("Sigma 135-400mm F4.5-5.6 DG ASP APO RF")          },
-            { { 1, 18,  0 }, N_("Sigma 300-800mm F5.6 EX DG APO")                  },
-            { { 1, 20,  0 }, N_("Sigma 50-500mm F4.0-6.3 EX DG APO HSM RF")        },
-            { { 1, 21,  0 }, N_("Sigma 10-20mm F4.0-5.6 EX DC HSM")                },
-            { { 2,  1,  0 }, N_("Leica D Vario Elmarit 14-50mm F2.8-3.5 Asph.")    },
-            { { 2,  1, 16 }, N_("Lumix G Vario 14-45mm F3.5-5.6 Asph. Mega OIS")   },
-            { { 2,  2,  0 }, N_("Leica D Summilux 25mm F1.4 Asph.")                },
-            { { 2,  2, 16 }, N_("Lumix G Vario 45-200mm F4-5.6 Mega OIS")          },
-            { { 2,  3,  1 }, N_("Leica D Vario Elmar 14-50mm F3.8-5.6 Asph.")      },
-            { { 2,  3, 16 }, N_("Lumix G Vario HD 14-140mm F4-5.8 Asph. Mega OIS") },
-            { { 2,  4,  0 }, N_("Leica D Vario Elmar 14-150mm F3.5-5.6")           },
-            { { 2,  4, 16 }, N_("Lumix G Vario 7-14mm F4 Asph.")                   },
-            { { 2,  5, 16 }, N_("Lumix G 20mm F1.7 Asph.")                         },
-            { { 3,  1,  0 }, N_("Leica D Vario Elmarit 14-50mm F2.8-3.5 Asph.")    },
-            { { 3,  2,  0 }, N_("Leica D Summilux 25mm F1.4 Asph.")                },
+            { { 0,  0,  0 }, N_("None")                                                },
+            { { 0,  1,  0 }, "Olympus Zuiko Digital ED 50mm F2.0 Macro"                },
+            { { 0,  1,  1 }, "Olympus Zuiko Digital 40-150mm F3.5-4.5"                 },
+            { { 0,  1, 16 }, "Olympus M.Zuiko Digital ED 14-42mm F3.5-5.6"             },
+            { { 0,  2,  0 }, "Olympus Zuiko Digital ED 150mm F2.0"                     },
+            { { 0,  2, 16 }, "Olympus M.Zuiko Digital 17mm F2.8 Pancake"               },
+            { { 0,  3,  0 }, "Olympus Zuiko Digital ED 300mm F2.8"                     },
+            { { 0,  3, 16 }, "Olympus M.Zuiko Digital ED 14-150mm F4.0-5.6"            },
+            { { 0,  4, 16 }, "Olympus M.Zuiko Digital ED 9-18mm F4.0-5.6"              },
+            { { 0,  5,  0 }, "Olympus Zuiko Digital 14-54mm F2.8-3.5"                  },
+            { { 0,  5,  1 }, "Olympus Zuiko Digital Pro ED 90-250mm F2.8"              },
+            { { 0,  5, 16 }, "Olympus M.Zuiko Digital ED 14-42mm F3.5-5.6 L"           },
+            { { 0,  6,  0 }, "Olympus Zuiko Digital ED 50-200mm F2.8-3.5"              },
+            { { 0,  6,  1 }, "Olympus Zuiko Digital ED 8mm F3.5 Fisheye"               },
+            { { 0,  6, 16 }, "Olympus M.Zuiko Digital ED 40-150mm F4.0-5.6"            },
+            { { 0,  7,  0 }, "Olympus Zuiko Digital 11-22mm F2.8-3.5"                  },
+            { { 0,  7,  1 }, "Olympus Zuiko Digital 18-180mm F3.5-6.3"                 },
+            { { 0,  7, 16 }, "Olympus M.Zuiko Digital ED 12mm F2.0"                    },
+            { { 0,  8,  1 }, "Olympus Zuiko Digital 70-300mm F4.0-5.6"                 },
+            { { 0,  8, 16 }, "Olympus M.Zuiko Digital ED 75-300mm F4.8-6.7"            },
+            { { 0,  9, 16 }, "Olympus M.Zuiko Digital 14-42mm F3.5-5.6 II"             },
+            { { 0, 16,  1 }, "Kenko Tokina Reflex 300mm F6.3 MF Macro"                 },
+            { { 0, 16, 16 }, "Olympus M.Zuiko Digital ED 12-50mm F3.5-6.3 EZ"          },
+            { { 0, 17, 16 }, "Olympus M.Zuiko Digital 45mm F1.8"                       },
+            { { 0, 18, 16 }, "Olympus M.Zuiko Digital ED 60mm F2.8 Macro"              },
+            { { 0, 19, 16 }, "Olympus M.Zuiko Digital 14-42mm F3.5-5.6 II R"           },
+            { { 0, 20, 16 }, "Olympus M.Zuiko Digital ED 40-150mm F4.0-5.6 R"          },
+            { { 0, 21,  0 }, "Olympus Zuiko Digital ED 7-14mm F4.0"                    },
+            { { 0, 21, 16 }, "Olympus M.Zuiko Digital ED 75mm F1.8"                    },
+            { { 0, 22, 16 }, "Olympus M.Zuiko Digital 17mm F1.8"                       },
+            { { 0, 23,  0 }, "Olympus Zuiko Digital Pro ED 35-100mm F2.0"              },
+            { { 0, 24,  0 }, "Olympus Zuiko Digital 14-45mm F3.5-5.6"                  },
+            { { 0, 24, 16 }, "Olympus M.Zuiko Digital ED 75-300mm F4.8-6.7 II"         },
+            { { 0, 25, 16 }, "Olympus M.Zuiko Digital ED 12-40mm F2.8 Pro"             },
+            { { 0, 32,  0 }, "Olympus Zuiko Digital 35mm F3.5 Macro"                   },
+            { { 0, 32, 16 }, "Olympus M.Zuiko Digital ED 40-150mm F2.8 Pro"            },
+            { { 0, 33, 16 }, "Olympus M.Zuiko Digital ED 14-42mm F3.5-5.6 EZ"          },
+            { { 0, 34,  0 }, "Olympus Zuiko Digital 17.5-45mm F3.5-5.6"                },
+            { { 0, 34, 16 }, "Olympus M.Zuiko Digital 25mm F1.8"                       },
+            { { 0, 35,  0 }, "Olympus Zuiko Digital ED 14-42mm F3.5-5.6"               },
+            { { 0, 35, 16 }, "Olympus M.Zuiko Digital ED 7-14mm F2.8 Pro"              },
+            { { 0, 36,  0 }, "Olympus Zuiko Digital ED 40-150mm F4.0-5.6"              },
+            { { 0, 36, 16 }, "Olympus M.Zuiko Digital ED 300mm F4.0 IS Pro"            },
+            { { 0, 37, 16 }, "Olympus M.Zuiko Digital ED 8mm F1.8 Fisheye Pro"         },
+            { { 0, 38, 16 }, "Olympus M.Zuiko Digital ED 12-100mm F4.0 IS Pro"         },
+            { { 0, 39, 16 }, "Olympus M.Zuiko Digital ED 30mm F3.5 Macro"              },
+            { { 0, 40, 16 }, "Olympus M.Zuiko Digital ED 25mm F1.2 Pro"                },
+            { { 0, 48,  0 }, "Olympus Zuiko Digital ED 50-200mm F2.8-3.5 SWD"          },
+            { { 0, 49,  0 }, "Olympus Zuiko Digital ED 12-60mm F2.8-4.0 SWD"           },
+            { { 0, 50,  0 }, "Olympus Zuiko Digital ED 14-35mm F2.0 SWD"               },
+            { { 0, 51,  0 }, "Olympus Zuiko Digital 25mm F2.8"                         },
+            { { 0, 52,  0 }, "Olympus Zuiko Digital ED 9-18mm F4.0-5.6"                },
+            { { 0, 53,  0 }, "Olympus Zuiko Digital 14-54mm F2.8-3.5 II"               },
+            { { 1,  1,  0 }, "Sigma 18-50mm F3.5-5.6 DC"                               },
+            { { 1,  1, 16 }, "Sigma 30mm F2.8 EX DN"                                   },
+            { { 1,  2,  0 }, "Sigma 55-200mm F4.0-5.6 DC"                              },
+            { { 1,  2, 16 }, "Sigma 19mm F2.8 EX DN"                                   },
+            { { 1,  3,  0 }, "Sigma 18-125mm F3.5-5.6 DC"                              },
+            { { 1,  3, 16 }, "Sigma 30mm F2.8 DN | A"                                  },
+            { { 1,  4,  0 }, "Sigma 18-125mm F3.5-5.6"                                 },
+            { { 1,  4, 16 }, "Sigma 19mm F2.8 DN | A"                                  },
+            { { 1,  5,  0 }, "Sigma 30mm F1.4"                                         },
+            { { 1,  5, 16 }, "Sigma 60mm F2.8 DN | A"                                  },
+            { { 1,  6,  0 }, "Sigma 50-500mm F4.0-6.3 EX DG APO HSM RF"                },
+            { { 1,  6, 16 }, "Sigma 30mm F1.4 DC DN | C"                               },
+            { { 1,  7,  0 }, "Sigma 105mm F2.8 DG"                                     },
+            { { 1,  8,  0 }, "Sigma 150mm F2.8 DG HSM"                                 },
+            { { 1,  9,  0 }, "Sigma 18-50mm F2.8 EX DC Macro"                          },
+            { { 1, 16,  0 }, "Sigma 24mm F1.8 EX DG Aspherical Macro"                  },
+            { { 1, 17,  0 }, "Sigma 135-400mm F4.5-5.6 DG ASP APO RF"                  },
+            { { 1, 18,  0 }, "Sigma 300-800mm F5.6 EX DG APO"                          },
+            { { 1, 19,  0 }, "Sigma 30mm F1.4 EX DC HSM"                               },
+            { { 1, 20,  0 }, "Sigma 50-500mm F4.0-6.3 EX DG APO HSM RF"                },
+            { { 1, 21,  0 }, "Sigma 10-20mm F4.0-5.6 EX DC HSM"                        },
+            { { 1, 22,  0 }, "Sigma 70-200mm F2.8 EX DG Macro HSM II"                  },
+            { { 1, 23,  0 }, "Sigma 50mm F1.4 EX DG HSM"                               },
+            { { 2,  1,  0 }, "Leica D Vario Elmarit 14-50mm F2.8-3.5 Asph."            },
+            { { 2,  1, 16 }, "Lumix G Vario 14-45mm F3.5-5.6 Asph. Mega OIS"           },
+            { { 2,  2,  0 }, "Leica D Summilux 25mm F1.4 Asph."                        },
+            { { 2,  2, 16 }, "Lumix G Vario 45-200mm F4.0-5.6 Mega OIS"                },
+            { { 2,  3,  0 }, "Leica D Vario Elmar 14-50mm F3.8-5.6 Asph. Mega OIS"     },
+            { { 2,  3,  1 }, "Leica D Vario Elmar 14-50mm F3.8-5.6 Asph."              },
+            { { 2,  3, 16 }, "Lumix G Vario HD 14-140mm F4.0-5.8 Asph. Mega OIS"       },
+            { { 2,  4,  0 }, "Leica D Vario Elmar 14-150mm F3.5-5.6"                   },
+            { { 2,  4, 16 }, "Lumix G Vario 7-14mm F4.0 Asph."                         },
+            { { 2,  5, 16 }, "Lumix G 20mm F1.7 Asph."                                 },
+            { { 2,  6, 16 }, "Leica DG Macro-Elmarit 45mm F2.8 Asph. Mega OIS"         },
+            { { 2,  7, 16 }, "Lumix G Vario 14-42mm F3.5-5.6 Asph. Mega OIS"           },
+            { { 2,  8, 16 }, "Lumix G Fisheye 8mm F3.5"                                },
+            { { 2,  9, 16 }, "Lumix G Vario 100-300mm F4.0-5.6 Mega OIS"               },
+            { { 2, 16, 16 }, "Lumix G 14mm F2.5 Asph."                                 },
+            { { 2, 17, 16 }, "Lumix G 3D 12.5mm F12"                                   },
+            { { 2, 18, 16 }, "Leica DG Summilux 25mm F1.4 Asph."                       },
+            { { 2, 19, 16 }, "Lumix G X Vario PZ 45-175mm F4.0-5.6 Asph. Power OIS"    },
+            { { 2, 20, 16 }, "Lumix G X Vario PZ 14-42mm F3.5-5.6 Asph. Power OIS"     },
+            { { 2, 21, 16 }, "Lumix G X Vario 12-35mm F2.8 Asph. Power OIS"            },
+            { { 2, 22, 16 }, "Lumix G Vario 45-150mm F4.0-5.6 Asph. Mega OIS"          },
+            { { 2, 23, 16 }, "Lumix G X Vario 35-100mm F2.8 Power OIS"                 },
+            { { 2, 24, 16 }, "Lumix G Vario 14-42mm F3.5-5.6 II Asph. Mega OIS"        },
+            { { 2, 25, 16 }, "Lumix G Vario 14-140mm F3.5-5.6 Asph. Power OIS"         },
+            { { 2, 32, 16 }, "Lumix G Vario 12-32mm F3.5-5.6 Asph. Mega OIS"           },
+            { { 2, 33, 16 }, "Leica DG Nocticron 42.5mm F1.2 Asph. Power OIS"          },
+            { { 2, 34, 16 }, "Leica DG Summilux 15mm F1.7 Asph."                       },
+            { { 2, 35, 16 }, "Lumix G Vario 35-100mm F4.0-5.6 Asph. Mega OIS"          },
+            { { 2, 36, 16 }, "Lumix G Macro 30mm F2.8 Asph. Mega OIS"                  },
+            { { 2, 37, 16 }, "Lumix G 42.5mm F1.7 Asph. Power OIS"                     },
+            { { 2, 38, 16 }, "Lumix G 25mm F1.7 Asph."                                 },
+            { { 2, 39, 16 }, "Leica DG Vario-Elmar 100-400mm F4.0-6.3 Asph. Power OIS" },
+            { { 2, 40, 16 }, "Lumix G Vario 12-60mm F3.5-5.6 Asph. Power OIS"          },
+            { { 3,  1,  0 }, "Leica D Vario Elmarit 14-50mm F2.8-3.5 Asph."            },
+            { { 3,  2,  0 }, "Leica D Summilux 25mm F1.4 Asph."                        },
+            { { 5,  1, 16 }, "Tamron 14-150mm F3.5-5.8 Di III"                         },
             // End of list marker
             { { 0xff,  0,  0 }, "" }
         };
@@ -1335,9 +1433,9 @@ namespace Exiv2 {
             const char *label;
         } extenderModels[] = {
             { { 0, 0 }, N_("None")                                           },
-            { { 0, 4 }, N_("Olympus Zuiko Digital EC-14 1.4x Teleconverter") },
-            { { 0, 8 }, N_("Olympus EX-25 Extension Tube")                   },
-            { { 0, 16 },N_("Olympus Zuiko Digital EC-20 2.0x Teleconverter") },
+            { { 0, 4 }, "Olympus Zuiko Digital EC-14 1.4x Teleconverter" },
+            { { 0, 8 }, "Olympus EX-25 Extension Tube"                   },
+            { { 0, 16 },"Olympus Zuiko Digital EC-20 2.0x Teleconverter" },
             // End of list marker
             { { 0xff,  0 }, "" }
         };
@@ -1370,7 +1468,7 @@ namespace Exiv2 {
             { 1, N_("Sequential shooting AF") },
             { 2, N_("Continuous AF")          },
             { 3, N_("Multi AF")               },
-            { 5, N_("Face detect")            },
+            { 4, N_("Face detect")            },
             { 10, N_("MF")                    },
             // End of list marker
             { 0xff, "" }
@@ -1391,34 +1489,33 @@ namespace Exiv2 {
 
         if (value.count() < 1 || value.typeId() != unsignedShort) {
             return os << "(" << value << ")";
-        }
+		} else {
+			uint16_t v = (uint16_t)value.toLong(0);
 
-        uint16_t v = (uint16_t)value.toLong(0);
+			// If value 2 is present, it is used instead of value 1.
+			if (value.count() > 1) {
+				std::string p = "";    // Used to enable ',' separation
 
-        // If value 2 is present, it is used instead of value 1.
-        if (value.count() < 2) {
-            std::string p = "";    // Used to enable ',' separation
-
-            v = (uint16_t)value.toLong(1);
-            for (int i = 0; focusModes1[i].val != 0; i++) {
-                if ((v & focusModes1[i].val) != 0) {
-                    if (p.size() > 0) {
-                        os << ", ";
-                    }
-                    p = focusModes1[i].label;
-                    os << p;
-                }
-            }
-        } else {
-            v = (uint16_t)value.toLong(0);
-            for (int i = 0; focusModes0[i].val != 0xff; i++) {
-               if (focusModes0[i].val == v) {
-                   os << focusModes0[i].label;
-                   break;
-               }
-            }
-        }
-        return os << v;
+				v = (uint16_t)value.toLong(1);
+				for (int i = 0; focusModes1[i].val != 0; i++) {
+					if ((v & focusModes1[i].val) != 0) {
+						if (p.size() > 0) {
+							os << ", ";
+						}
+						p = focusModes1[i].label;
+						os << p;
+					}
+				}
+			} else {
+				for (int i = 0; focusModes0[i].val != 0xff; i++) {
+				   if (focusModes0[i].val == v) {
+					   os << focusModes0[i].label;
+					   break;
+				   }
+				}
+			}
+			return os << v;
+		}
     } // OlympusMakerNote::printCs0x0301
 
     //! OlympusCs ArtFilter, tag 0x0529, OlympusCs MagicFilter, tag 0x052c
@@ -1428,18 +1525,45 @@ namespace Exiv2 {
             uint16_t val[2];
             const char *label;
         } artFilters[] = {
-            { {  0,    0}, N_("Off")                },
-            { {  0, 1280}, N_("Off")                },
-            { {  1, 1280}, N_("Soft Focus")         },
-            { {  2, 1280}, N_("Pop Art")            },
-            { {  3, 1280}, N_("Pale & Light Color") },
-            { {  4, 1280}, N_("Light Tone")         },
-            { {  5, 1280}, N_("Pin Hole")           },
-            { {  6, 1280}, N_("Grainy Film")        },
-            { {  9, 1280}, N_("Diorama")            },
-            { { 10, 1280}, N_("Cross Process")      },
-            { { 12, 1280}, N_("Fish Eye")           },
-            { { 13, 1280}, N_("Drawing")            },
+            { {  0,    0}, N_("Off")                   },
+            { {  0, 1280}, N_("Off")                   },
+            { {  1, 1280}, N_("Soft Focus")            },
+            { {  2, 1280}, N_("Pop Art")               },
+            { {  3, 1280}, N_("Pale & Light Color")    },
+            { {  4, 1280}, N_("Light Tone")            },
+            { {  5, 1280}, N_("Pin Hole")              },
+            { {  6, 1280}, N_("Grainy Film")           },
+            { {  9, 1280}, N_("Diorama")               },
+            { { 10, 1280}, N_("Cross Process")         },
+            { { 12, 1280}, N_("Fish Eye")              },
+            { { 13, 1280}, N_("Drawing")               },
+            { { 14, 1280}, N_("Gentle Sepia")          },
+            { { 15, 1280}, N_("Pale & Light Color II") },
+            { { 16, 1280}, N_("Pop Art II")            },
+            { { 17, 1280}, N_("Pin Hole II")           },
+            { { 18, 1280}, N_("Pin Hole III")          },
+            { { 19, 1280}, N_("Grainy Film II")        },
+            { { 20, 1280}, N_("Dramatic Tone")         },
+            { { 21, 1280}, N_("Punk")                  },
+            { { 22, 1280}, N_("Soft Focus 2")          },
+            { { 23, 1280}, N_("Sparkle")               },
+            { { 24, 1280}, N_("Watercolor")            },
+            { { 25, 1280}, N_("Key Line")              },
+            { { 26, 1280}, N_("Key Line II")           },
+            { { 27, 1280}, N_("Miniature")             },
+            { { 28, 1280}, N_("Reflection")            },
+            { { 29, 1280}, N_("Fragmented")            },
+            { { 31, 1280}, N_("Cross Process II")      },
+            { { 32, 1280}, N_("Dramatic Tone II")      },
+            { { 33, 1280}, N_("Watercolor I")          },
+            { { 34, 1280}, N_("Watercolor II")         },
+            { { 35, 1280}, N_("Diorama II")            },
+            { { 36, 1280}, N_("Vintage")               },
+            { { 37, 1280}, N_("Vintage II")            },
+            { { 38, 1280}, N_("Vintage III")           },
+            { { 39, 1280}, N_("Partial Color")         },
+            { { 40, 1280}, N_("Partial Color II")      },
+            { { 41, 1280}, N_("Partial Color III")     },
             // End of list marker
             { { 0xffff,  0 }, "" }
         };
@@ -1477,6 +1601,29 @@ namespace Exiv2 {
 
         return os;
     } // OlympusMakerNote::print0x1209
+
+    // Olympus FocusDistance 0x0305
+    std::ostream& OlympusMakerNote::print0x0305(std::ostream& os, const Value& value, const ExifData*) {
+        std::ios::fmtflags f( os.flags() );
+        if (value.count() != 1 || value.typeId() != unsignedRational) {
+            os.flags(f);
+            return os << value;
+        }
+
+        Rational distance = value.toRational();
+        if(static_cast<uint32_t>(distance.first) == 0xffffffff) {
+            os << _("Infinity");
+        }
+        else {
+            std::ostringstream oss;
+            oss.copyfmt(os);
+            os << std::fixed << std::setprecision(2);
+            os << (float)distance.first/1000 << " m";
+            os.copyfmt(oss);
+        }
+        os.flags(f);
+        return os;
+    }
 
     // Olympus FocusInfo tag 0x0308 AFPoint
     std::ostream& OlympusMakerNote::print0x0308(std::ostream& os, const Value&

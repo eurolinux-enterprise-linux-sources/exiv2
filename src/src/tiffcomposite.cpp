@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,21 +20,16 @@
  */
 /*
   File:      tiffcomposite.cpp
-  Version:   $Rev: 2699 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   11-Apr-06, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: tiffcomposite.cpp 2699 2012-04-11 16:02:52Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: tiffcomposite.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
-// *****************************************************************************
 // included header files
-#ifdef _MSC_VER
-# include "exv_msvc.h"
-#else
-# include "exv_conf.h"
-#endif
+#include "config.h"
 
 #include "tiffimage_int.hpp"
 #include "tiffcomposite_int.hpp"
@@ -177,8 +172,12 @@ namespace Exiv2 {
     }
 
     TiffBinaryElement::TiffBinaryElement(uint16_t tag, IfdId group)
-        : TiffEntryBase(tag, group)
+        : TiffEntryBase(tag, group),
+        elByteOrder_(invalidByteOrder)
     {
+        elDef_.idx_ = 0;
+        elDef_.tiffType_ = ttUndefined;
+        elDef_.count_ = 0;
     }
 
     TiffComponent::~TiffComponent()
@@ -1845,6 +1844,13 @@ namespace Exiv2 {
         // On the fly type conversion for Exif.Photo.UserComment
         if (tag == 0x9286 && group == exifId && ti == undefined) {
             ti = comment;
+        }
+        // http://dev.exiv2.org/boards/3/topics/1337 change unsignedByte to signedByte
+        // Exif.NikonAFT.AFFineTuneAdj || Exif.Pentax.Temperature
+        if ( ti == Exiv2::unsignedByte ) {
+            if ( (tag == 0x0002 && group == nikonAFTId ) || (tag == 0x0047 && group == pentaxId) ) {
+                ti = Exiv2::signedByte;
+            }
         }
         return ti;
     }

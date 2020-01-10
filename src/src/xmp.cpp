@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -15,18 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this f; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, 5th Floor, Boston, MA 02110-1301 USA.
  */
 /*
   File:      xmp.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   13-July-07, ahu: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: xmp.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: xmp.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -89,18 +89,16 @@ namespace {
     //! Convert XmpFormatFlags to XMP Toolkit format option bits
     XMP_OptionBits xmpFormatOptionBits(Exiv2::XmpParser::XmpFormatFlags flags);
 
-# ifdef DEBUG
     //! Print information about a parsed XMP node
     void printNode(const std::string& schemaNs,
                    const std::string& propPath,
                    const std::string& propValue,
                    const XMP_OptionBits& opt);
-# endif // DEBUG
-#endif // EXV_HAVE_XMP_TOOLKIT
 
     //! Make an XMP key from a schema namespace and property path
     Exiv2::XmpKey::AutoPtr makeXmpKey(const std::string& schemaNs,
                                       const std::string& propPath);
+#endif // EXV_HAVE_XMP_TOOLKIT
 
     //! Helper class used to serialize critical sections
     class AutoLock
@@ -396,16 +394,20 @@ namespace Exiv2 {
     XmpParser::XmpLockFct XmpParser::xmpLockFct_ = 0;
     void* XmpParser::pLockData_ = 0;
 
+#ifdef EXV_HAVE_XMP_TOOLKIT
     bool XmpParser::initialize(XmpParser::XmpLockFct xmpLockFct, void* pLockData)
     {
         if (!initialized_) {
-#ifdef EXV_HAVE_XMP_TOOLKIT
             xmpLockFct_ = xmpLockFct;
             pLockData_ = pLockData;
             initialized_ = SXMPMeta::Initialize();
+            SXMPMeta::RegisterNamespace("http://ns.adobe.com/lightroom/1.0/", "lr");
+            SXMPMeta::RegisterNamespace("http://rs.tdwg.org/dwc/index.htm", "dwc");
+            SXMPMeta::RegisterNamespace("http://purl.org/dc/terms/", "dcterms");
             SXMPMeta::RegisterNamespace("http://www.digikam.org/ns/1.0/", "digiKam");
             SXMPMeta::RegisterNamespace("http://www.digikam.org/ns/kipi/1.0/", "kipi");
             SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.0/", "MicrosoftPhoto");
+            SXMPMeta::RegisterNamespace("http://ns.acdsee.com/iptc/1.0/", "acdsee");
             SXMPMeta::RegisterNamespace("http://iptc.org/std/Iptc4xmpExt/2008-02-29/", "iptcExt");
             SXMPMeta::RegisterNamespace("http://ns.useplus.org/ldf/xmp/1.0/", "plus");
             SXMPMeta::RegisterNamespace("http://ns.iview-multimedia.com/mediapro/1.0/", "mediapro");
@@ -413,14 +415,79 @@ namespace Exiv2 {
             SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/", "MP");
             SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/t/RegionInfo#", "MPRI");
             SXMPMeta::RegisterNamespace("http://ns.microsoft.com/photo/1.2/t/Region#", "MPReg");
+            SXMPMeta::RegisterNamespace("http://ns.google.com/photos/1.0/panorama/", "GPano");
             SXMPMeta::RegisterNamespace("http://www.metadataworkinggroup.com/schemas/regions/", "mwg-rs");
+            SXMPMeta::RegisterNamespace("http://www.metadataworkinggroup.com/schemas/keywords/", "mwg-kw");
             SXMPMeta::RegisterNamespace("http://ns.adobe.com/xmp/sType/Area#", "stArea");
-#else
-            initialized_ = true;
-#endif
+            SXMPMeta::RegisterNamespace("http://cipa.jp/exif/1.0/", "exifEX");
+		    SXMPMeta::RegisterNamespace("http://ns.adobe.com/camera-raw-saved-settings/1.0/", "crss");
+            SXMPMeta::RegisterNamespace("http://www.audio/", "audio");
+            SXMPMeta::RegisterNamespace("http://www.video/", "video");
         }
         return initialized_;
     }
+#else
+    bool XmpParser::initialize(XmpParser::XmpLockFct, void* )
+    {
+    	initialized_ = true;
+        return initialized_;
+    }
+#endif
+
+#ifdef EXV_HAVE_XMP_TOOLKIT
+    static XMP_Status nsDumper
+    ( void*           refCon
+    , XMP_StringPtr   buffer
+    , XMP_StringLen   bufferSize
+    ) {
+        XMP_Status result = 0 ;
+        std::string out(buffer,bufferSize);
+
+        // remove blanks
+        // http://stackoverflow.com/questions/83439/remove-spaces-from-stdstring-in-c
+        std::string::iterator end_pos = std::remove(out.begin(), out.end(), ' ');
+        out.erase(end_pos, out.end());
+
+        bool bURI = out.find("http://") != std::string::npos   ;
+        bool bNS  = out.find(":") != std::string::npos && !bURI;
+
+        // pop trailing ':' on a namespace
+        if ( bNS ) {
+	    std::size_t length = out.length();
+            if ( out[length-1] == ':' ) out = out.substr(0,length-1);
+        }
+
+        if ( bURI || bNS ) {
+            std::map<std::string,std::string>* p = (std::map<std::string,std::string>*) refCon;
+            std::map<std::string,std::string>& m = (std::map<std::string,std::string>&) *p    ;
+
+            std::string b("");
+            if ( bNS ) {  // store the NS in dict[""]
+                m[b]=out;
+            } else if ( m.find(b) != m.end() ) {  // store dict[uri] = dict[""]
+                m[m[b]]=out;
+                m.erase(b);
+            }
+        }
+        return result;
+    }
+#endif
+
+#ifdef EXV_HAVE_XMP_TOOLKIT
+    void XmpParser::registeredNamespaces(Exiv2::Dictionary& dict)
+    {
+    	bool bInit = !initialized_;
+        try {
+        	if (bInit) initialize();
+        	SXMPMeta::DumpNamespaces(nsDumper,&dict);
+        	if (bInit) terminate();
+        } catch (const XMP_Error& e) {
+            throw Error(40, e.GetID(), e.GetErrMsg());
+        }
+    }
+#else
+    void XmpParser::registeredNamespaces(Exiv2::Dictionary&){}
+#endif
 
     void XmpParser::terminate()
     {
@@ -429,8 +496,6 @@ namespace Exiv2 {
 #ifdef EXV_HAVE_XMP_TOOLKIT
             SXMPMeta::Terminate();
 #endif
-            xmpLockFct_ = 0;
-            pLockData_ = 0;
             initialized_ = false;
         }
     }
@@ -475,6 +540,7 @@ namespace Exiv2 {
                           const std::string& xmpPacket)
     { try {
         xmpData.clear();
+        xmpData.setPacket(xmpPacket);
         if (xmpPacket.empty()) return 0;
 
         if (!initialize()) {
@@ -489,9 +555,7 @@ namespace Exiv2 {
         std::string schemaNs, propPath, propValue;
         XMP_OptionBits opt;
         while (iter.Next(&schemaNs, &propPath, &propValue, &opt)) {
-#ifdef DEBUG
             printNode(schemaNs, propPath, propValue, opt);
-#endif
             if (XMP_PropIsAlias(opt)) {
                 throw Error(47, schemaNs, propPath, propValue);
                 continue;
@@ -516,9 +580,7 @@ namespace Exiv2 {
                 while (count-- > 0) {
                     // Get the text
                     bool haveNext = iter.Next(&schemaNs, &propPath, &propValue, &opt);
-#ifdef DEBUG
                     printNode(schemaNs, propPath, propValue, opt);
-#endif
                     if (   !haveNext
                         || !XMP_PropIsSimple(opt)
                         || !XMP_PropHasLang(opt)) {
@@ -527,9 +589,7 @@ namespace Exiv2 {
                     const std::string text = propValue;
                     // Get the language qualifier
                     haveNext = iter.Next(&schemaNs, &propPath, &propValue, &opt);
-#ifdef DEBUG
                     printNode(schemaNs, propPath, propValue, opt);
-#endif
                     if (   !haveNext
                         || !XMP_PropIsSimple(opt)
                         || !XMP_PropIsQualifier(opt)
@@ -566,9 +626,7 @@ namespace Exiv2 {
                     XMP_Index count = meta.CountArrayItems(schemaNs.c_str(), propPath.c_str());
                     while (count-- > 0) {
                         iter.Next(&schemaNs, &propPath, &propValue, &opt);
-#ifdef DEBUG
                         printNode(schemaNs, propPath, propValue, opt);
-#endif
                         val->read(propValue);
                     }
                     xmpData.add(*key.get(), val.get());
@@ -654,31 +712,26 @@ namespace Exiv2 {
             XMP_OptionBits options = 0;
 
             if (i->typeId() == langAlt) {
+
                 // Encode Lang Alt property
                 const LangAltValue* la = dynamic_cast<const LangAltValue*>(&i->value());
                 if (la == 0) throw Error(43, i->key());
+
                 int idx = 1;
-                // write the default first
-                LangAltValue::ValueType::const_iterator k = la->value_.find("x-default");
-                if (k != la->value_.end()) {
-#ifdef DEBUG
-                    printNode(ns, i->tagName(), k->second, 0);
-#endif
-                    meta.AppendArrayItem(ns.c_str(), i->tagName().c_str(), kXMP_PropArrayIsAlternate, k->second.c_str());
-                    const std::string item = i->tagName() + "[" + toString(idx++) + "]";
-                    meta.SetQualifier(ns.c_str(), item.c_str(), kXMP_NS_XML, "lang", k->first.c_str());
-                }
-                for (k = la->value_.begin(); k != la->value_.end(); ++k) {
-                    if (k->first == "x-default") continue;
-#ifdef DEBUG
-                    printNode(ns, i->tagName(), k->second, 0);
-#endif
-                    meta.AppendArrayItem(ns.c_str(), i->tagName().c_str(), kXMP_PropArrayIsAlternate, k->second.c_str());
-                    const std::string item = i->tagName() + "[" + toString(idx++) + "]";
-                    meta.SetQualifier(ns.c_str(), item.c_str(), kXMP_NS_XML, "lang", k->first.c_str());
+                for ( LangAltValue::ValueType::const_iterator k = la->value_.begin()
+                    ; k != la->value_.end()
+                    ; ++k
+                ) {
+                    if ( k->second.size() ) { // remove lang specs with no value
+                        printNode(ns, i->tagName(), k->second, 0);
+                        meta.AppendArrayItem(ns.c_str(), i->tagName().c_str(), kXMP_PropArrayIsAlternate, k->second.c_str());
+                        const std::string item = i->tagName() + "[" + toString(idx++) + "]";
+                        meta.SetQualifier(ns.c_str(), item.c_str(), kXMP_NS_XML, "lang", k->first.c_str());
+                    }
                 }
                 continue;
             }
+
             // Todo: Xmpdatum should have an XmpValue, not a Value
             const XmpValue* val = dynamic_cast<const XmpValue*>(&i->value());
             if (val == 0) throw Error(52, i->key(), i->typeName());
@@ -687,30 +740,22 @@ namespace Exiv2 {
             if (   i->typeId() == xmpBag
                 || i->typeId() == xmpSeq
                 || i->typeId() == xmpAlt) {
-#ifdef DEBUG
                 printNode(ns, i->tagName(), "", options);
-#endif
                 meta.SetProperty(ns.c_str(), i->tagName().c_str(), 0, options);
                 for (int idx = 0; idx < i->count(); ++idx) {
                     const std::string item = i->tagName() + "[" + toString(idx + 1) + "]";
-#ifdef DEBUG
                     printNode(ns, item, i->toString(idx), 0);
-#endif
                     meta.SetProperty(ns.c_str(), item.c_str(), i->toString(idx).c_str());
                 }
                 continue;
             }
             if (i->typeId() == xmpText) {
                 if (i->count() == 0) {
-#ifdef DEBUG
                     printNode(ns, i->tagName(), "", options);
-#endif
                     meta.SetProperty(ns.c_str(), i->tagName().c_str(), 0, options);
                 }
                 else {
-#ifdef DEBUG
                     printNode(ns, i->tagName(), i->toString(0), options);
-#endif
                     meta.SetProperty(ns.c_str(), i->tagName().c_str(), i->toString(0).c_str(), options);
                 }
                 continue;
@@ -866,8 +911,13 @@ namespace {
         }
         std::cout << std::endl;
     }
+#else
+    void printNode(const std::string& ,
+                   const std::string& ,
+                   const std::string& ,
+                   const XMP_OptionBits& )
+    {}
 #endif // DEBUG
-#endif // EXV_HAVE_XMP_TOOLKIT
 
     Exiv2::XmpKey::AutoPtr makeXmpKey(const std::string& schemaNs,
                                       const std::string& propPath)
@@ -885,5 +935,6 @@ namespace {
         }
         return Exiv2::XmpKey::AutoPtr(new Exiv2::XmpKey(prefix, property));
     } // makeXmpKey
+#endif // EXV_HAVE_XMP_TOOLKIT
 
 }

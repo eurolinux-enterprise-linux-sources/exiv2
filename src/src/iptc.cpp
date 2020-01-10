@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,13 +20,13 @@
  */
 /*
   File:      iptc.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Brad Schick (brad) <brad@robotbattle.com>
   History:   31-July-04, brad: created
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: iptc.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: iptc.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -36,6 +36,7 @@ EXIV2_RCSID("@(#) $Id: iptc.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
 #include "value.hpp"
 #include "datasets.hpp"
 #include "jpgimage.hpp"
+#include "image_int.hpp"
 
 // + standard includes
 #include <iostream>
@@ -351,6 +352,25 @@ namespace Exiv2 {
     {
         return iptcMetadata_.erase(pos);
     }
+
+	void IptcData::printStructure(std::ostream& out, const byte* bytes,const size_t size,uint32_t depth)
+	{
+		uint32_t i     = 0 ;
+		while  ( i < size-3 && bytes[i] != 0x1c ) i++;
+		depth++;
+		out << Internal::indent(depth) << "Record | DataSet | Name                     | Length | Data" << std::endl;
+		while ( bytes[i] == 0x1c && i < size-3 ) {
+			char buff[100];
+			uint16_t record  = bytes[i+1];
+			uint16_t dataset = bytes[i+2];
+			uint16_t len     = getUShort(bytes+i+3,bigEndian);
+			sprintf(buff,"  %6d | %7d | %-24s | %6d | ",record,dataset, Exiv2::IptcDataSets::dataSetName(dataset,record).c_str(), len);
+
+			out << buff << Internal::binaryToString(bytes,(len>40?40:len),i+5) << (len>40?"...":"") << std::endl;
+			i += 5 + len;
+		}
+		depth--;
+	}
 
     const char *IptcData::detectCharset() const
     {

@@ -1,5 +1,5 @@
 // ***************************************************************** -*- C++ -*-
-// xmpsample.cpp, $Rev: 2639 $
+// xmpsample.cpp, $Rev: 3090 $
 // Sample/test for high level XMP classes. See also addmoddel.cpp
 
 #include <exiv2/exiv2.hpp>

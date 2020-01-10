@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -20,7 +20,7 @@
  */
 /*
   File:      value.cpp
-  Version:   $Rev: 2681 $
+  Version:   $Rev: 4719 $
   Author(s): Andreas Huggel (ahu) <ahuggel@gmx.net>
   History:   26-Jan-04, ahu: created
              11-Feb-04, ahu: isolated as a component
@@ -28,7 +28,7 @@
  */
 // *****************************************************************************
 #include "rcsid_int.hpp"
-EXIV2_RCSID("@(#) $Id: value.cpp 2681 2012-03-22 15:19:35Z ahuggel $")
+EXIV2_RCSID("@(#) $Id: value.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 
 // *****************************************************************************
 // included header files
@@ -393,9 +393,10 @@ namespace Exiv2 {
 
     std::ostream& AsciiValue::write(std::ostream& os) const
     {
-        // Strip all trailing '\0's (if any)
-        std::string::size_type pos = value_.find_last_not_of('\0');
-        return os << value_.substr(0, pos + 1);
+        // Write only up to the first '\0' (if any)
+        std::string::size_type pos = value_.find_first_of('\0');
+        if (pos == std::string::npos) pos = value_.size();
+        return os << value_.substr(0, pos);
     }
 
     CommentValue::CharsetTable::CharsetTable(CharsetId charsetId,
@@ -846,27 +847,33 @@ namespace Exiv2 {
         return static_cast<long>(value_.size());
     }
 
+    static const std::string x_default = "x-default";
+
     std::ostream& LangAltValue::write(std::ostream& os) const
     {
-        bool first = true;
+        bool        first     = true;
+
         // Write the default entry first
-        ValueType::const_iterator i = value_.find("x-default");
+        ValueType::const_iterator i = value_.find(x_default);
         if (i != value_.end()) {
             os << "lang=\"" << i->first << "\" " << i->second;
             first = false;
         }
+
+        // Write the others
         for (i = value_.begin(); i != value_.end(); ++i) {
-            if (i->first == "x-default") continue;
-            if (!first) os << ", ";
-            os << "lang=\"" << i->first << "\" " << i->second;
-            first = false;
+            if (i->first != x_default ) {
+                if (!first) os << ", ";
+                os << "lang=\"" << i->first << "\" " << i->second;
+                first = false;
+            }
         }
         return os;
     }
 
     std::string LangAltValue::toString(long /*n*/) const
     {
-        return toString("x-default");
+        return toString(x_default);
     }
 
     std::string LangAltValue::toString(const std::string& qualifier) const
@@ -1004,9 +1011,12 @@ namespace Exiv2 {
 
     std::ostream& DateValue::write(std::ostream& os) const
     {
-        return os << date_.year << '-' << std::right
-               << std::setw(2) << std::setfill('0') << date_.month << '-'
-               << std::setw(2) << std::setfill('0') << date_.day;
+        std::ios::fmtflags f( os.flags() );
+        os << date_.year << '-' << std::right
+           << std::setw(2) << std::setfill('0') << date_.month << '-'
+           << std::setw(2) << std::setfill('0') << date_.day;
+        os.flags(f);
+        return os;
     }
 
     long DateValue::toLong(long /*n*/) const
@@ -1182,12 +1192,16 @@ namespace Exiv2 {
         char plusMinus = '+';
         if (time_.tzHour < 0 || time_.tzMinute < 0) plusMinus = '-';
 
-        return os << std::right
+        std::ios::fmtflags f( os.flags() );
+        os << std::right
            << std::setw(2) << std::setfill('0') << time_.hour << ':'
            << std::setw(2) << std::setfill('0') << time_.minute << ':'
            << std::setw(2) << std::setfill('0') << time_.second << plusMinus
            << std::setw(2) << std::setfill('0') << abs(time_.tzHour) << ':'
            << std::setw(2) << std::setfill('0') << abs(time_.tzMinute);
+        os.flags(f);
+
+        return os;
     }
 
     long TimeValue::toLong(long /*n*/) const

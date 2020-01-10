@@ -1,6 +1,6 @@
 // ***************************************************************** -*- C++ -*-
 /*
- * Copyright (C) 2004-2012 Andreas Huggel <ahuggel@gmx.net>
+ * Copyright (C) 2004-2017 Andreas Huggel <ahuggel@gmx.net>
  *
  * This program is part of the Exiv2 distribution.
  *
@@ -21,7 +21,7 @@
 /*!
   @file    exiv2app.hpp
   @brief   Defines class Params, used for the command line handling of exiv2
-  @version $Rev: 2681 $
+  @version $Rev: 3091 $
   @author  Andreas Huggel (ahu)
            <a href="mailto:ahuggel@gmx.net">ahuggel@gmx.net</a>
   @date    08-Dec-03, ahu: created
@@ -31,6 +31,8 @@
 
 // *****************************************************************************
 // included header files
+#include <exiv2/exiv2.hpp>
+
 #include "utils.hpp"
 #include "types.hpp"
 
@@ -40,13 +42,47 @@
 #include <set>
 #include <iostream>
 
+#ifdef EXV_HAVE_REGEX
+#include <regex.h>
+#endif
+
+#ifdef EXV_HAVE_STDINT_H
+#include <unistd.h>
+#endif
+
+// stdin handler includes
+#ifndef  _MSC_VER
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#if defined(__CYGWIN__) || defined(__MINGW__)
+#include <windows.h>
+#else
+#include <sys/select.h>
+#endif
+#endif
+
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW__) || defined(_MSC_VER)
+#include <fcntl.h>
+#include <io.h>
+#endif
+
+
 // *****************************************************************************
 // class definitions
 
 //! Command identifiers
 enum CmdId { invalidCmdId, add, set, del, reg };
 //! Metadata identifiers
-enum MetadataId { invalidMetadataId, iptc, exif, xmp };
+// enum MetadataId { invalidMetadataId, iptc, exif, xmp };
+//! Metadata identifiers
+// mdNone=0, mdExif=1, mdIptc=2, mdComment=4, mdXmp=8
+enum MetadataId { invalidMetadataId = Exiv2::mdNone
+                , iptc = Exiv2::mdIptc
+                , exif = Exiv2::mdExif
+                , xmp  = Exiv2::mdXmp
+                } ;
+
 //! Structure for one parsed modification command
 struct ModifyCmd {
     //! C'tor
@@ -103,6 +139,7 @@ struct CmdIdAndString {
   }
   @endcode
  */
+
 class Params : public Util::Getopt {
 private:
     std::string optstring_;
@@ -116,6 +153,8 @@ public:
     typedef std::vector<std::string> Files;
     //! Container for preview image numbers
     typedef std::set<int> PreviewNumbers;
+    //! Container for greps
+    typedef  exv_grep_keys_t Greps;
     //! Container for keys
     typedef std::vector<std::string> Keys;
 
@@ -132,7 +171,11 @@ public:
         pmSummary,
         pmList,
         pmComment,
-        pmPreview
+        pmPreview,
+        pmStructure,
+        pmXMP,
+        pmIccProfile,
+        pmRecursive
     };
 
     //! Individual items to print, bitmap
@@ -147,18 +190,23 @@ public:
         prSize  =  128,
         prValue =  256,
         prTrans =  512,
-        prHex   = 1024
+        prHex   = 1024,
+        prSet   = 2048
     };
 
     //! Enumerates common targets, bitmap
     enum CommonTarget {
-        ctExif       =  1,
-        ctIptc       =  2,
-        ctComment    =  4,
-        ctThumb      =  8,
-        ctXmp        = 16,
-        ctXmpSidecar = 32,
-        ctPreview    = 64
+        ctExif       =   1,
+        ctIptc       =   2,
+        ctComment    =   4,
+        ctThumb      =   8,
+        ctXmp        =  16,
+        ctXmpSidecar =  32,
+        ctPreview    =  64,
+        ctIccProfile = 128,
+        ctXmpRaw     = 256,
+        ctStdInOut   = 512,
+        ctIptcRaw    =1024
     };
 
     //! Enumerates the policies to handle existing files in rename action
@@ -204,8 +252,11 @@ public:
     std::string suffix_;                //!< File extension of the file to insert
     Files files_;                       //!< List of non-option arguments.
     PreviewNumbers previewNumbers_;     //!< List of preview numbers
-    Keys keys_;                         //!< List of keys to 'grep' from the metadata
+    Greps greps_;                       //!< List of keys to 'grep' from the metadata
+    Keys  keys_;                        //!< List of keys to match from the metadata
     std::string charset_;               //!< Charset to use for UNICODE Exif user comment
+
+    Exiv2::DataBuf  stdinBuf;           //!< DataBuf with the binary bytes from stdin
 
 private:
     //! Pointer to the global Params object.
@@ -220,7 +271,7 @@ private:
       @brief Default constructor. Note that optstring_ is initialized here.
              The c'tor is private to force instantiation through instance().
      */
-    Params() : optstring_(":hVvqfbuktTFa:Y:O:D:r:p:P:d:e:i:c:m:M:l:S:g:n:Q:"),
+    Params() : optstring_(":hVvqfbuktTFa:Y:O:D:r:p:P:d:e:i:c:m:M:l:S:g:K:n:Q:"),
                help_(false),
                version_(false),
                verbose_(false),
@@ -253,6 +304,8 @@ private:
     //! @name Helpers
     //@{
     int setLogLevel(const std::string& optarg);
+    int evalGrep( const std::string& optarg);
+    int evalKey( const std::string& optarg);
     int evalRename(int opt, const std::string& optarg);
     int evalAdjust(const std::string& optarg);
     int evalYodAdjust(const Yod& yod, const std::string& optarg);
@@ -290,7 +343,18 @@ public:
     void help(std::ostream& os =std::cout) const;
 
     //! Print version information to an output stream.
-    void version(std::ostream& os =std::cout) const;
+    void version(bool verbose =false, std::ostream& os =std::cout) const;
+
+    //! Print target_
+    static std::string printTarget(std::string before,int target,bool bPrint=false,std::ostream& os=std::cout);
+
+    //! getStdin binary data read from stdin to DataBuf
+    /*
+        stdin can be used by multiple images in the exiv2 command line:
+        For example: $ cat foo.icc | exiv2 -iC- a.jpg b.jpg c.jpg will modify the ICC profile in several images.
+    */
+    void getStdin(Exiv2::DataBuf& buf);
+
 }; // class Params
 
 #endif                                  // #ifndef EXIV2APP_HPP_
